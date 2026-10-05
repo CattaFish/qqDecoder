@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ==========================================
-      # 2. 自动检测更新（排队机制：按时间从旧到新依次处理，防止漏包）
+      # 2. 自动检测更新（只读取解析，不提前更新仓库）
       # ==========================================
       - name: Check for QQ Update
         id: check_update
@@ -107,7 +107,6 @@ jobs:
                   f.write("has_more=false\n")
               exit(0)
 
-          # 先进先出：处理待处理队列中最早发布的一个
           target_entry = pending_entries[0]
           has_more = len(pending_entries) > 1
 
@@ -123,9 +122,6 @@ jobs:
           filename = target_url.split('/')[-1].replace('.apk', '')
           version_short = ver_match.group(1) if ver_match else filename.split('_')[0]
 
-          with open("latest_version.txt", "w", encoding="utf-8") as f:
-              f.write(target_url)
-
           github_output = os.environ.get('GITHUB_OUTPUT')
           with open(github_output, 'a', encoding='utf-8') as f:
               f.write(f"apk_url={target_url}\n")
@@ -140,42 +136,41 @@ jobs:
           EOF
 
       # ==========================================
-      # 3. 提交版本记录更新
-      # ==========================================
-      - name: Commit and Push Version Update
-        if: steps.check_update.outputs.has_update == 'true'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add latest_version.txt
-          git commit -m "Auto-update QQ APK version record: ${{ steps.check_update.outputs.version_short }} [skip ci]" || echo "No changes to commit"
-          git push
-
-      # ==========================================
-      # 4. 清理磁盘空间并检测最优存储路径
+      # 3. 【自适应】深度清理磁盘并探测最优大盘
       # ==========================================
       - name: Free Disk Space (Cleanup) & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
         run: |
+          echo ">>> 正在执行深度磁盘瘦身..."
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY" 2>/dev/null || true
+          sudo rm -rf /mnt/docker 2>/dev/null || true
+          
+          echo "==================== 清理后各挂载分区状态 ===================="
+          df -hT / /mnt 2>/dev/null || df -h /
           
           MNT_AVAIL=$(df -k /mnt 2>/dev/null | tail -n 1 | awk '{print $4}')
           ROOT_AVAIL=$(df -k / 2>/dev/null | tail -n 1 | awk '{print $4}')
           
           [ -z "$MNT_AVAIL" ] && MNT_AVAIL=0
+          [ -z "$ROOT_AVAIL" ] && ROOT_AVAIL=0
           
           if [ "$MNT_AVAIL" -gt "$ROOT_AVAIL" ]; then
             echo "TARGET_DIR=/mnt" >> $GITHUB_ENV
+            echo "BEST_AVAIL_KB=${MNT_AVAIL}" >> $GITHUB_ENV
+            echo ">>> 决策结果: 选定临时盘 [/mnt] 为主力工作区与 Swap 存放地"
           else
             echo "TARGET_DIR=" >> $GITHUB_ENV
+            echo "BEST_AVAIL_KB=${ROOT_AVAIL}" >> $GITHUB_ENV
+            echo ">>> 决策结果: 选定根目录 [/] 为主力工作区与 Swap 存放地"
           fi
 
       # ==========================================
-      # 5. 开启 32GB Swap 虚拟内存
+      # 4. 【自适应】最高拉满 64G Swap 与 48G JVM 堆内存
       # ==========================================
-      - name: Create 32GB Swap Space
+      - name: Create Dynamic Adaptive Swap Space
         if: steps.check_update.outputs.has_update == 'true'
         run: |
           if [ "${{ env.TARGET_DIR }}" = "/mnt" ]; then
@@ -184,15 +179,50 @@ jobs:
             SWAP_PATH="/swapfile"
           fi
           
+          AVAIL_GB=$(( ${{ env.BEST_AVAIL_KB }} / 1024 / 1024 ))
+          echo "选定盘当前可用硬盘容量: ${AVAIL_GB} GB"
+          
+          RESERVE_DISK=18
+          CALC_SWAP=$(( AVAIL_GB - RESERVE_DISK ))
+          
+          if [ "$CALC_SWAP" -gt 64 ]; then
+            ALLOC_SWAP=64
+          elif [ "$CALC_SWAP" -lt 16 ]; then
+            ALLOC_SWAP=16
+          else
+            ALLOC_SWAP=$CALC_SWAP
+          fi
+          
+          echo ">>> 动态计算策略: 留存 ${RESERVE_DISK}G 物理硬盘，开辟 ${ALLOC_SWAP}G Swap 虚拟内存"
+          
           sudo swapoff -a || true
-          sudo fallocate -l 32G $SWAP_PATH
+          sudo fallocate -l "${ALLOC_SWAP}G" $SWAP_PATH
           sudo chmod 600 $SWAP_PATH
           sudo mkswap $SWAP_PATH
           sudo swapon $SWAP_PATH
+          
+          TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+          TOTAL_SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
+          TOTAL_MEM_GB=$(( (TOTAL_RAM_KB + TOTAL_SWAP_KB) / 1024 / 1024 ))
+          
+          JVM_HEAP=$(( TOTAL_MEM_GB - 8 ))
+          if [ "$JVM_HEAP" -gt 48 ]; then
+            JVM_HEAP=48
+          elif [ "$JVM_HEAP" -lt 24 ]; then
+            JVM_HEAP=24
+          fi
+          
+          echo "JVM_HEAP_SIZE=${JVM_HEAP}g" >> $GITHUB_ENV
+          
+          echo "==================== 当前内存池看板 (RAM + Swap) ===================="
           free -h
+          echo ">>> 本次分配给 JADX 的最大堆内存 (-Xmx): ${JVM_HEAP}g"
+          
+          echo "==================== 创建 Swap 后【剩余真实物理硬盘】 ===================="
+          df -hT / /mnt 2>/dev/null || df -h /
 
       # ==========================================
-      # 6. 环境准备 (JDK 17)
+      # 5. 环境准备 (JDK 17)
       # ==========================================
       - name: Set up JDK 17
         if: steps.check_update.outputs.has_update == 'true'
@@ -202,7 +232,7 @@ jobs:
           distribution: 'temurin'
 
       # ==========================================
-      # 7. 下载 APK
+      # 6. 下载 APK
       # ==========================================
       - name: Download APK from Latest Link
         if: steps.check_update.outputs.has_update == 'true'
@@ -225,7 +255,7 @@ jobs:
           du -sh target.apk
 
       # ==========================================
-      # 8. 安装 JADX
+      # 7. 安装 JADX
       # ==========================================
       - name: Install JADX
         if: steps.check_update.outputs.has_update == 'true'
@@ -238,7 +268,7 @@ jobs:
           echo "$GITHUB_WORKSPACE/bin/jadx/bin" >> $GITHUB_PATH
 
       # ==========================================
-      # 9. 执行反编译
+      # 8. 执行反编译（引用动态计算的极限堆内存）
       # ==========================================
       - name: Decompile APK
         if: steps.check_update.outputs.has_update == 'true'
@@ -260,7 +290,8 @@ jobs:
             fi
           fi
           
-          export JAVA_OPTS="-Xmx30g"
+          export JAVA_OPTS="-Xmx${{ env.JVM_HEAP_SIZE }}"
+          echo "JADX JAVA_OPTS: $JAVA_OPTS"
           
           set +e
           if [ -n "$FILTER" ]; then
@@ -284,7 +315,7 @@ jobs:
           rm -rf dex_extracted
 
       # ==========================================
-      # 10. 打包源码产物
+      # 9. 打包源码产物
       # ==========================================
       - name: Zip Decompiled Files
         if: steps.check_update.outputs.has_update == 'true'
@@ -300,7 +331,7 @@ jobs:
           fi
 
       # ==========================================
-      # 11. 【秒级完成】智能 Hash 预筛选 + 精准 Diff 引擎
+      # 10. 【秒级完成】智能 Hash 预筛选 + 精准 Diff 引擎
       # ==========================================
       - name: Generate Smart Diff with Previous Release
         if: steps.check_update.outputs.has_update == 'true'
@@ -310,7 +341,6 @@ jobs:
           cd workspace
           CURRENT_TAG="v${{ steps.check_update.outputs.version_short }}"
           
-          # 获取最近的一个历史版本 Release Tag（排除当前版本自身）
           PREV_TAG=$(gh release list --limit 10 --json tagName -q '.[].tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
           export PREV_TAG
           
@@ -379,7 +409,6 @@ jobs:
                 modified = []
                 print(f"正在比对共有文件 (共 {len(common)} 个)...")
                 for rel_p in common:
-                    # 先比大小；大小不同必被修改；大小相同再测 MD5
                     if files_old[rel_p] != files_new[rel_p]:
                         modified.append(rel_p)
                     else:
@@ -391,7 +420,6 @@ jobs:
                 modified.sort()
                 print(f"比对完成: 新增 {len(added)} | 删除 {len(deleted)} | 修改 {len(modified)}")
 
-                # 仅对真正发生同名代码修改的文件生成高价值 Unified Diff
                 diff_patch_path = "diff.patch"
                 print(f"正在对 {len(modified)} 个修改文件生成行级 Diff Patch...")
                 with open(diff_patch_path, "w", encoding="utf-8", errors="replace") as patch_out:
@@ -412,13 +440,11 @@ jobs:
                         except Exception as e:
                             print(f"跳过异常文件 {rel_p}: {e}")
 
-                # 将 patch 压缩为 zip
                 with zipfile.ZipFile("diff.patch.zip", "w", zipfile.ZIP_DEFLATED) as zf:
                     zf.write(diff_patch_path, arcname="diff.patch")
                 if os.path.exists(diff_patch_path):
                     os.remove(diff_patch_path)
 
-                # 生成 Markdown 统计摘要
                 with open("diff_notes.md", "w", encoding="utf-8") as out:
                     out.write(f"\n### 🔍 代码变更智能 Diff (对比上一版本)\n\n")
                     out.write(f"- **对比基准版本：** `{prev_tag}`\n")
@@ -441,12 +467,11 @@ jobs:
               echo -e "\n- **代码对比：** 未能下载到 \`${PREV_TAG}\` 的产物文件。\n" >> diff_notes.md
             fi
             
-            # 立即清理旧版解压目录，彻底释放磁盘
             rm -rf prev_download prev_code
           fi
 
       # ==========================================
-      # 12. 上传 Artifact 备份
+      # 11. 上传 Artifact 备份
       # ==========================================
       - name: Upload Decoupled Artifacts
         if: steps.check_update.outputs.has_update == 'true'
@@ -457,7 +482,7 @@ jobs:
           retention-days: 7
 
       # ==========================================
-      # 13. 创建 GitHub Release（附带 Diff 附件与智能说明）
+      # 12. 创建 GitHub Release（附带 Diff 附件与说明）
       # ==========================================
       - name: Create GitHub Release
         if: steps.check_update.outputs.has_update == 'true'
@@ -479,7 +504,6 @@ jobs:
             BETA_NOTE="> **当前版本被 Telegram 频道标记的 #Beta 测试版本**\n\n"
           fi
 
-          # 收集待上传附件
           ASSETS="workspace/java_output.zip"
           if [ -f "workspace/diff.patch.zip" ]; then
             ASSETS="${ASSETS} workspace/diff.patch.zip"
@@ -490,7 +514,6 @@ jobs:
             DIFF_CONTENT=$(cat workspace/diff_notes.md)
           fi
 
-          # 构造完整的 Release Markdown，避免转义符引起的解析错误
           cat << EOF > workspace/release_notes.md
           ${BETA_NOTE}### QQ Android 自动反编译产物说明
 
@@ -510,6 +533,24 @@ jobs:
             ${EXTRA_FLAGS} \
             --notes-file workspace/release_notes.md || \
           gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
+
+      # ==========================================
+      # 13. 【关键改动】Release 成功后才提交更新仓库记录（防中断跳过）
+      # ==========================================
+      - name: Commit and Push Version Update
+        if: steps.check_update.outputs.has_update == 'true'
+        run: |
+          echo "反编译及 Release 发布全部成功，正在落盘记录最新版本..."
+          echo "${{ steps.check_update.outputs.apk_url }}" > latest_version.txt
+          
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest_version.txt
+          git commit -m "Auto-update QQ APK version record: ${{ steps.check_update.outputs.version_short }} [skip ci]" || echo "No changes to commit"
+          
+          # 防止任务运行 2 小时期间远程主分支有微小变动导致 push 冲突
+          git pull --rebase origin main || true
+          git push
 
       # ==========================================
       # 14. 如果还有未完成版本，自动触发下一次工作流
