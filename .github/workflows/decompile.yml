@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # 用于推送版本记录与发布 Release
-      actions: write  # 用于当有积压版本时自动续跑下一次任务
+      actions: write  # 用于当检测到同天有多个版本积压时自动续跑
 
     steps:
       # ==========================================
@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ==========================================
-      # 2. 自动检测更新（排队机制：按时间从旧到新依次处理）
+      # 2. 自动检测更新（排队机制：按时间从旧到新依次处理，防止漏包）
       # ==========================================
       - name: Check for QQ Update
         id: check_update
@@ -57,16 +57,13 @@ jobs:
               print(f"Error fetching TG channel: {e}")
               exit(1)
 
-          # 读取本地记录的上一次处理完成的版本链接
           old_url = ""
           if os.path.exists("latest_version.txt"):
               with open("latest_version.txt", "r", encoding="utf-8") as f:
                   old_url = f.read().strip()
 
-          # 按 TG 消息块切割（HTML 中顺序是从旧到新）
           messages = html.split('class="tgme_widget_message_wrap')
           
-          # 收集页面中所有包含 APK 下载链接的消息（保持从旧到新的时间序）
           apk_entries = []
           for msg in messages:
               urls = re.findall(r'https://downv6\.qq\.com/qqweb/QQ_1/android_apk/[a-zA-Z0-9_.-]+\.apk', msg)
@@ -80,10 +77,9 @@ jobs:
               print("错误: 未能在 Telegram 频道找到任何有效的 APK 下载链接。")
               exit(1)
 
-          # 寻找待处理的版本队列（取 old_url 之后出现的所有新包）
+          # 寻找待处理的版本队列（取 old_url 之后发布的所有版本）
           pending_entries = []
           if not old_url:
-              # 如果首次运行没有历史记录，默认只处理最新的一条
               pending_entries = [apk_entries[-1]]
           else:
               found_old = False
@@ -94,14 +90,12 @@ jobs:
                   if found_old:
                       pending_entries.append(item)
               
-              # 如果本地记录的 old_url 太旧已不在页面当前展示列表中，回退到只处理最新的一条
               if not found_old and apk_entries:
                   pending_entries = [apk_entries[-1]]
 
           event_name = os.environ.get('GITHUB_EVENT_NAME', '')
           has_update = len(pending_entries) > 0 or (event_name == 'workflow_dispatch')
 
-          # 如果是手动触发且无未处理项，重新处理页面最新一条
           if not pending_entries and event_name == 'workflow_dispatch':
               pending_entries = [apk_entries[-1]]
 
@@ -113,7 +107,7 @@ jobs:
                   f.write("has_more=false\n")
               exit(0)
 
-          # 本次运行只处理待处理列表中【最早】的一个（先进先出），保证按顺序发布不漏包
+          # 先进先出：处理待处理队列中最早发布的一个
           target_entry = pending_entries[0]
           has_more = len(pending_entries) > 1
 
@@ -129,7 +123,6 @@ jobs:
           filename = target_url.split('/')[-1].replace('.apk', '')
           version_short = ver_match.group(1) if ver_match else filename.split('_')[0]
 
-          # 更新本地记录为当前正在处理的版本
           with open("latest_version.txt", "w", encoding="utf-8") as f:
               f.write(target_url)
 
@@ -142,11 +135,8 @@ jobs:
               f.write("has_update=true\n")
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
-          print(f"=== 本次待反编译版本 ===")
-          print(f"下载直链: {target_url}")
-          print(f"版本号: {version_short}")
-          print(f"Beta 状态: {is_beta}")
-          print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理数量: {len(pending_entries) - 1})")
+          print(f"=== 本次待反编译版本: {version_short} ===")
+          print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理: {len(pending_entries) - 1})")
           EOF
 
       # ==========================================
@@ -162,7 +152,7 @@ jobs:
           git push
 
       # ==========================================
-      # 4. 优先清理磁盘空间并检测最优存储路径
+      # 4. 清理磁盘空间并检测最优存储路径
       # ==========================================
       - name: Free Disk Space (Cleanup) & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
@@ -310,7 +300,153 @@ jobs:
           fi
 
       # ==========================================
-      # 11. 上传 Artifact 备份
+      # 11. 【秒级完成】智能 Hash 预筛选 + 精准 Diff 引擎
+      # ==========================================
+      - name: Generate Smart Diff with Previous Release
+        if: steps.check_update.outputs.has_update == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd workspace
+          CURRENT_TAG="v${{ steps.check_update.outputs.version_short }}"
+          
+          # 获取最近的一个历史版本 Release Tag（排除当前版本自身）
+          PREV_TAG=$(gh release list --limit 10 --json tagName -q '.[].tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
+          export PREV_TAG
+          
+          echo "当前版本 Tag: ${CURRENT_TAG}"
+          echo "比对的上一个版本 Tag: ${PREV_TAG}"
+          
+          echo "" > diff_notes.md
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "未找到上一个 Release 版本，跳过 Diff。"
+            echo -e "\n- **代码对比：** 未检测到历史版本，本版本为初始发布版本。\n" >> diff_notes.md
+          else
+            echo "正在下载上一版本产物: ${PREV_TAG} ..."
+            mkdir -p prev_download prev_code
+            
+            if gh release download "$PREV_TAG" -p "java_output.zip" -D prev_download; then
+              echo "解压上一版本源码..."
+              unzip -q prev_download/java_output.zip -d prev_code/
+              
+              PREV_DIR="prev_code/decompiled_java"
+              CURR_DIR="decompiled_java"
+              
+              if [ -d "$PREV_DIR" ] && [ -d "$CURR_DIR" ]; then
+                echo "=== 启动高性能智能 Diff 引擎 ==="
+                
+                python3 - << 'PYEOF'
+                import os
+                import difflib
+                import hashlib
+                import zipfile
+
+                dir_old = "prev_code/decompiled_java"
+                dir_new = "decompiled_java"
+                prev_tag = os.environ.get('PREV_TAG', 'Unknown')
+
+                def get_files_dict(base_dir):
+                    f_dict = {}
+                    for root, _, files in os.walk(base_dir):
+                        for f in files:
+                            full_p = os.path.join(root, f)
+                            rel_p = os.path.relpath(full_p, base_dir)
+                            try:
+                                f_dict[rel_p] = os.path.getsize(full_p)
+                            except OSError:
+                                pass
+                    return f_dict
+
+                print("正在快速建立两版文件索引树...")
+                files_old = get_files_dict(dir_old)
+                files_new = get_files_dict(dir_new)
+
+                set_old = set(files_old.keys())
+                set_new = set(files_new.keys())
+
+                added = sorted(list(set_new - set_old))
+                deleted = sorted(list(set_old - set_new))
+                common = set_old & set_new
+
+                def calc_md5(filepath):
+                    h = hashlib.md5()
+                    with open(filepath, 'rb') as f:
+                        while chunk := f.read(65536):
+                            h.update(chunk)
+                    return h.hexdigest()
+
+                modified = []
+                print(f"正在比对共有文件 (共 {len(common)} 个)...")
+                for rel_p in common:
+                    # 先比大小；大小不同必被修改；大小相同再测 MD5
+                    if files_old[rel_p] != files_new[rel_p]:
+                        modified.append(rel_p)
+                    else:
+                        path_o = os.path.join(dir_old, rel_p)
+                        path_n = os.path.join(dir_new, rel_p)
+                        if calc_md5(path_o) != calc_md5(path_n):
+                            modified.append(rel_p)
+
+                modified.sort()
+                print(f"比对完成: 新增 {len(added)} | 删除 {len(deleted)} | 修改 {len(modified)}")
+
+                # 仅对真正发生同名代码修改的文件生成高价值 Unified Diff
+                diff_patch_path = "diff.patch"
+                print(f"正在对 {len(modified)} 个修改文件生成行级 Diff Patch...")
+                with open(diff_patch_path, "w", encoding="utf-8", errors="replace") as patch_out:
+                    for rel_p in modified:
+                        file_o = os.path.join(dir_old, rel_p)
+                        file_n = os.path.join(dir_new, rel_p)
+                        try:
+                            with open(file_o, 'r', encoding='utf-8', errors='replace') as fo, \
+                                 open(file_n, 'r', encoding='utf-8', errors='replace') as fn:
+                                diff_lines = difflib.unified_diff(
+                                    fo.readlines(),
+                                    fn.readlines(),
+                                    fromfile=f"a/{rel_p}",
+                                    tofile=f"b/{rel_p}",
+                                    n=3
+                                )
+                                patch_out.writelines(diff_lines)
+                        except Exception as e:
+                            print(f"跳过异常文件 {rel_p}: {e}")
+
+                # 将 patch 压缩为 zip
+                with zipfile.ZipFile("diff.patch.zip", "w", zipfile.ZIP_DEFLATED) as zf:
+                    zf.write(diff_patch_path, arcname="diff.patch")
+                if os.path.exists(diff_patch_path):
+                    os.remove(diff_patch_path)
+
+                # 生成 Markdown 统计摘要
+                with open("diff_notes.md", "w", encoding="utf-8") as out:
+                    out.write(f"\n### 🔍 代码变更智能 Diff (对比上一版本)\n\n")
+                    out.write(f"- **对比基准版本：** `{prev_tag}`\n")
+                    out.write(f"- **变更文件汇总：** 🟡 修改 `{len(modified)}` 个 | 🟢 新增 `{len(added)}` 个 | 🔴 删除 `{len(deleted)}` 个\n")
+                    out.write(f"- **精炼补丁包：** 见 Release 附件 `diff.patch.zip`（仅收录实质性改动的精简补丁）\n\n")
+
+                    key_modified = [f for f in modified if "qqnt" in f or "mobileqq" in f][:30]
+                    if key_modified:
+                        out.write("<details><summary><b>点击展开核心业务修改文件列表 (前 30 个)</b></summary>\n\n```text\n")
+                        for f in key_modified:
+                            out.write(f"[MODIFIED] {f}\n")
+                        if len(modified) > 30:
+                            out.write(f"... 其余 {len(modified) - 30} 个改动文件详见 diff.patch.zip\n")
+                        out.write("```\n</details>\n\n")
+                PYEOF
+
+              fi
+            else
+              echo "下载上一版本产物失败，跳过 Diff。"
+              echo -e "\n- **代码对比：** 未能下载到 \`${PREV_TAG}\` 的产物文件。\n" >> diff_notes.md
+            fi
+            
+            # 立即清理旧版解压目录，彻底释放磁盘
+            rm -rf prev_download prev_code
+          fi
+
+      # ==========================================
+      # 12. 上传 Artifact 备份
       # ==========================================
       - name: Upload Decoupled Artifacts
         if: steps.check_update.outputs.has_update == 'true'
@@ -321,7 +457,7 @@ jobs:
           retention-days: 7
 
       # ==========================================
-      # 12. 创建 GitHub Release
+      # 13. 创建 GitHub Release（附带 Diff 附件与智能说明）
       # ==========================================
       - name: Create GitHub Release
         if: steps.check_update.outputs.has_update == 'true'
@@ -343,22 +479,40 @@ jobs:
             BETA_NOTE="> **当前版本被 Telegram 频道标记的 #Beta 测试版本**\n\n"
           fi
 
-          echo "=== 正在创建 GitHub Release: ${RELEASE_TITLE} ==="
-          
-          gh release create "v${VERSION_SHORT}" workspace/java_output.zip \
-            --title "${RELEASE_TITLE}" \
-            ${EXTRA_FLAGS} \
-            --notes "$(echo -e "${BETA_NOTE}### QQ Android 自动反编译产物说明
+          # 收集待上传附件
+          ASSETS="workspace/java_output.zip"
+          if [ -f "workspace/diff.patch.zip" ]; then
+            ASSETS="${ASSETS} workspace/diff.patch.zip"
+          fi
+
+          DIFF_CONTENT=""
+          if [ -f "workspace/diff_notes.md" ]; then
+            DIFF_CONTENT=$(cat workspace/diff_notes.md)
+          fi
+
+          # 构造完整的 Release Markdown，避免转义符引起的解析错误
+          cat << EOF > workspace/release_notes.md
+          ${BETA_NOTE}### QQ Android 自动反编译产物说明
 
           - **应用版本：** \`${VERSION_SHORT}\`
           - **安装包文件名：** \`${VERSION_FULL}.apk\`
           - **测试版状态：** \`${IS_BETA}\`
           - **官方下载直链：** [点击从腾讯官方下载](${APK_URL})
-          - **自动生成时间：** $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S') (北京时间)")" || \
-          gh release upload "v${VERSION_SHORT}" workspace/java_output.zip --clobber
+          - **自动生成时间：** $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S') (北京时间)
+
+          ${DIFF_CONTENT}
+          EOF
+
+          echo "=== 正在创建 GitHub Release: ${RELEASE_TITLE} ==="
+          
+          gh release create "v${VERSION_SHORT}" ${ASSETS} \
+            --title "${RELEASE_TITLE}" \
+            ${EXTRA_FLAGS} \
+            --notes-file workspace/release_notes.md || \
+          gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
 
       # ==========================================
-      # 13. 如果还有未完成版本，自动触发下一次工作流
+      # 14. 如果还有未完成版本，自动触发下一次工作流
       # ==========================================
       - name: Trigger Next Run If More Versions Pending
         if: steps.check_update.outputs.has_more == 'true'
