@@ -3,7 +3,7 @@ name: Auto Decompile QQ APK
 on:
   schedule:
     - cron: '0 0 * * *' # 每天北京时间早上 8:00 (UTC 0:00) 自动执行检测
-  workflow_dispatch: # 支持手动点击按钮触发，并提供可选项
+  workflow_dispatch:
     inputs:
       decompile_all:
         description: '是否完整反编译整个 APK (注意：产物文件极大，耗时较长)'
@@ -25,7 +25,8 @@ jobs:
   decompile:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 必须具有写权限，以便向仓库推送文件和创建 Release
+      contents: write # 用于推送版本记录与发布 Release
+      actions: write  # 用于当有积压版本时自动续跑下一次任务
 
     steps:
       # ==========================================
@@ -35,12 +36,12 @@ jobs:
         uses: actions/checkout@v4
 
       # ==========================================
-      # 2. 自动检测 QQ 是否有新版本更新（含 Beta & 版本号智能提取）
+      # 2. 自动检测更新（排队机制：按时间从旧到新依次处理）
       # ==========================================
       - name: Check for QQ Update
         id: check_update
         run: |
-          echo "=== 正在从 Telegram 获取最新 QQ APK 及版本信息 ==="
+          echo "=== 正在从 Telegram 获取 QQ APK 更新队列 ==="
           
           python3 - << 'EOF'
           import urllib.request
@@ -56,75 +57,100 @@ jobs:
               print(f"Error fetching TG channel: {e}")
               exit(1)
 
-          # 按 TG 消息块切割
-          messages = html.split('class="tgme_widget_message_wrap')
-          
-          latest_apk_url = None
-          latest_msg_text = ""
-
-          # 从最新的消息倒序查找包含下载直链的消息
-          for msg in reversed(messages):
-              urls = re.findall(r'https://downv6\.qq\.com/qqweb/QQ_1/android_apk/[a-zA-Z0-9_.-]+\.apk', msg)
-              if urls:
-                  latest_apk_url = urls[-1]
-                  latest_msg_text = msg
-                  break
-
-          if not latest_apk_url:
-              print("错误: 未能在 Telegram 频道找到有效的 APK 下载链接。")
-              exit(1)
-
-          # 1. 检测是否包含 #beta 或 #Beta
-          is_beta = "true" if re.search(r'#beta', latest_msg_text, re.IGNORECASE) else "false"
-
-          # 2. 提取版本号
-          ver_match = re.search(r'QQ(?:_NT)?\s+([0-9.]+)', latest_msg_text, re.IGNORECASE)
-          if not ver_match:
-              ver_match = re.search(r'\b([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)\b', latest_msg_text)
-
-          filename = latest_apk_url.split('/')[-1].replace('.apk', '')
-
-          if ver_match:
-              version_short = ver_match.group(1)
-          else:
-              version_short = filename.split('_')[0]
-
-          # 3. 读取本地记录的上一次版本链接
+          # 读取本地记录的上一次处理完成的版本链接
           old_url = ""
           if os.path.exists("latest_version.txt"):
               with open("latest_version.txt", "r", encoding="utf-8") as f:
                   old_url = f.read().strip()
 
-          print(f"旧版本链接: {old_url}")
-          print(f"新版本链接: {latest_apk_url}")
+          # 按 TG 消息块切割（HTML 中顺序是从旧到新）
+          messages = html.split('class="tgme_widget_message_wrap')
+          
+          # 收集页面中所有包含 APK 下载链接的消息（保持从旧到新的时间序）
+          apk_entries = []
+          for msg in messages:
+              urls = re.findall(r'https://downv6\.qq\.com/qqweb/QQ_1/android_apk/[a-zA-Z0-9_.-]+\.apk', msg)
+              if urls:
+                  apk_entries.append({
+                      'url': urls[-1],
+                      'msg': msg
+                  })
 
-          # 4. 判断是否有更新或为手动触发 (workflow_dispatch)
+          if not apk_entries:
+              print("错误: 未能在 Telegram 频道找到任何有效的 APK 下载链接。")
+              exit(1)
+
+          # 寻找待处理的版本队列（取 old_url 之后出现的所有新包）
+          pending_entries = []
+          if not old_url:
+              # 如果首次运行没有历史记录，默认只处理最新的一条
+              pending_entries = [apk_entries[-1]]
+          else:
+              found_old = False
+              for item in apk_entries:
+                  if item['url'] == old_url:
+                      found_old = True
+                      continue
+                  if found_old:
+                      pending_entries.append(item)
+              
+              # 如果本地记录的 old_url 太旧已不在页面当前展示列表中，回退到只处理最新的一条
+              if not found_old and apk_entries:
+                  pending_entries = [apk_entries[-1]]
+
           event_name = os.environ.get('GITHUB_EVENT_NAME', '')
-          has_update = (latest_apk_url != old_url) or (event_name == 'workflow_dispatch')
+          has_update = len(pending_entries) > 0 or (event_name == 'workflow_dispatch')
 
-          if has_update:
-              print("检测到新版本或手动触发，更新 latest_version.txt ...")
-              with open("latest_version.txt", "w", encoding="utf-8") as f:
-                  f.write(latest_apk_url)
+          # 如果是手动触发且无未处理项，重新处理页面最新一条
+          if not pending_entries and event_name == 'workflow_dispatch':
+              pending_entries = [apk_entries[-1]]
 
-          # 5. 写入 Github Output 供后续 Step 读取
+          if not has_update or not pending_entries:
+              print("未检测到新版本，跳过本次处理。")
+              github_output = os.environ.get('GITHUB_OUTPUT')
+              with open(github_output, 'a', encoding='utf-8') as f:
+                  f.write("has_update=false\n")
+                  f.write("has_more=false\n")
+              exit(0)
+
+          # 本次运行只处理待处理列表中【最早】的一个（先进先出），保证按顺序发布不漏包
+          target_entry = pending_entries[0]
+          has_more = len(pending_entries) > 1
+
+          target_url = target_entry['url']
+          target_msg = target_entry['msg']
+
+          is_beta = "true" if re.search(r'#beta', target_msg, re.IGNORECASE) else "false"
+
+          ver_match = re.search(r'QQ(?:_NT)?\s+([0-9.]+)', target_msg, re.IGNORECASE)
+          if not ver_match:
+              ver_match = re.search(r'\b([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)\b', target_msg)
+
+          filename = target_url.split('/')[-1].replace('.apk', '')
+          version_short = ver_match.group(1) if ver_match else filename.split('_')[0]
+
+          # 更新本地记录为当前正在处理的版本
+          with open("latest_version.txt", "w", encoding="utf-8") as f:
+              f.write(target_url)
+
           github_output = os.environ.get('GITHUB_OUTPUT')
           with open(github_output, 'a', encoding='utf-8') as f:
-              f.write(f"apk_url={latest_apk_url}\n")
+              f.write(f"apk_url={target_url}\n")
               f.write(f"version_short={version_short}\n")
               f.write(f"version_full={filename}\n")
               f.write(f"is_beta={is_beta}\n")
-              f.write(f"has_update={'true' if has_update else 'false'}\n")
+              f.write("has_update=true\n")
+              f.write(f"has_more={'true' if has_more else 'false'}\n")
 
-          print(f"检测成功!")
-          print(f"下载直链: {latest_apk_url}")
+          print(f"=== 本次待反编译版本 ===")
+          print(f"下载直链: {target_url}")
           print(f"版本号: {version_short}")
-          print(f"是否为 Beta 版: {is_beta}")
-          print(f"是否有更新触发: {has_update}")
+          print(f"Beta 状态: {is_beta}")
+          print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理数量: {len(pending_entries) - 1})")
           EOF
 
       # ==========================================
-      # 3. 如果有更新，将最新版本记录推送回仓库
+      # 3. 提交版本记录更新
       # ==========================================
       - name: Commit and Push Version Update
         if: steps.check_update.outputs.has_update == 'true'
@@ -132,42 +158,32 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add latest_version.txt
-          git commit -m "Auto-update QQ APK version record [skip ci]" || echo "No changes to commit"
+          git commit -m "Auto-update QQ APK version record: ${{ steps.check_update.outputs.version_short }} [skip ci]" || echo "No changes to commit"
           git push
 
       # ==========================================
-      # 4. 【自适应逻辑】优先清理磁盘空间并检测最优存储路径
+      # 4. 优先清理磁盘空间并检测最优存储路径
       # ==========================================
       - name: Free Disk Space (Cleanup) & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
         run: |
-          echo "=== 磁盘清理前状态 ==="
-          df -h
-          
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           
-          echo "=== 磁盘清理后状态 ==="
-          df -h
-          
           MNT_AVAIL=$(df -k /mnt 2>/dev/null | tail -n 1 | awk '{print $4}')
           ROOT_AVAIL=$(df -k / 2>/dev/null | tail -n 1 | awk '{print $4}')
           
-          if [ -z "$MNT_AVAIL" ]; then
-            MNT_AVAIL=0
-          fi
+          [ -z "$MNT_AVAIL" ] && MNT_AVAIL=0
           
           if [ "$MNT_AVAIL" -gt "$ROOT_AVAIL" ]; then
             echo "TARGET_DIR=/mnt" >> $GITHUB_ENV
-            echo "自适应检测结果：使用 /mnt 作为主缓存与交换区。"
           else
             echo "TARGET_DIR=" >> $GITHUB_ENV
-            echo "自适应检测结果：使用主根目录 (/) 作为主缓存与交换区。"
           fi
 
       # ==========================================
-      # 5. 【自适应】开启 32GB Swap 虚拟内存
+      # 5. 开启 32GB Swap 虚拟内存
       # ==========================================
       - name: Create 32GB Swap Space
         if: steps.check_update.outputs.has_update == 'true'
@@ -186,7 +202,7 @@ jobs:
           free -h
 
       # ==========================================
-      # 6. 基础环境准备
+      # 6. 环境准备 (JDK 17)
       # ==========================================
       - name: Set up JDK 17
         if: steps.check_update.outputs.has_update == 'true'
@@ -214,12 +230,12 @@ jobs:
           ln -sf $REAL_WORKSPACE workspace
           
           cd workspace
-          echo "Downloading APK from: ${{ steps.check_update.outputs.apk_url }}"
+          echo "Downloading APK: ${{ steps.check_update.outputs.apk_url }}"
           curl -L "${{ steps.check_update.outputs.apk_url }}" -o target.apk
           du -sh target.apk
 
       # ==========================================
-      # 8. 安装 JADX 工具
+      # 8. 安装 JADX
       # ==========================================
       - name: Install JADX
         if: steps.check_update.outputs.has_update == 'true'
@@ -240,7 +256,7 @@ jobs:
           cd workspace
           mkdir -p java_final
           
-          echo "Only extracting classes*.dex files from target.apk..."
+          echo "Extracting classes*.dex..."
           unzip -q target.apk "classes*.dex" -d dex_extracted
           
           FILTER=""
@@ -251,8 +267,6 @@ jobs:
               FILTER="com.tencent.mobileqq"
             elif [ "${{ inputs.decompile_qqnt }}" = "true" ]; then
               FILTER="com.tencent.qqnt"
-            else
-              FILTER="com.tencent.mobileqq,com.tencent.qqnt"
             fi
           fi
           
@@ -260,10 +274,10 @@ jobs:
           
           set +e
           if [ -n "$FILTER" ]; then
-            echo "局部反编译模式: $FILTER"
+            echo "局部反编译: $FILTER"
             jadx -d java_final --no-res --threads-count 1 --no-debug-info --show-only "$FILTER" dex_extracted/*.dex
           else
-            echo "完整反编译模式..."
+            echo "完整反编译..."
             jadx -d java_final --no-res --threads-count 2 dex_extracted/*.dex
           fi
           
@@ -271,9 +285,9 @@ jobs:
           set -e
           
           if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 3 ]; then
-            echo "JADX 运行结束，状态码: $EXIT_CODE"
+            echo "JADX 完成，状态码: $EXIT_CODE"
           else
-            echo "JADX 运行失败，退出码: $EXIT_CODE"
+            echo "JADX 失败，退出码: $EXIT_CODE"
             exit $EXIT_CODE
           fi
           
@@ -302,12 +316,12 @@ jobs:
         if: steps.check_update.outputs.has_update == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: qq-decompiled-java
+          name: qq-decompiled-${{ steps.check_update.outputs.version_short }}
           path: workspace/java_output.zip
           retention-days: 7
 
       # ==========================================
-      # 12. 创建 GitHub Release（适配 Beta 提醒与预发布状态）
+      # 12. 创建 GitHub Release
       # ==========================================
       - name: Create GitHub Release
         if: steps.check_update.outputs.has_update == 'true'
@@ -323,7 +337,6 @@ jobs:
           EXTRA_FLAGS=""
           BETA_NOTE=""
 
-          # 如果检测到是 Beta 版，拼接标题、提示词和 github CLI 标记
           if [ "$IS_BETA" = "true" ]; then
             RELEASE_TITLE="QQ Android v${VERSION_SHORT} [Beta]"
             EXTRA_FLAGS="--prerelease"
@@ -343,3 +356,14 @@ jobs:
           - **官方下载直链：** [点击从腾讯官方下载](${APK_URL})
           - **自动生成时间：** $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S') (北京时间)")" || \
           gh release upload "v${VERSION_SHORT}" workspace/java_output.zip --clobber
+
+      # ==========================================
+      # 13. 如果还有未完成版本，自动触发下一次工作流
+      # ==========================================
+      - name: Trigger Next Run If More Versions Pending
+        if: steps.check_update.outputs.has_more == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "检测到队列中还有待处理的版本，正在自动触发下一个版本的反编译任务..."
+          gh workflow run "Auto Decompile QQ APK"
