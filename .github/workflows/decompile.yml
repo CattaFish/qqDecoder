@@ -1,4 +1,4 @@
-name: Auto Decompile QQ APK
+name: Auto Decompile & Twinflame DEX Diff QQ APK
 
 on:
   schedule:
@@ -6,44 +6,44 @@ on:
   workflow_dispatch:
     inputs:
       decompile_all:
-        description: '是否完整反编译整个 APK (注意：产物文件极大，耗时较长)'
+        description: '是否完整反编译整个 APK 源码 (产物较大)'
         required: true
         type: boolean
         default: false
       decompile_mobileqq:
-        description: '是否反编译 com.tencent.mobileqq (非完整反编译时生效)'
+        description: '是否反编译 com.tencent.mobileqq'
         required: true
         type: boolean
         default: true
       decompile_qqnt:
-        description: '是否反编译 com.tencent.qqnt (非完整反编译时生效)'
+        description: '是否反编译 com.tencent.qqnt'
         required: true
         type: boolean
         default: true
 
 jobs:
-  decompile:
+  decompile-and-diff:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 用于推送版本记录与发布 Release
-      actions: write  # 用于当检测到同天有多个版本积压时自动续跑
+      contents: write # 发布 Release 与推送版本记录
+      actions: write  # 积压版本自动续跑
 
     steps:
       # ==========================================
-      # 1. 基础环境准备
+      # 1. 检出仓库
       # ==========================================
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       # ==========================================
-      # 2. 自动检测更新（只读取解析，不提前更新仓库）
+      # 2. 自动检测更新队列
       # ==========================================
       - name: Check for QQ Update
         id: check_update
         run: |
           echo "=== 正在从 Telegram 获取 QQ APK 更新队列 ==="
           
-          python3 - << 'EOF'
+          cat << 'EOF' > /tmp/check_update.py
           import urllib.request
           import re
           import os
@@ -77,7 +77,6 @@ jobs:
               print("错误: 未能在 Telegram 频道找到任何有效的 APK 下载链接。")
               exit(1)
 
-          # 寻找待处理的版本队列（取 old_url 之后发布的所有版本）
           pending_entries = []
           if not old_url:
               pending_entries = [apk_entries[-1]]
@@ -131,69 +130,53 @@ jobs:
               f.write("has_update=true\n")
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
-          print(f"=== 本次待反编译版本: {version_short} ===")
+          print(f"=== 本次待处理版本: {version_short} ===")
           print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理: {len(pending_entries) - 1})")
           EOF
+          python3 /tmp/check_update.py
 
       # ==========================================
-      # 3. 【自适应】深度清理磁盘并探测最优大盘
+      # 3. 深度清理磁盘并选定工作盘
       # ==========================================
-      - name: Free Disk Space (Cleanup) & Detect Best Drive
+      - name: Free Disk Space & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
         run: |
-          echo ">>> 正在执行深度磁盘瘦身..."
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
+          echo ">>> 正在执行深度磁盘清理..."
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY" 2>/dev/null || true
           sudo rm -rf /mnt/docker 2>/dev/null || true
           
-          echo "==================== 清理后各挂载分区状态 ===================="
-          df -hT / /mnt 2>/dev/null || df -h /
-          
           MNT_AVAIL=$(df -k /mnt 2>/dev/null | tail -n 1 | awk '{print $4}')
           ROOT_AVAIL=$(df -k / 2>/dev/null | tail -n 1 | awk '{print $4}')
-          
           [ -z "$MNT_AVAIL" ] && MNT_AVAIL=0
           [ -z "$ROOT_AVAIL" ] && ROOT_AVAIL=0
           
           if [ "$MNT_AVAIL" -gt "$ROOT_AVAIL" ]; then
             echo "TARGET_DIR=/mnt" >> $GITHUB_ENV
             echo "BEST_AVAIL_KB=${MNT_AVAIL}" >> $GITHUB_ENV
-            echo ">>> 决策结果: 选定临时盘 [/mnt] 为主力工作区与 Swap 存放地"
           else
             echo "TARGET_DIR=" >> $GITHUB_ENV
             echo "BEST_AVAIL_KB=${ROOT_AVAIL}" >> $GITHUB_ENV
-            echo ">>> 决策结果: 选定根目录 [/] 为主力工作区与 Swap 存放地"
           fi
 
       # ==========================================
-      # 4. 【自适应】最高拉满 64G Swap 与 48G JVM 堆内存
+      # 4. 创建动态自适应 Swap 空间
       # ==========================================
-      - name: Create Dynamic Adaptive Swap Space
+      - name: Create Dynamic Swap Space
         if: steps.check_update.outputs.has_update == 'true'
         run: |
-          if [ "${{ env.TARGET_DIR }}" = "/mnt" ]; then
-            SWAP_PATH="/mnt/swapfile"
-          else
-            SWAP_PATH="/swapfile"
-          fi
+          SWAP_PATH="${{ env.TARGET_DIR }}/swapfile"
+          [ -z "${{ env.TARGET_DIR }}" ] && SWAP_PATH="/swapfile"
           
           AVAIL_GB=$(( ${{ env.BEST_AVAIL_KB }} / 1024 / 1024 ))
-          echo "选定盘当前可用硬盘容量: ${AVAIL_GB} GB"
-          
-          RESERVE_DISK=18
-          CALC_SWAP=$(( AVAIL_GB - RESERVE_DISK ))
-          
-          if [ "$CALC_SWAP" -gt 64 ]; then
-            ALLOC_SWAP=64
+          CALC_SWAP=$(( AVAIL_GB - 16 ))
+          if [ "$CALC_SWAP" -gt 40 ]; then
+            ALLOC_SWAP=40
           elif [ "$CALC_SWAP" -lt 16 ]; then
             ALLOC_SWAP=16
           else
             ALLOC_SWAP=$CALC_SWAP
           fi
-          
-          echo ">>> 动态计算策略: 留存 ${RESERVE_DISK}G 物理硬盘，开辟 ${ALLOC_SWAP}G Swap 虚拟内存"
           
           sudo swapoff -a || true
           sudo fallocate -l "${ALLOC_SWAP}G" $SWAP_PATH
@@ -201,29 +184,18 @@ jobs:
           sudo mkswap $SWAP_PATH
           sudo swapon $SWAP_PATH
           
-          TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-          TOTAL_SWAP_KB=$(grep SwapTotal /proc/meminfo | awk '{print $2}')
-          TOTAL_MEM_GB=$(( (TOTAL_RAM_KB + TOTAL_SWAP_KB) / 1024 / 1024 ))
-          
-          JVM_HEAP=$(( TOTAL_MEM_GB - 8 ))
-          if [ "$JVM_HEAP" -gt 48 ]; then
-            JVM_HEAP=48
-          elif [ "$JVM_HEAP" -lt 24 ]; then
-            JVM_HEAP=24
-          fi
-          
-          echo "JVM_HEAP_SIZE=${JVM_HEAP}g" >> $GITHUB_ENV
-          
-          echo "==================== 当前内存池看板 (RAM + Swap) ===================="
+          echo "=== 内存状态看板 ==="
           free -h
-          echo ">>> 本次分配给 JADX 的最大堆内存 (-Xmx): ${JVM_HEAP}g"
-          
-          echo "==================== 创建 Swap 后【剩余真实物理硬盘】 ===================="
-          df -hT / /mnt 2>/dev/null || df -h /
 
       # ==========================================
-      # 5. 环境准备 (JDK 17)
+      # 5. 配置环境依赖 (Python 3.11, JDK 17, Rust)
       # ==========================================
+      - name: Set up Python 3.11
+        if: steps.check_update.outputs.has_update == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Set up JDK 17
         if: steps.check_update.outputs.has_update == 'true'
         uses: actions/setup-java@v4
@@ -231,10 +203,36 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Rust Toolchain
+        if: steps.check_update.outputs.has_update == 'true'
+        uses: dtolnay/rust-toolchain@stable
+
       # ==========================================
-      # 6. 下载 APK
+      # 6. 安装 Twinflame (Rust 原生加速) 与 Baksmali
       # ==========================================
-      - name: Download APK from Latest Link
+      - name: Install Twinflame & Baksmali
+        if: steps.check_update.outputs.has_update == 'true'
+        run: |
+          git clone https://github.com/ankorio/twinflame.git _tf_src
+          pip install maturin
+          cd _tf_src/native
+          maturin build --release --out dist
+          pip install dist/*.whl
+          cd ..
+          pip install .
+          cd ..
+          rm -rf _tf_src
+          twinflame --help
+
+          mkdir -p bin
+          curl -L -s https://github.com/baksmali/smali/releases/download/3.0.10/baksmali-3.0.10-fat-release.jar -o bin/baksmali.jar || \
+          curl -L -s https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -o bin/baksmali.jar
+          java -jar bin/baksmali.jar --version || true
+
+      # ==========================================
+      # 7. 下载新版 APK 并提取 DEX
+      # ==========================================
+      - name: Download APK and Extract DEX
         if: steps.check_update.outputs.has_update == 'true'
         run: |
           if [ "${{ env.TARGET_DIR }}" = "/mnt" ]; then
@@ -248,16 +246,263 @@ jobs:
           
           rm -rf workspace || true
           ln -sf $REAL_WORKSPACE workspace
-          
           cd workspace
-          echo "Downloading APK: ${{ steps.check_update.outputs.apk_url }}"
+          
+          echo "正在下载 APK: ${{ steps.check_update.outputs.apk_url }}"
           curl -L "${{ steps.check_update.outputs.apk_url }}" -o target.apk
-          du -sh target.apk
+          
+          mkdir -p new_dex
+          unzip -q target.apk "classes*.dex" -d new_dex/
+          echo "已提取新版 DEX 数量: $(ls -1 new_dex/*.dex | wc -l)"
+          
+          # 打包 DEX 产物，供下次 Release 比对
+          zip -q -j dex_archive.zip new_dex/*.dex
 
       # ==========================================
-      # 7. 安装 JADX
+      # 8. 获取上一版本 DEX 并执行 Twinflame 精准对比
       # ==========================================
-      - name: Install JADX
+      - name: Twinflame & Baksmali DEX Diff Engine
+        if: steps.check_update.outputs.has_update == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd workspace
+          CURRENT_TAG="v${{ steps.check_update.outputs.version_short }}"
+          IS_BETA="${{ steps.check_update.outputs.is_beta }}"
+
+          # 智能定位比对基准版本
+          if [ "$IS_BETA" = "true" ]; then
+            echo "当前版本为 Beta 测试版，优先寻找最新正式版作为基准..."
+            PREV_TAG=$(gh release list --limit 20 --json tagName,isPrerelease -q '.[] | select(.isPrerelease == false) | .tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
+            if [ -z "$PREV_TAG" ]; then
+              PREV_TAG=$(gh release list --limit 10 --json tagName -q '.[].tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
+            fi
+          else
+            echo "当前版本为正式版，寻找上一正式版作为基准..."
+            PREV_TAG=$(gh release list --limit 20 --json tagName,isPrerelease -q '.[] | select(.isPrerelease == false) | .tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
+            if [ -z "$PREV_TAG" ]; then
+              PREV_TAG=$(gh release list --limit 10 --json tagName -q '.[].tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
+            fi
+          fi
+
+          export PREV_TAG
+          echo "当前版本: ${CURRENT_TAG} | 比对基准版本: ${PREV_TAG}"
+
+          HAS_PREV_DEX="false"
+          if [ -n "$PREV_TAG" ]; then
+            echo "尝试拉取基准版本 DEX 产物..."
+            mkdir -p prev_download old_dex
+            if gh release download "$PREV_TAG" -p "dex_archive.zip" -D prev_download; then
+              unzip -q prev_download/dex_archive.zip -d old_dex/
+              HAS_PREV_DEX="true"
+              echo "成功载入旧版 DEX 数量: $(ls -1 old_dex/*.dex 2>/dev/null | wc -l)"
+            else
+              echo "基准版本没有历史 dex_archive.zip 产物，跳过 Diff。"
+            fi
+          fi
+
+          if [ "$HAS_PREV_DEX" = "true" ]; then
+            echo "=== 第一阶段：压制二进制指纹 (Prepare) ==="
+            twinflame prepare old_dex/ -o old.tfr
+            twinflame prepare new_dex/ -o new.tfr
+
+            echo "=== 第二阶段：语义混淆比对 (极速聚类模式) ==="
+            twinflame old.tfr new.tfr \
+              --find-obfuscated \
+              --skip-external \
+              --skip-synthetic \
+              -s changed \
+              --deobfuscation-map diff_mapping.txt \
+              -o report.json
+
+            echo "=== 第三阶段：物理反编译与 Smali 精准 Diff ==="
+            mkdir -p old_smali new_smali
+            for f in old_dex/*.dex; do
+              [ -f "$f" ] && java -jar "$GITHUB_WORKSPACE/bin/baksmali.jar" d "$f" -o old_smali || true
+            done
+            for f in new_dex/*.dex; do
+              [ -f "$f" ] && java -jar "$GITHUB_WORKSPACE/bin/baksmali.jar" d "$f" -o new_smali || true
+            done
+
+            cat << 'EOF' > /tmp/dex_diff_process.py
+            import os, json, difflib, shutil, filecmp
+
+            DIR_MODIFIED = 'diff_output/1_MODIFIED'
+            DIR_REMOVED  = 'diff_output/2_REMOVED'
+            DIR_ADDED    = 'diff_output/3_ADDED'
+            os.makedirs(f'{DIR_MODIFIED}/classes', exist_ok=True)
+            os.makedirs(f'{DIR_REMOVED}/classes', exist_ok=True)
+            os.makedirs(f'{DIR_ADDED}/classes', exist_ok=True)
+            os.makedirs('changed_smali/old', exist_ok=True)
+            os.makedirs('changed_smali/new', exist_ok=True)
+
+            IGNORED_PREFIXES = (
+                'android/', 'androidx/', 'kotlin/', 'kotlinx/',
+                'okhttp3/', 'okio/', 'com/squareup/okhttp/',
+                'com/google/android/', 'org/apache/', 'org/jetbrains/',
+            )
+
+            def is_ignored(rel_path):
+                return rel_path.startswith(IGNORED_PREFIXES)
+
+            print("正在扫描磁盘真实 smali 文件...")
+            old_files = {}
+            for root, _, files in os.walk('old_smali'):
+                for file in files:
+                    if file.endswith('.smali'):
+                        full = os.path.join(root, file)
+                        rel = os.path.relpath(full, 'old_smali').replace('\\', '/')
+                        if not is_ignored(rel):
+                            old_files[rel] = full
+
+            new_files = {}
+            for root, _, files in os.walk('new_smali'):
+                for file in files:
+                    if file.endswith('.smali'):
+                        full = os.path.join(root, file)
+                        rel = os.path.relpath(full, 'new_smali').replace('\\', '/')
+                        if not is_ignored(rel):
+                            new_files[rel] = full
+
+            modified_diffs = []
+            removed_diffs = []
+            added_diffs = []
+
+            common_files = set(old_files.keys()) & set(new_files.keys())
+            print(f"双方同名业务类共 {len(common_files)} 个，开始物理逐行校验...")
+
+            for rel in common_files:
+                old_p = old_files[rel]
+                new_p = new_files[rel]
+
+                if filecmp.cmp(old_p, new_p, shallow=False):
+                    continue
+
+                with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
+                     open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
+                    old_lines = f1.readlines()
+                    new_lines = f2.readlines()
+
+                diff = list(difflib.unified_diff(
+                    old_lines, new_lines,
+                    fromfile=f"old/{rel}", tofile=f"new/{rel}", n=3
+                ))
+                if diff:
+                    diff_text = "".join(diff)
+                    safe_name = rel.replace('/', '.').replace('.smali', '')
+                    with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                        out.write(diff_text)
+                    modified_diffs.append(diff_text)
+
+                    dest_old = os.path.join('changed_smali/old', rel)
+                    dest_new = os.path.join('changed_smali/new', rel)
+                    os.makedirs(os.path.dirname(dest_old), exist_ok=True)
+                    os.makedirs(os.path.dirname(dest_new), exist_ok=True)
+                    shutil.copyfile(old_p, dest_old)
+                    shutil.copyfile(new_p, dest_new)
+
+            only_old = set(old_files.keys()) - common_files
+            only_new = set(new_files.keys()) - common_files
+
+            rename_map = {}
+            if os.path.exists('report.json'):
+                with open('report.json', 'r', encoding='utf-8') as f:
+                    report = json.load(f)
+                for item in report.get('changes', []):
+                    if item.get('kind') == 'modified' and item.get('lhs') and item.get('rhs'):
+                        l_rel = item['lhs'].strip()[1:-1] + '.smali'
+                        r_rel = item['rhs'].strip()[1:-1] + '.smali'
+                        if l_rel in only_old and r_rel in only_new:
+                            rename_map[l_rel] = r_rel
+
+            for l_rel, r_rel in list(rename_map.items()):
+                if l_rel not in only_old or r_rel not in only_new:
+                    continue
+                old_p = old_files[l_rel]
+                new_p = new_files[r_rel]
+                with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
+                     open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
+                    diff = list(difflib.unified_diff(
+                        f1.readlines(), f2.readlines(),
+                        fromfile=f"old/{l_rel} (renamed)", tofile=f"new/{r_rel}", n=3
+                    ))
+                if diff:
+                    diff_text = "".join(diff)
+                    safe_name = f"RENAMED_{r_rel.replace('/', '.').replace('.smali', '')}"
+                    with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                        out.write(diff_text)
+                    modified_diffs.append(diff_text)
+                only_old.discard(l_rel)
+                only_new.discard(r_rel)
+
+            for rel in only_old:
+                old_p = old_files[rel]
+                with open(old_p, 'r', encoding='utf-8', errors='ignore') as f:
+                    diff = list(difflib.unified_diff(
+                        f.readlines(), [],
+                        fromfile=f"old/{rel}", tofile="/dev/null", n=3
+                    ))
+                if diff:
+                    diff_text = "".join(diff)
+                    safe_name = rel.replace('/', '.').replace('.smali', '')
+                    with open(f"{DIR_REMOVED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                        out.write(diff_text)
+                    removed_diffs.append(diff_text)
+
+            for rel in only_new:
+                new_p = new_files[rel]
+                with open(new_p, 'r', encoding='utf-8', errors='ignore') as f:
+                    diff = list(difflib.unified_diff(
+                        [], f.readlines(),
+                        fromfile="/dev/null", tofile=f"new/{rel}", n=3
+                    ))
+                if diff:
+                    diff_text = "".join(diff)
+                    safe_name = rel.replace('/', '.').replace('.smali', '')
+                    with open(f"{DIR_ADDED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                        out.write(diff_text)
+                    added_diffs.append(diff_text)
+
+            with open(f"{DIR_MODIFIED}/all_modified.diff", 'w', encoding='utf-8') as f:
+                f.write("\n".join(modified_diffs))
+            with open(f"{DIR_REMOVED}/all_removed.diff", 'w', encoding='utf-8') as f:
+                f.write("\n".join(removed_diffs))
+            with open(f"{DIR_ADDED}/all_added.diff", 'w', encoding='utf-8') as f:
+                f.write("\n".join(added_diffs))
+
+            print(f"最终精炼结果：真正修改类 {len(modified_diffs)} 个，彻底删除 {len(removed_diffs)} 个，纯新增 {len(added_diffs)} 个")
+            EOF
+            python3 /tmp/dex_diff_process.py
+
+            # 打包对比产物
+            zip -q -r diff_output.zip diff_output/ changed_smali/
+            
+            MOD_COUNT=$(ls -1 diff_output/1_MODIFIED/classes/*.diff 2>/dev/null | wc -l)
+            REM_COUNT=$(ls -1 diff_output/2_REMOVED/classes/*.diff 2>/dev/null | wc -l)
+            ADD_COUNT=$(ls -1 diff_output/3_ADDED/classes/*.diff 2>/dev/null | wc -l)
+            
+            {
+              echo ""
+              echo "### Twinflame DEX 语义精准 Diff 变更汇总"
+              echo "- 对比基准版本: \`${PREV_TAG}\`"
+              echo "- 核心修改业务类 (Modified): \`${MOD_COUNT}\` 个"
+              echo "- 彻底废弃/删除类 (Removed): \`${REM_COUNT}\` 个"
+              echo "- 纯新增业务类 (Added): \`${ADD_COUNT}\` 个"
+              echo "- 详细产物: 见附件 \`diff_output.zip\`、\`diff_mapping.txt\` 及 \`report.json\`。"
+              echo ""
+            } > diff_notes.md
+
+          else
+            echo "- 代码对比: 未检测到基准版本的 DEX 文件，跳过本次比对。" > diff_notes.md
+          fi
+          
+          cat diff_notes.md >> $GITHUB_STEP_SUMMARY
+          rm -rf old_dex old_smali new_smali prev_download
+
+      # ==========================================
+      # 9. 安装 JADX 并反编译源码
+      # ==========================================
+      - name: Install JADX and Decompile Java Source
         if: steps.check_update.outputs.has_update == 'true'
         run: |
           mkdir -p bin
@@ -265,19 +510,9 @@ jobs:
           curl -L "https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip" -o jadx.zip
           unzip -d bin/jadx jadx.zip
           chmod -R +x bin/jadx/bin
-          echo "$GITHUB_WORKSPACE/bin/jadx/bin" >> $GITHUB_PATH
-
-      # ==========================================
-      # 8. 执行反编译（引用动态计算的极限堆内存）
-      # ==========================================
-      - name: Decompile APK
-        if: steps.check_update.outputs.has_update == 'true'
-        run: |
+          
           cd workspace
           mkdir -p java_final
-          
-          echo "Extracting classes*.dex..."
-          unzip -q target.apk "classes*.dex" -d dex_extracted
           
           FILTER=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.decompile_all }}" = "false" ]; then
@@ -290,205 +525,37 @@ jobs:
             fi
           fi
           
-          export JAVA_OPTS="-Xmx${{ env.JVM_HEAP_SIZE }}"
-          echo "JADX JAVA_OPTS: $JAVA_OPTS"
-          
+          export JAVA_OPTS="-Xmx28g"
           set +e
           if [ -n "$FILTER" ]; then
-            echo "局部反编译: $FILTER"
-            jadx -d java_final --no-res --threads-count 1 --no-debug-info --show-only "$FILTER" dex_extracted/*.dex
+            echo "局部反编译包: $FILTER"
+            "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" -d java_final --no-res --threads-count 2 --no-debug-info --show-only "$FILTER" new_dex/*.dex
           else
-            echo "完整反编译..."
-            jadx -d java_final --no-res --threads-count 2 dex_extracted/*.dex
+            echo "反编译中..."
+            "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" -d java_final --no-res --threads-count 2 new_dex/*.dex
           fi
-          
           EXIT_CODE=$?
           set -e
-          
-          if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 3 ]; then
-            echo "JADX 完成，状态码: $EXIT_CODE"
-          else
-            echo "JADX 失败，退出码: $EXIT_CODE"
-            exit $EXIT_CODE
-          fi
-          
-          rm -rf dex_extracted
 
-      # ==========================================
-      # 9. 打包源码产物
-      # ==========================================
-      - name: Zip Decompiled Files
-        if: steps.check_update.outputs.has_update == 'true'
-        run: |
-          cd workspace
           if [ -d "java_final" ] && [ "$(ls -A java_final)" ]; then
             mv java_final decompiled_java
-            zip -r java_output.zip decompiled_java
+            zip -q -r java_output.zip decompiled_java
           else
             mkdir -p decompiled_java
-            echo "No package selection was made or no code was found." > decompiled_java/readme.txt
-            zip -r java_output.zip decompiled_java
+            echo "未提取到指定 Java 代码。" > decompiled_java/readme.txt
+            zip -q -r java_output.zip decompiled_java
           fi
+          rm -rf new_dex target.apk
 
       # ==========================================
-      # 10. 【秒级完成】智能 Hash 预筛选 + 精准 Diff 引擎
-      # ==========================================
-      - name: Generate Smart Diff with Previous Release
-        if: steps.check_update.outputs.has_update == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd workspace
-          CURRENT_TAG="v${{ steps.check_update.outputs.version_short }}"
-          
-          PREV_TAG=$(gh release list --limit 10 --json tagName -q '.[].tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
-          export PREV_TAG
-          
-          echo "当前版本 Tag: ${CURRENT_TAG}"
-          echo "比对的上一个版本 Tag: ${PREV_TAG}"
-          
-          echo "" > diff_notes.md
-          
-          if [ -z "$PREV_TAG" ]; then
-            echo "未找到上一个 Release 版本，跳过 Diff。"
-            echo -e "\n- **代码对比：** 未检测到历史版本，本版本为初始发布版本。\n" >> diff_notes.md
-          else
-            echo "正在下载上一版本产物: ${PREV_TAG} ..."
-            mkdir -p prev_download prev_code
-            
-            if gh release download "$PREV_TAG" -p "java_output.zip" -D prev_download; then
-              echo "解压上一版本源码..."
-              unzip -q prev_download/java_output.zip -d prev_code/
-              
-              PREV_DIR="prev_code/decompiled_java"
-              CURR_DIR="decompiled_java"
-              
-              if [ -d "$PREV_DIR" ] && [ -d "$CURR_DIR" ]; then
-                echo "=== 启动高性能智能 Diff 引擎 ==="
-                
-                python3 - << 'PYEOF'
-                import os
-                import difflib
-                import hashlib
-                import zipfile
-
-                dir_old = "prev_code/decompiled_java"
-                dir_new = "decompiled_java"
-                prev_tag = os.environ.get('PREV_TAG', 'Unknown')
-
-                def get_files_dict(base_dir):
-                    f_dict = {}
-                    for root, _, files in os.walk(base_dir):
-                        for f in files:
-                            full_p = os.path.join(root, f)
-                            rel_p = os.path.relpath(full_p, base_dir)
-                            try:
-                                f_dict[rel_p] = os.path.getsize(full_p)
-                            except OSError:
-                                pass
-                    return f_dict
-
-                print("正在快速建立两版文件索引树...")
-                files_old = get_files_dict(dir_old)
-                files_new = get_files_dict(dir_new)
-
-                set_old = set(files_old.keys())
-                set_new = set(files_new.keys())
-
-                added = sorted(list(set_new - set_old))
-                deleted = sorted(list(set_old - set_new))
-                common = set_old & set_new
-
-                def calc_md5(filepath):
-                    h = hashlib.md5()
-                    with open(filepath, 'rb') as f:
-                        while chunk := f.read(65536):
-                            h.update(chunk)
-                    return h.hexdigest()
-
-                modified = []
-                print(f"正在比对共有文件 (共 {len(common)} 个)...")
-                for rel_p in common:
-                    if files_old[rel_p] != files_new[rel_p]:
-                        modified.append(rel_p)
-                    else:
-                        path_o = os.path.join(dir_old, rel_p)
-                        path_n = os.path.join(dir_new, rel_p)
-                        if calc_md5(path_o) != calc_md5(path_n):
-                            modified.append(rel_p)
-
-                modified.sort()
-                print(f"比对完成: 新增 {len(added)} | 删除 {len(deleted)} | 修改 {len(modified)}")
-
-                diff_patch_path = "diff.patch"
-                print(f"正在对 {len(modified)} 个修改文件生成行级 Diff Patch...")
-                with open(diff_patch_path, "w", encoding="utf-8", errors="replace") as patch_out:
-                    for rel_p in modified:
-                        file_o = os.path.join(dir_old, rel_p)
-                        file_n = os.path.join(dir_new, rel_p)
-                        try:
-                            with open(file_o, 'r', encoding='utf-8', errors='replace') as fo, \
-                                 open(file_n, 'r', encoding='utf-8', errors='replace') as fn:
-                                diff_lines = difflib.unified_diff(
-                                    fo.readlines(),
-                                    fn.readlines(),
-                                    fromfile=f"a/{rel_p}",
-                                    tofile=f"b/{rel_p}",
-                                    n=3
-                                )
-                                patch_out.writelines(diff_lines)
-                        except Exception as e:
-                            print(f"跳过异常文件 {rel_p}: {e}")
-
-                with zipfile.ZipFile("diff.patch.zip", "w", zipfile.ZIP_DEFLATED) as zf:
-                    zf.write(diff_patch_path, arcname="diff.patch")
-                if os.path.exists(diff_patch_path):
-                    os.remove(diff_patch_path)
-
-                with open("diff_notes.md", "w", encoding="utf-8") as out:
-                    out.write(f"\n### 🔍 代码变更智能 Diff (对比上一版本)\n\n")
-                    out.write(f"- **对比基准版本：** `{prev_tag}`\n")
-                    out.write(f"- **变更文件汇总：** 🟡 修改 `{len(modified)}` 个 | 🟢 新增 `{len(added)}` 个 | 🔴 删除 `{len(deleted)}` 个\n")
-                    out.write(f"- **精炼补丁包：** 见 Release 附件 `diff.patch.zip`（仅收录实质性改动的精简补丁）\n\n")
-
-                    key_modified = [f for f in modified if "qqnt" in f or "mobileqq" in f][:30]
-                    if key_modified:
-                        out.write("<details><summary><b>点击展开核心业务修改文件列表 (前 30 个)</b></summary>\n\n```text\n")
-                        for f in key_modified:
-                            out.write(f"[MODIFIED] {f}\n")
-                        if len(modified) > 30:
-                            out.write(f"... 其余 {len(modified) - 30} 个改动文件详见 diff.patch.zip\n")
-                        out.write("```\n</details>\n\n")
-                PYEOF
-
-              fi
-            else
-              echo "下载上一版本产物失败，跳过 Diff。"
-              echo -e "\n- **代码对比：** 未能下载到 \`${PREV_TAG}\` 的产物文件。\n" >> diff_notes.md
-            fi
-            
-            rm -rf prev_download prev_code
-          fi
-
-      # ==========================================
-      # 11. 上传 Artifact 备份
-      # ==========================================
-      - name: Upload Decoupled Artifacts
-        if: steps.check_update.outputs.has_update == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: qq-decompiled-${{ steps.check_update.outputs.version_short }}
-          path: workspace/java_output.zip
-          retention-days: 7
-
-      # ==========================================
-      # 12. 创建 GitHub Release（附带 Diff 附件与说明）
+      # 10. 创建 GitHub Release
       # ==========================================
       - name: Create GitHub Release
         if: steps.check_update.outputs.has_update == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cd workspace
           VERSION_SHORT="${{ steps.check_update.outputs.version_short }}"
           VERSION_FULL="${{ steps.check_update.outputs.version_full }}"
           APK_URL="${{ steps.check_update.outputs.apk_url }}"
@@ -501,64 +568,57 @@ jobs:
           if [ "$IS_BETA" = "true" ]; then
             RELEASE_TITLE="QQ Android v${VERSION_SHORT} [Beta]"
             EXTRA_FLAGS="--prerelease"
-            BETA_NOTE="> **当前版本被 Telegram 频道标记的 #Beta 测试版本**\n\n"
+            BETA_NOTE="> 当前版本被标记为 #Beta 测试版"
           fi
 
-          ASSETS="workspace/java_output.zip"
-          if [ -f "workspace/diff.patch.zip" ]; then
-            ASSETS="${ASSETS} workspace/diff.patch.zip"
-          fi
+          ASSETS="java_output.zip dex_archive.zip"
+          [ -f "diff_output.zip" ] && ASSETS="${ASSETS} diff_output.zip"
+          [ -f "diff_mapping.txt" ] && ASSETS="${ASSETS} diff_mapping.txt"
+          [ -f "report.json" ] && ASSETS="${ASSETS} report.json"
 
-          DIFF_CONTENT=""
-          if [ -f "workspace/diff_notes.md" ]; then
-            DIFF_CONTENT=$(cat workspace/diff_notes.md)
-          fi
+          {
+            if [ -n "$BETA_NOTE" ]; then
+              echo "$BETA_NOTE"
+              echo ""
+            fi
+            echo "### QQ Android 自动分析产物说明"
+            echo ""
+            echo "- 应用版本: \`${VERSION_SHORT}\`"
+            echo "- 安装包文件名: \`${VERSION_FULL}.apk\`"
+            echo "- 测试版状态: \`${IS_BETA}\`"
+            echo "- 官方下载直链: [点击从腾讯官方下载](${APK_URL})"
+            echo "- 生成时间: $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S') (北京时间)"
+            echo ""
+            if [ -f "diff_notes.md" ]; then
+              cat diff_notes.md
+            fi
+          } > release_notes.md
 
-          cat << EOF > workspace/release_notes.md
-          ${BETA_NOTE}### QQ Android 自动反编译产物说明
-
-          - **应用版本：** \`${VERSION_SHORT}\`
-          - **安装包文件名：** \`${VERSION_FULL}.apk\`
-          - **测试版状态：** \`${IS_BETA}\`
-          - **官方下载直链：** [点击从腾讯官方下载](${APK_URL})
-          - **自动生成时间：** $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S') (北京时间)
-
-          ${DIFF_CONTENT}
-          EOF
-
-          echo "=== 正在创建 GitHub Release: ${RELEASE_TITLE} ==="
-          
+          echo "=== 发布 Release: ${RELEASE_TITLE} ==="
           gh release create "v${VERSION_SHORT}" ${ASSETS} \
             --title "${RELEASE_TITLE}" \
             ${EXTRA_FLAGS} \
-            --notes-file workspace/release_notes.md || \
+            --notes-file release_notes.md || \
           gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
 
       # ==========================================
-      # 13. 【关键改动】Release 成功后才提交更新仓库记录（防中断跳过）
+      # 11. 更新仓库记录与多版本轮询
       # ==========================================
       - name: Commit and Push Version Update
         if: steps.check_update.outputs.has_update == 'true'
         run: |
-          echo "反编译及 Release 发布全部成功，正在落盘记录最新版本..."
           echo "${{ steps.check_update.outputs.apk_url }}" > latest_version.txt
-          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add latest_version.txt
-          git commit -m "Auto-update QQ APK version record: ${{ steps.check_update.outputs.version_short }} [skip ci]" || echo "No changes to commit"
-          
-          # 防止任务运行 2 小时期间远程主分支有微小变动导致 push 冲突
+          git commit -m "Auto-update QQ APK record: ${{ steps.check_update.outputs.version_short }} [skip ci]" || echo "No changes to commit"
           git pull --rebase origin main || true
           git push
 
-      # ==========================================
-      # 14. 如果还有未完成版本，自动触发下一次工作流
-      # ==========================================
       - name: Trigger Next Run If More Versions Pending
         if: steps.check_update.outputs.has_more == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "检测到队列中还有待处理的版本，正在自动触发下一个版本的反编译任务..."
-          gh workflow run "Auto Decompile QQ APK"
+          echo "检测到队列中还有未处理的版本，触发下一次工作流..."
+          gh workflow run "Auto Decompile & Twinflame DEX Diff QQ APK"
