@@ -25,8 +25,8 @@ jobs:
   decompile-and-diff:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 发布 Release 与推送版本记录
-      actions: write  # 积压版本自动续跑
+      contents: write
+      actions: write
 
     steps:
       # ==========================================
@@ -36,14 +36,12 @@ jobs:
         uses: actions/checkout@v4
 
       # ==========================================
-      # 2. 自动检测更新队列
+      # 2. 自动检测更新队列 (使用原生 Python 脚本)
       # ==========================================
       - name: Check for QQ Update
         id: check_update
+        shell: python
         run: |
-          echo "=== 正在从 Telegram 获取 QQ APK 更新队列 ==="
-          
-          cat << 'EOF' > /tmp/check_update.py
           import urllib.request
           import re
           import os
@@ -68,10 +66,7 @@ jobs:
           for msg in messages:
               urls = re.findall(r'https://downv6\.qq\.com/qqweb/QQ_1/android_apk/[a-zA-Z0-9_.-]+\.apk', msg)
               if urls:
-                  apk_entries.append({
-                      'url': urls[-1],
-                      'msg': msg
-                  })
+                  apk_entries.append({'url': urls[-1], 'msg': msg})
 
           if not apk_entries:
               print("错误: 未能在 Telegram 频道找到任何有效的 APK 下载链接。")
@@ -98,9 +93,9 @@ jobs:
           if not pending_entries and event_name == 'workflow_dispatch':
               pending_entries = [apk_entries[-1]]
 
+          github_output = os.environ.get('GITHUB_OUTPUT')
           if not has_update or not pending_entries:
               print("未检测到新版本，跳过本次处理。")
-              github_output = os.environ.get('GITHUB_OUTPUT')
               with open(github_output, 'a', encoding='utf-8') as f:
                   f.write("has_update=false\n")
                   f.write("has_more=false\n")
@@ -121,7 +116,6 @@ jobs:
           filename = target_url.split('/')[-1].replace('.apk', '')
           version_short = ver_match.group(1) if ver_match else filename.split('_')[0]
 
-          github_output = os.environ.get('GITHUB_OUTPUT')
           with open(github_output, 'a', encoding='utf-8') as f:
               f.write(f"apk_url={target_url}\n")
               f.write(f"version_short={version_short}\n")
@@ -130,18 +124,16 @@ jobs:
               f.write("has_update=true\n")
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
-          print(f"=== 本次待处理版本: {version_short} ===")
+          print(f"本次待处理版本: {version_short}")
           print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理: {len(pending_entries) - 1})")
-          EOF
-          python3 /tmp/check_update.py
 
       # ==========================================
-      # 3. 深度清理磁盘并选定工作盘
+      # 3. 深度清理磁盘并选定工作空间
       # ==========================================
       - name: Free Disk Space & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
         run: |
-          echo ">>> 正在执行深度磁盘清理..."
+          echo "正在执行深度磁盘清理..."
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY" 2>/dev/null || true
           sudo rm -rf /mnt/docker 2>/dev/null || true
@@ -183,12 +175,10 @@ jobs:
           sudo chmod 600 $SWAP_PATH
           sudo mkswap $SWAP_PATH
           sudo swapon $SWAP_PATH
-          
-          echo "=== 内存状态看板 ==="
           free -h
 
       # ==========================================
-      # 5. 配置环境依赖 (Python 3.11, JDK 17, Rust)
+      # 5. 配置基础编译与运行环境
       # ==========================================
       - name: Set up Python 3.11
         if: steps.check_update.outputs.has_update == 'true'
@@ -208,29 +198,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       # ==========================================
-      # 6. 安装 Twinflame (Rust 原生加速) 与 Baksmali
-      # ==========================================
-      - name: Install Twinflame & Baksmali
-        if: steps.check_update.outputs.has_update == 'true'
-        run: |
-          git clone https://github.com/ankorio/twinflame.git _tf_src
-          pip install maturin
-          cd _tf_src/native
-          maturin build --release --out dist
-          pip install dist/*.whl
-          cd ..
-          pip install .
-          cd ..
-          rm -rf _tf_src
-          twinflame --help
-
-          mkdir -p bin
-          curl -L -s https://github.com/baksmali/smali/releases/download/3.0.10/baksmali-3.0.10-fat-release.jar -o bin/baksmali.jar || \
-          curl -L -s https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -o bin/baksmali.jar
-          java -jar bin/baksmali.jar --version || true
-
-      # ==========================================
-      # 7. 下载新版 APK 并提取 DEX
+      # 6. 下载 APK 并提取当前 DEX
       # ==========================================
       - name: Download APK and Extract DEX
         if: steps.check_update.outputs.has_update == 'true'
@@ -255,13 +223,13 @@ jobs:
           unzip -q target.apk "classes*.dex" -d new_dex/
           echo "已提取新版 DEX 数量: $(ls -1 new_dex/*.dex | wc -l)"
           
-          # 打包 DEX 产物，供下次 Release 比对
           zip -q -j dex_archive.zip new_dex/*.dex
 
       # ==========================================
-      # 8. 获取上一版本 DEX 并执行 Twinflame 精准对比
+      # 7. 检测基准版本并准备历史 DEX
       # ==========================================
-      - name: Twinflame & Baksmali DEX Diff Engine
+      - name: Prepare Previous DEX
+        id: prepare_prev
         if: steps.check_update.outputs.has_update == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -270,7 +238,6 @@ jobs:
           CURRENT_TAG="v${{ steps.check_update.outputs.version_short }}"
           IS_BETA="${{ steps.check_update.outputs.is_beta }}"
 
-          # 智能定位比对基准版本
           if [ "$IS_BETA" = "true" ]; then
             echo "当前版本为 Beta 测试版，优先寻找最新正式版作为基准..."
             PREV_TAG=$(gh release list --limit 20 --json tagName,isPrerelease -q '.[] | select(.isPrerelease == false) | .tagName' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)
@@ -285,222 +252,259 @@ jobs:
             fi
           fi
 
-          export PREV_TAG
           echo "当前版本: ${CURRENT_TAG} | 比对基准版本: ${PREV_TAG}"
+          echo "prev_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
 
           HAS_PREV_DEX="false"
           if [ -n "$PREV_TAG" ]; then
-            echo "尝试拉取基准版本 DEX 产物..."
             mkdir -p prev_download old_dex
-            if gh release download "$PREV_TAG" -p "dex_archive.zip" -D prev_download; then
+            if gh release download "$PREV_TAG" -p "dex_archive.zip" -D prev_download 2>/dev/null; then
               unzip -q prev_download/dex_archive.zip -d old_dex/
               HAS_PREV_DEX="true"
               echo "成功载入旧版 DEX 数量: $(ls -1 old_dex/*.dex 2>/dev/null | wc -l)"
             else
-              echo "基准版本没有历史 dex_archive.zip 产物，跳过 Diff。"
+              echo "基准版本没有历史 dex_archive.zip 产物，本次将跳过 Diff。"
             fi
           fi
 
-          if [ "$HAS_PREV_DEX" = "true" ]; then
-            echo "=== 第一阶段：压制二进制指纹 (Prepare) ==="
-            twinflame prepare old_dex/ -o old.tfr
-            twinflame prepare new_dex/ -o new.tfr
-
-            echo "=== 第二阶段：语义混淆比对 (极速聚类模式) ==="
-            twinflame old.tfr new.tfr \
-              --find-obfuscated \
-              --skip-external \
-              --skip-synthetic \
-              -s changed \
-              --deobfuscation-map diff_mapping.txt \
-              -o report.json
-
-            echo "=== 第三阶段：物理反编译与 Smali 精准 Diff ==="
-            mkdir -p old_smali new_smali
-            for f in old_dex/*.dex; do
-              [ -f "$f" ] && java -jar "$GITHUB_WORKSPACE/bin/baksmali.jar" d "$f" -o old_smali || true
-            done
-            for f in new_dex/*.dex; do
-              [ -f "$f" ] && java -jar "$GITHUB_WORKSPACE/bin/baksmali.jar" d "$f" -o new_smali || true
-            done
-
-            cat << 'EOF' > /tmp/dex_diff_process.py
-            import os, json, difflib, shutil, filecmp
-
-            DIR_MODIFIED = 'diff_output/1_MODIFIED'
-            DIR_REMOVED  = 'diff_output/2_REMOVED'
-            DIR_ADDED    = 'diff_output/3_ADDED'
-            os.makedirs(f'{DIR_MODIFIED}/classes', exist_ok=True)
-            os.makedirs(f'{DIR_REMOVED}/classes', exist_ok=True)
-            os.makedirs(f'{DIR_ADDED}/classes', exist_ok=True)
-            os.makedirs('changed_smali/old', exist_ok=True)
-            os.makedirs('changed_smali/new', exist_ok=True)
-
-            IGNORED_PREFIXES = (
-                'android/', 'androidx/', 'kotlin/', 'kotlinx/',
-                'okhttp3/', 'okio/', 'com/squareup/okhttp/',
-                'com/google/android/', 'org/apache/', 'org/jetbrains/',
-            )
-
-            def is_ignored(rel_path):
-                return rel_path.startswith(IGNORED_PREFIXES)
-
-            print("正在扫描磁盘真实 smali 文件...")
-            old_files = {}
-            for root, _, files in os.walk('old_smali'):
-                for file in files:
-                    if file.endswith('.smali'):
-                        full = os.path.join(root, file)
-                        rel = os.path.relpath(full, 'old_smali').replace('\\', '/')
-                        if not is_ignored(rel):
-                            old_files[rel] = full
-
-            new_files = {}
-            for root, _, files in os.walk('new_smali'):
-                for file in files:
-                    if file.endswith('.smali'):
-                        full = os.path.join(root, file)
-                        rel = os.path.relpath(full, 'new_smali').replace('\\', '/')
-                        if not is_ignored(rel):
-                            new_files[rel] = full
-
-            modified_diffs = []
-            removed_diffs = []
-            added_diffs = []
-
-            common_files = set(old_files.keys()) & set(new_files.keys())
-            print(f"双方同名业务类共 {len(common_files)} 个，开始物理逐行校验...")
-
-            for rel in common_files:
-                old_p = old_files[rel]
-                new_p = new_files[rel]
-
-                if filecmp.cmp(old_p, new_p, shallow=False):
-                    continue
-
-                with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
-                     open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
-                    old_lines = f1.readlines()
-                    new_lines = f2.readlines()
-
-                diff = list(difflib.unified_diff(
-                    old_lines, new_lines,
-                    fromfile=f"old/{rel}", tofile=f"new/{rel}", n=3
-                ))
-                if diff:
-                    diff_text = "".join(diff)
-                    safe_name = rel.replace('/', '.').replace('.smali', '')
-                    with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
-                        out.write(diff_text)
-                    modified_diffs.append(diff_text)
-
-                    dest_old = os.path.join('changed_smali/old', rel)
-                    dest_new = os.path.join('changed_smali/new', rel)
-                    os.makedirs(os.path.dirname(dest_old), exist_ok=True)
-                    os.makedirs(os.path.dirname(dest_new), exist_ok=True)
-                    shutil.copyfile(old_p, dest_old)
-                    shutil.copyfile(new_p, dest_new)
-
-            only_old = set(old_files.keys()) - common_files
-            only_new = set(new_files.keys()) - common_files
-
-            rename_map = {}
-            if os.path.exists('report.json'):
-                with open('report.json', 'r', encoding='utf-8') as f:
-                    report = json.load(f)
-                for item in report.get('changes', []):
-                    if item.get('kind') == 'modified' and item.get('lhs') and item.get('rhs'):
-                        l_rel = item['lhs'].strip()[1:-1] + '.smali'
-                        r_rel = item['rhs'].strip()[1:-1] + '.smali'
-                        if l_rel in only_old and r_rel in only_new:
-                            rename_map[l_rel] = r_rel
-
-            for l_rel, r_rel in list(rename_map.items()):
-                if l_rel not in only_old or r_rel not in only_new:
-                    continue
-                old_p = old_files[l_rel]
-                new_p = new_files[r_rel]
-                with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
-                     open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
-                    diff = list(difflib.unified_diff(
-                        f1.readlines(), f2.readlines(),
-                        fromfile=f"old/{l_rel} (renamed)", tofile=f"new/{r_rel}", n=3
-                    ))
-                if diff:
-                    diff_text = "".join(diff)
-                    safe_name = f"RENAMED_{r_rel.replace('/', '.').replace('.smali', '')}"
-                    with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
-                        out.write(diff_text)
-                    modified_diffs.append(diff_text)
-                only_old.discard(l_rel)
-                only_new.discard(r_rel)
-
-            for rel in only_old:
-                old_p = old_files[rel]
-                with open(old_p, 'r', encoding='utf-8', errors='ignore') as f:
-                    diff = list(difflib.unified_diff(
-                        f.readlines(), [],
-                        fromfile=f"old/{rel}", tofile="/dev/null", n=3
-                    ))
-                if diff:
-                    diff_text = "".join(diff)
-                    safe_name = rel.replace('/', '.').replace('.smali', '')
-                    with open(f"{DIR_REMOVED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
-                        out.write(diff_text)
-                    removed_diffs.append(diff_text)
-
-            for rel in only_new:
-                new_p = new_files[rel]
-                with open(new_p, 'r', encoding='utf-8', errors='ignore') as f:
-                    diff = list(difflib.unified_diff(
-                        [], f.readlines(),
-                        fromfile="/dev/null", tofile=f"new/{rel}", n=3
-                    ))
-                if diff:
-                    diff_text = "".join(diff)
-                    safe_name = rel.replace('/', '.').replace('.smali', '')
-                    with open(f"{DIR_ADDED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
-                        out.write(diff_text)
-                    added_diffs.append(diff_text)
-
-            with open(f"{DIR_MODIFIED}/all_modified.diff", 'w', encoding='utf-8') as f:
-                f.write("\n".join(modified_diffs))
-            with open(f"{DIR_REMOVED}/all_removed.diff", 'w', encoding='utf-8') as f:
-                f.write("\n".join(removed_diffs))
-            with open(f"{DIR_ADDED}/all_added.diff", 'w', encoding='utf-8') as f:
-                f.write("\n".join(added_diffs))
-
-            print(f"最终精炼结果：真正修改类 {len(modified_diffs)} 个，彻底删除 {len(removed_diffs)} 个，纯新增 {len(added_diffs)} 个")
-            EOF
-            python3 /tmp/dex_diff_process.py
-
-            # 打包对比产物
-            zip -q -r diff_output.zip diff_output/ changed_smali/
-            
-            MOD_COUNT=$(ls -1 diff_output/1_MODIFIED/classes/*.diff 2>/dev/null | wc -l)
-            REM_COUNT=$(ls -1 diff_output/2_REMOVED/classes/*.diff 2>/dev/null | wc -l)
-            ADD_COUNT=$(ls -1 diff_output/3_ADDED/classes/*.diff 2>/dev/null | wc -l)
-            
-            {
-              echo ""
-              echo "### Twinflame DEX 语义精准 Diff 变更汇总"
-              echo "- 对比基准版本: \`${PREV_TAG}\`"
-              echo "- 核心修改业务类 (Modified): \`${MOD_COUNT}\` 个"
-              echo "- 彻底废弃/删除类 (Removed): \`${REM_COUNT}\` 个"
-              echo "- 纯新增业务类 (Added): \`${ADD_COUNT}\` 个"
-              echo "- 详细产物: 见附件 \`diff_output.zip\`、\`diff_mapping.txt\` 及 \`report.json\`。"
-              echo ""
-            } > diff_notes.md
-
-          else
+          echo "has_prev_dex=${HAS_PREV_DEX}" >> $GITHUB_OUTPUT
+          if [ "$HAS_PREV_DEX" = "false" ]; then
             echo "- 代码对比: 未检测到基准版本的 DEX 文件，跳过本次比对。" > diff_notes.md
           fi
+
+      # ==========================================
+      # 8. 安装 Twinflame 与 Baksmali (仅当存在历史 DEX 时安装)
+      # ==========================================
+      - name: Install Twinflame & Baksmali
+        if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
+        run: |
+          git clone https://github.com/ankorio/twinflame.git _tf_src
+          pip install maturin
+          cd _tf_src/native
+          maturin build --release --out dist
+          pip install dist/*.whl
+          cd ..
+          pip install .
+          cd ..
+          rm -rf _tf_src
+
+          mkdir -p bin
+          curl -L -s https://github.com/baksmali/smali/releases/download/3.0.10/baksmali-3.0.10-fat-release.jar -o bin/baksmali.jar || \
+          curl -L -s https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -o bin/baksmali.jar
+
+      # ==========================================
+      # 9. 执行 Twinflame 与 Baksmali 反编译比对
+      # ==========================================
+      - name: Run Twinflame Analysis & Baksmali
+        if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
+        run: |
+          cd workspace
+          echo "阶段一: 压制二进制指纹..."
+          twinflame prepare old_dex/ -o old.tfr
+          twinflame prepare new_dex/ -o new.tfr
+
+          echo "阶段二: 语义混淆比对..."
+          twinflame old.tfr new.tfr \
+            --find-obfuscated \
+            --skip-external \
+            --skip-synthetic \
+            -s changed \
+            --deobfuscation-map diff_mapping.txt \
+            -o report.json
+
+          echo "阶段三: 反编译 Smali..."
+          mkdir -p old_smali new_smali
+          for f in old_dex/*.dex; do
+            [ -f "$f" ] && java -jar "$GITHUB_WORKSPACE/bin/baksmali.jar" d "$f" -o old_smali || true
+          done
+          for f in new_dex/*.dex; do
+            [ -f "$f" ] && java -jar "$GITHUB_WORKSPACE/bin/baksmali.jar" d "$f" -o new_smali || true
+          done
+
+      # ==========================================
+      # 10. 原生 Python 处理 Smali 差异 (无 Here-Doc 风险)
+      # ==========================================
+      - name: Process Smali Diff Results
+        if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
+        shell: python
+        run: |
+          import os, json, difflib, shutil, filecmp
+
+          os.chdir("workspace")
+          DIR_MODIFIED = 'diff_output/1_MODIFIED'
+          DIR_REMOVED  = 'diff_output/2_REMOVED'
+          DIR_ADDED    = 'diff_output/3_ADDED'
+          os.makedirs(f'{DIR_MODIFIED}/classes', exist_ok=True)
+          os.makedirs(f'{DIR_REMOVED}/classes', exist_ok=True)
+          os.makedirs(f'{DIR_ADDED}/classes', exist_ok=True)
+          os.makedirs('changed_smali/old', exist_ok=True)
+          os.makedirs('changed_smali/new', exist_ok=True)
+
+          IGNORED_PREFIXES = (
+              'android/', 'androidx/', 'kotlin/', 'kotlinx/',
+              'okhttp3/', 'okio/', 'com/squareup/okhttp/',
+              'com/google/android/', 'org/apache/', 'org/jetbrains/',
+          )
+
+          def is_ignored(rel_path):
+              return rel_path.startswith(IGNORED_PREFIXES)
+
+          print("正在扫描磁盘真实 smali 文件...")
+          old_files = {}
+          for root, _, files in os.walk('old_smali'):
+              for file in files:
+                  if file.endswith('.smali'):
+                      full = os.path.join(root, file)
+                      rel = os.path.relpath(full, 'old_smali').replace('\\', '/')
+                      if not is_ignored(rel):
+                          old_files[rel] = full
+
+          new_files = {}
+          for root, _, files in os.walk('new_smali'):
+              for file in files:
+                  if file.endswith('.smali'):
+                      full = os.path.join(root, file)
+                      rel = os.path.relpath(full, 'new_smali').replace('\\', '/')
+                      if not is_ignored(rel):
+                          new_files[rel] = full
+
+          modified_diffs = []
+          removed_diffs = []
+          added_diffs = []
+
+          common_files = set(old_files.keys()) & set(new_files.keys())
+          print(f"双方同名业务类共 {len(common_files)} 个，开始逐行校验...")
+
+          for rel in common_files:
+              old_p = old_files[rel]
+              new_p = new_files[rel]
+
+              if filecmp.cmp(old_p, new_p, shallow=False):
+                  continue
+
+              with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
+                   open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
+                  old_lines = f1.readlines()
+                  new_lines = f2.readlines()
+
+              diff = list(difflib.unified_diff(
+                  old_lines, new_lines,
+                  fromfile=f"old/{rel}", tofile=f"new/{rel}", n=3
+              ))
+              if diff:
+                  diff_text = "".join(diff)
+                  safe_name = rel.replace('/', '.').replace('.smali', '')
+                  with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                      out.write(diff_text)
+                  modified_diffs.append(diff_text)
+
+                  dest_old = os.path.join('changed_smali/old', rel)
+                  dest_new = os.path.join('changed_smali/new', rel)
+                  os.makedirs(os.path.dirname(dest_old), exist_ok=True)
+                  os.makedirs(os.path.dirname(dest_new), exist_ok=True)
+                  shutil.copyfile(old_p, dest_old)
+                  shutil.copyfile(new_p, dest_new)
+
+          only_old = set(old_files.keys()) - common_files
+          only_new = set(new_files.keys()) - common_files
+
+          rename_map = {}
+          if os.path.exists('report.json'):
+              with open('report.json', 'r', encoding='utf-8') as f:
+                  report = json.load(f)
+              for item in report.get('changes', []):
+                  if item.get('kind') == 'modified' and item.get('lhs') and item.get('rhs'):
+                      l_rel = item['lhs'].strip()[1:-1] + '.smali'
+                      r_rel = item['rhs'].strip()[1:-1] + '.smali'
+                      if l_rel in only_old and r_rel in only_new:
+                          rename_map[l_rel] = r_rel
+
+          for l_rel, r_rel in list(rename_map.items()):
+              if l_rel not in only_old or r_rel not in only_new:
+                  continue
+              old_p = old_files[l_rel]
+              new_p = new_files[r_rel]
+              with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
+                   open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
+                  diff = list(difflib.unified_diff(
+                      f1.readlines(), f2.readlines(),
+                      fromfile=f"old/{l_rel} (renamed)", tofile=f"new/{r_rel}", n=3
+                  ))
+              if diff:
+                  diff_text = "".join(diff)
+                  safe_name = f"RENAMED_{r_rel.replace('/', '.').replace('.smali', '')}"
+                  with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                      out.write(diff_text)
+                  modified_diffs.append(diff_text)
+              only_old.discard(l_rel)
+              only_new.discard(r_rel)
+
+          for rel in only_old:
+              old_p = old_files[rel]
+              with open(old_p, 'r', encoding='utf-8', errors='ignore') as f:
+                  diff = list(difflib.unified_diff(
+                      f.readlines(), [],
+                      fromfile=f"old/{rel}", tofile="/dev/null", n=3
+                  ))
+              if diff:
+                  diff_text = "".join(diff)
+                  safe_name = rel.replace('/', '.').replace('.smali', '')
+                  with open(f"{DIR_REMOVED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                      out.write(diff_text)
+                  removed_diffs.append(diff_text)
+
+          for rel in only_new:
+              new_p = new_files[rel]
+              with open(new_p, 'r', encoding='utf-8', errors='ignore') as f:
+                  diff = list(difflib.unified_diff(
+                      [], f.readlines(),
+                      fromfile="/dev/null", tofile=f"new/{rel}", n=3
+                  ))
+              if diff:
+                  diff_text = "".join(diff)
+                  safe_name = rel.replace('/', '.').replace('.smali', '')
+                  with open(f"{DIR_ADDED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                      out.write(diff_text)
+                  added_diffs.append(diff_text)
+
+          with open(f"{DIR_MODIFIED}/all_modified.diff", 'w', encoding='utf-8') as f:
+              f.write("\n".join(modified_diffs))
+          with open(f"{DIR_REMOVED}/all_removed.diff", 'w', encoding='utf-8') as f:
+              f.write("\n".join(removed_diffs))
+          with open(f"{DIR_ADDED}/all_added.diff", 'w', encoding='utf-8') as f:
+              f.write("\n".join(added_diffs))
+
+          print(f"最终精炼结果: 真正修改类 {len(modified_diffs)} 个，彻底删除 {len(removed_diffs)} 个，纯新增 {len(added_diffs)} 个")
+
+      # ==========================================
+      # 11. 打包 Diff 产物并输出报告
+      # ==========================================
+      - name: Package Diff Output
+        if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
+        run: |
+          cd workspace
+          zip -q -r diff_output.zip diff_output/ changed_smali/
+          
+          MOD_COUNT=$(ls -1 diff_output/1_MODIFIED/classes/*.diff 2>/dev/null | wc -l)
+          REM_COUNT=$(ls -1 diff_output/2_REMOVED/classes/*.diff 2>/dev/null | wc -l)
+          ADD_COUNT=$(ls -1 diff_output/3_ADDED/classes/*.diff 2>/dev/null | wc -l)
+          
+          {
+            echo ""
+            echo "### Twinflame DEX 语义精准 Diff 变更汇总"
+            echo "- 对比基准版本: \`${{ steps.prepare_prev.outputs.prev_tag }}\`"
+            echo "- 核心修改业务类 (Modified): \`${MOD_COUNT}\` 个"
+            echo "- 彻底废弃/删除类 (Removed): \`${REM_COUNT}\` 个"
+            echo "- 纯新增业务类 (Added): \`${ADD_COUNT}\` 个"
+            echo "- 详细产物: 见附件 \`diff_output.zip\`、\`diff_mapping.txt\` 及 \`report.json\`。"
+            echo ""
+          } > diff_notes.md
           
           cat diff_notes.md >> $GITHUB_STEP_SUMMARY
           rm -rf old_dex old_smali new_smali prev_download
 
       # ==========================================
-      # 9. 安装 JADX 并反编译源码
+      # 12. 安装 JADX 并反编译源码
       # ==========================================
       - name: Install JADX and Decompile Java Source
         if: steps.check_update.outputs.has_update == 'true'
@@ -531,7 +535,7 @@ jobs:
             echo "局部反编译包: $FILTER"
             "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" -d java_final --no-res --threads-count 2 --no-debug-info --show-only "$FILTER" new_dex/*.dex
           else
-            echo "反编译中..."
+            echo "完整反编译中..."
             "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" -d java_final --no-res --threads-count 2 new_dex/*.dex
           fi
           EXIT_CODE=$?
@@ -548,7 +552,7 @@ jobs:
           rm -rf new_dex target.apk
 
       # ==========================================
-      # 10. 创建 GitHub Release
+      # 13. 创建 GitHub Release
       # ==========================================
       - name: Create GitHub Release
         if: steps.check_update.outputs.has_update == 'true'
@@ -594,7 +598,7 @@ jobs:
             fi
           } > release_notes.md
 
-          echo "=== 发布 Release: ${RELEASE_TITLE} ==="
+          echo "发布 Release: ${RELEASE_TITLE}"
           gh release create "v${VERSION_SHORT}" ${ASSETS} \
             --title "${RELEASE_TITLE}" \
             ${EXTRA_FLAGS} \
@@ -602,7 +606,7 @@ jobs:
           gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
 
       # ==========================================
-      # 11. 更新仓库记录与多版本轮询
+      # 14. 更新版本记录与多版本轮询
       # ==========================================
       - name: Commit and Push Version Update
         if: steps.check_update.outputs.has_update == 'true'
