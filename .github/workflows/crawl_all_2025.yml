@@ -1,0 +1,67 @@
+name: Crawl All QQ SubIDs (Since 2025)
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: '回溯抓取的起始日期 (格式: YYYY-MM-DD)'
+        required: false
+        default: '2025-01-01'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  batch-extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # 允许最长运行 6 小时
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装底层解包工具与系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full rpm2cpio cpio curl
+
+      - name: 安装 Python 网页解析依赖
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: 安装官方 tdl 客户端
+        run: |
+          echo "正在安装 tdl..."
+          curl -sSL https://docs.iyear.me/tdl/install.sh | sudo bash
+          tdl version
+
+      - name: 恢复 Telegram 登录会话
+        run: |
+          echo "正在恢复已授权的 tdl 登录状态..."
+          echo "${{ secrets.TDL_SESSION_BASE64 }}" | base64 -d > backup.zip
+          tdl recover -f backup.zip
+          rm backup.zip
+
+      - name: 运行全量历史回溯与提取流水线
+        env:
+          START_DATE: ${{ inputs.start_date || '2025-01-01' }}
+        run: |
+          python scripts/build_subid_database.py
+
+      - name: 提交更新后的数据字典到仓库
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add data/qq_subid_map.json
+          if git diff --staged --quiet; then
+            echo "[状态] 没有新数据生成，跳过提交。"
+          else
+            git commit -m "Auto-database: update QQ SubID mapping (since 2025) [skip ci]"
+            git push
+          fi
