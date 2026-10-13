@@ -226,7 +226,120 @@ jobs:
           zip -q -j dex_archive.zip new_dex/*.dex
 
       # ==========================================
-      # 7. 检测基准版本并准备历史 DEX
+      # 7. 提取 SubID 及版本元数据
+      # ==========================================
+      - name: Extract SubID and Metadata
+        if: steps.check_update.outputs.has_update == 'true'
+        shell: python
+        run: |
+          import os, zipfile, struct
+
+          os.chdir("workspace")
+          apk_path = "target.apk"
+
+          def get_axml_strings(data):
+              if len(data) < 36: return []
+              chunk_type, chunk_size, string_count, style_count, flags, strings_start, styles_start = struct.unpack_from('<IIIIIII', data, 8)
+              if chunk_type != 0x001C0001: return []
+              is_utf8 = bool(flags & 0x100)
+              offsets = [struct.unpack_from('<I', data, 36 + i * 4)[0] for i in range(string_count)]
+              base = 8 + strings_start
+              strings = []
+              for off in offsets:
+                  pos = base + off
+                  if is_utf8:
+                      while pos < len(data) and (data[pos] & 0x80): pos += 1
+                      pos += 1
+                      while pos < len(data) and (data[pos] & 0x80): pos += 1
+                      pos += 1
+                      end = data.find(b'\x00', pos)
+                      strings.append(data[pos:end].decode('utf-8', errors='ignore') if end != -1 else "")
+                  else:
+                      length = struct.unpack_from('<H', data, pos)[0]
+                      pos += 2
+                      if length & 0x8000: pos += 2
+                      s_bytes = data[pos : pos + length * 2]
+                      strings.append(s_bytes.decode('utf-16le', errors='ignore'))
+              return strings
+
+          def parse_metadata_params(data):
+              strings = get_axml_strings(data)
+              params = {}
+              try:
+                  pos = 8 + struct.unpack_from('<I', data, 12)[0]
+                  while pos < len(data):
+                      if pos + 8 > len(data): break
+                      c_type, c_header_size, c_size = struct.unpack_from('<HHI', data, pos)
+                      if c_type == 0x0102:
+                          _, name_idx, attr_start, attr_size, attr_count = struct.unpack_from('<IIHHH', data, pos + 16)
+                          elem_name = strings[name_idx] if name_idx < len(strings) else ""
+                          if elem_name == "meta-data":
+                              attr_base = pos + attr_start
+                              k, v = None, None
+                              for i in range(attr_count):
+                                  a_pos = attr_base + i * attr_size
+                                  _, a_name, a_val_str, _, a_data = struct.unpack_from('<IIIHI', data, a_pos)
+                                  name_str = strings[a_name] if a_name < len(strings) else ""
+                                  val_str = strings[a_val_str] if a_val_str < len(strings) and a_val_str != 0xFFFFFFFF else str(a_data)
+                                  if name_str == "name": k = val_str
+                                  elif name_str == "value": v = val_str
+                              if k in ("AppSetting_params", "AppSetting_params_pad") and v:
+                                  params[k] = v
+                      pos += c_size
+                      if c_size <= 0: break
+              except Exception:
+                  pass
+
+              if "AppSetting_params" not in params or "AppSetting_params_pad" not in params:
+                  for s in strings:
+                      if "#" in s:
+                          pts = s.split("#")
+                          if len(pts) >= 4 and pts[0].isdigit() and len(pts[0]) in (9, 10):
+                              if "AppSetting_params" not in params:
+                                  params["AppSetting_params"] = s
+                              elif "AppSetting_params_pad" not in params and s != params.get("AppSetting_params"):
+                                  params["AppSetting_params_pad"] = s
+              return params
+
+          with zipfile.ZipFile(apk_path, 'r') as zf:
+              manifest_data = zf.read("AndroidManifest.xml")
+
+          meta = parse_metadata_params(manifest_data)
+          phone_raw = meta.get("AppSetting_params", "")
+          pad_raw = meta.get("AppSetting_params_pad", "")
+
+          def parse_item(raw_str):
+              if not raw_str: return {}
+              p = raw_str.split("#")
+              subid = int(p[0]) if len(p) > 0 and p[0].isdigit() else 0
+              return {
+                  "subid": subid,
+                  "subid_hex": f"0x{subid:08x}" if subid else "",
+                  "cert_hash": p[1] if len(p) > 1 else "",
+                  "channel_id": p[2] if len(p) > 2 else "",
+                  "channel_name": p[3] if len(p) > 3 else ""
+              }
+
+          phone_info = parse_item(phone_raw)
+          pad_info = parse_item(pad_raw)
+
+          notes = [
+              "### 客户端版本识别码 (SubID)",
+              f"- 手机端 SubID: `{phone_info.get('subid', '未知')}` (`{phone_info.get('subid_hex', '')}`)",
+              f"- 平板端 SubID: `{pad_info.get('subid', '未知')}` (`{pad_info.get('subid_hex', '')}`)",
+              f"- 官方渠道: `{phone_info.get('channel_name', '未知')}` (ID: `{phone_info.get('channel_id', '未知')}`)",
+              f"- 校验特征: `{phone_info.get('cert_hash', '未知')}`",
+              ""
+          ]
+          with open("subid_notes.md", "w", encoding="utf-8") as f:
+              f.write("\n".join(notes))
+
+          print("[OK] SubID 提取完毕:")
+          print(f"  手机端: {phone_info.get('subid')} ({phone_info.get('subid_hex')})")
+          print(f"  平板端: {pad_info.get('subid')} ({pad_info.get('subid_hex')})")
+
+      # ==========================================
+      # 8. 检测基准版本并准备历史 DEX
       # ==========================================
       - name: Prepare Previous DEX
         id: prepare_prev
@@ -273,7 +386,7 @@ jobs:
           fi
 
       # ==========================================
-      # 8. 安装 Twinflame 与 Baksmali (仅当存在历史 DEX 时安装)
+      # 9. 安装 Twinflame 与 Baksmali (仅当存在历史 DEX 时安装)
       # ==========================================
       - name: Install Twinflame & Baksmali
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -293,7 +406,7 @@ jobs:
           curl -L -s https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -o bin/baksmali.jar
 
       # ==========================================
-      # 9. 执行 Twinflame 与 Baksmali 反编译比对
+      # 10. 执行 Twinflame 与 Baksmali 反编译比对
       # ==========================================
       - name: Run Twinflame Analysis & Baksmali
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -322,7 +435,7 @@ jobs:
           done
 
       # ==========================================
-      # 10. 原生 Python 处理 Smali 差异 (无 Here-Doc 风险)
+      # 11. 原生 Python 处理 Smali 差异
       # ==========================================
       - name: Process Smali Diff Results
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -477,7 +590,7 @@ jobs:
           print(f"最终精炼结果: 真正修改类 {len(modified_diffs)} 个，彻底删除 {len(removed_diffs)} 个，纯新增 {len(added_diffs)} 个")
 
       # ==========================================
-      # 11. 打包 Diff 产物并输出报告
+      # 12. 打包 Diff 产物并输出报告
       # ==========================================
       - name: Package Diff Output
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -504,7 +617,7 @@ jobs:
           rm -rf old_dex old_smali new_smali prev_download
 
       # ==========================================
-      # 12. 安装 JADX 并反编译源码
+      # 13. 安装 JADX 并反编译源码
       # ==========================================
       - name: Install JADX and Decompile Java Source
         if: steps.check_update.outputs.has_update == 'true'
@@ -552,7 +665,7 @@ jobs:
           rm -rf new_dex target.apk
 
       # ==========================================
-      # 13. 创建 GitHub Release
+      # 14. 创建 GitHub Release
       # ==========================================
       - name: Create GitHub Release
         if: steps.check_update.outputs.has_update == 'true'
@@ -593,6 +706,10 @@ jobs:
             echo "- 官方下载直链: [点击从腾讯官方下载](${APK_URL})"
             echo "- 生成时间: $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S') (北京时间)"
             echo ""
+            if [ -f "subid_notes.md" ]; then
+              cat subid_notes.md
+              echo ""
+            fi
             if [ -f "diff_notes.md" ]; then
               cat diff_notes.md
             fi
@@ -606,7 +723,7 @@ jobs:
           gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
 
       # ==========================================
-      # 14. 更新版本记录与多版本轮询
+      # 15. 更新版本记录与多版本轮询
       # ==========================================
       - name: Commit and Push Version Update
         if: steps.check_update.outputs.has_update == 'true'
