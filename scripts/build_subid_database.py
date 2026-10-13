@@ -300,55 +300,13 @@ def get_aapt_cmd():
     return None
 
 
-def get_axml_strings(raw):
-    """纯 Python 从二进制 AXML 中直接提取所有字符串"""
-    try:
-        sp_type, sp_header_size, sp_size, str_count, _, flags, str_start, _ = (
-            struct.unpack_from("<HHIIIIII", raw, 8)
-        )
-        if sp_type != 0x0001:
-            return []
-        is_utf8 = bool(flags & (1 << 8))
-        offsets = struct.unpack_from(f"<{str_count}I", raw, 8 + sp_header_size)
-        data_start = 8 + str_start
-        strings = []
-        for off in offsets:
-            pos = data_start + off
-            if is_utf8:
-                if pos >= len(raw):
-                    break
-                l1 = raw[pos]
-                pos += 1
-                if l1 & 0x80:
-                    pos += 1
-                if pos >= len(raw):
-                    break
-                u1 = raw[pos]
-                pos += 1
-                if u1 & 0x80:
-                    pos += 1
-                end = raw.find(b"\x00", pos)
-                if end == -1:
-                    end = len(raw)
-                strings.append(raw[pos:end].decode("utf-8", errors="ignore"))
-            else:
-                pos += 2
-                end = raw.find(b"\x00\x00", pos)
-                if end == -1:
-                    end = len(raw)
-                if (end - pos) % 2 != 0:
-                    end += 1
-                strings.append(raw[pos:end].decode("utf-16le", errors="ignore"))
-        return strings
-    except Exception as e:
-        print(f"[调试] AXML 字符串池解析异常: {e}", flush=True)
-        return []
-
-
 def extract_subid_and_version(
     extract_dir, downloaded_file_path, fallback_ver="Unknown"
 ):
-    """自适应提取 SubID 和统合版本号，附带全面调试追踪"""
+    """
+    自适应提取 SubID 和统合版本号：
+    对 Android 完全脱钩外部文件名，直接从内部 aapt 解析出 versionName 和十六进制转十进制的 build_no。
+    """
     fname_str = str(downloaded_file_path).lower()
 
     # ----------------------------------------------------
@@ -360,12 +318,7 @@ def extract_subid_and_version(
         base_vname = None
         build_no = None
 
-        print("\n--- [调试: 开始分析 Android 安装包] ---", flush=True)
-        print(f"[调试] 目标文件: {downloaded_file_path.name}", flush=True)
-
         aapt_bin = get_aapt_cmd()
-        print(f"[调试] 检测到 aapt 路径: {aapt_bin}", flush=True)
-
         dump_text = ""
         if aapt_bin and downloaded_file_path.exists():
             try:
@@ -381,143 +334,71 @@ def extract_subid_and_version(
                     text=True,
                     timeout=30,
                 )
-                print(
-                    f"[调试] aapt 返回码: {proc.returncode}, 标准输出长度: {len(proc.stdout)}, 报错: {proc.stderr[:100]}",
-                    flush=True,
-                )
                 dump_text = proc.stdout
-            except Exception as e:
-                print(f"[调试] 执行 aapt 异常: {e}", flush=True)
+            except Exception:
+                dump_text = ""
 
-        # 路径 A: 从 aapt dump 明文中提取
         if dump_text:
             lines = dump_text.splitlines()
             for idx, line in enumerate(lines):
+                # 提取 APK 内部权威主版本号 (如 9.3.75, 9.3.70)
                 if "versionName" in line and not base_vname:
                     m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
                     if m_vn:
                         base_vname = m_vn.group(1).strip()
-                        print(
-                            f"[调试] aapt 找到 versionName: {base_vname}",
-                            flush=True,
-                        )
 
+                # 提取 SubID
                 if "AppSetting_params" in line and not subid:
-                    # 打印上下文
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
                     m_sub = re.search(r'([0-9]{9})#', ctx)
                     if m_sub:
                         subid = m_sub.group(1)
-                        print(f"[调试] aapt 找到 SubID: {subid}", flush=True)
 
-                if "ANDROID_QQ_BUILD_NO" in line:
-                    print(f"[调试] aapt 发现 BUILD_NO 行: {line}", flush=True)
+                # 提取 ANDROID_QQ_BUILD_NO
+                if "ANDROID_QQ_BUILD_NO" in line and not build_no:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-                    print(
-                        f"[调试] ANDROID_QQ_BUILD_NO 上下文 4 行:\n{ctx}",
-                        flush=True,
-                    )
-                    # 匹配任何 4~6 位纯数字
-                    m_b = re.search(r'["\s:=]([0-9]{4,6})["\s\)]', ctx)
-                    if m_b:
-                        build_no = m_b.group(1)
-                        print(
-                            f"[调试] aapt 成功提取 build_no: {build_no}",
-                            flush=True,
-                        )
 
-        # 路径 B: 纯 Python 二进制字节流兜底扫描
-        if manifest_xml.exists():
+                    # 核心突破：捕获 (type 0x10)0xa505，自动将十六进制 a505 转为十进制 42245！
+                    m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
+                    if m_hex:
+                        build_no = str(int(m_hex.group(1), 16))
+
+                    # 兼容普通十进制 (type 0x10)42245
+                    if not build_no:
+                        m_dec = re.search(r"\(type 0x10\)([0-9]+)", ctx)
+                        if m_dec:
+                            build_no = m_dec.group(1)
+
+                    # 兼容字符串形式 ="42245" 或 (Raw: "42245")
+                    if not build_no:
+                        m_str = re.search(
+                            r'(?:Raw:\s*"|=")([0-9]+)"', ctx
+                        ) or re.search(r'"([0-9]+)"', ctx)
+                        if m_str:
+                            build_no = m_str.group(1)
+
+        # 字节流兜底抽取 SubID
+        if not subid and manifest_xml.exists():
             raw = manifest_xml.read_bytes()
-            print(
-                f"[调试] manifest_xml 存在，二进制大小: {len(raw)} 字节",
-                flush=True,
-            )
-
-            # 兜底 SubID
-            if not subid:
-                matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
-                if matches_u8:
-                    subid = matches_u8[0].decode("ascii")
-                    print(
-                        f"[调试] 二进制流兜底抓取到 SubID: {subid}", flush=True
-                    )
-
-            # 兜底 build_no: 解析 AXML 字符串池
-            if not build_no:
-                print(
-                    "[调试] aapt 未能产出 build_no，启动纯 Python 字符串池解析...",
-                    flush=True,
-                )
-                axml_strings = get_axml_strings(raw)
-                print(
-                    f"[调试] 提取到 AXML 字符串池总计: {len(axml_strings)} 个项",
-                    flush=True,
-                )
-                if "ANDROID_QQ_BUILD_NO" in axml_strings:
-                    idx_target = axml_strings.index("ANDROID_QQ_BUILD_NO")
-                    print(
-                        f"[调试] ANDROID_QQ_BUILD_NO 位于字符串池索引: {idx_target}",
-                        flush=True,
-                    )
-                    # 寻找字符串池中所有的 4 到 6 位纯数字
-                    num_candidates = [
-                        s
-                        for s in axml_strings
-                        if re.fullmatch(r"[0-9]{4,6}", s)
-                    ]
-                    print(
-                        f"[调试] 字符串池中的 4~6 位纯数字候选集: {num_candidates}",
-                        flush=True,
-                    )
-                    if num_candidates:
-                        # 按与 target 的索引距离排序，取最近的
-                        num_candidates.sort(
-                            key=lambda s: abs(axml_strings.index(s) - idx_target)
-                        )
-                        build_no = num_candidates[0]
-                        print(
-                            f"[调试] 纯 Python 从字符串池成功锁定最近的构建号: {build_no}",
-                            flush=True,
-                        )
+            matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
+            if matches_u8:
+                subid = matches_u8[0].decode("ascii")
 
         # ----------------------------------------------------
-        # 版本号缝合
+        # APK 内部统合：彻底不依赖外部文件名
+        # 内部主版本 (base_vname) + 内部 Build (build_no) -> 4 段式
         # ----------------------------------------------------
-        print(
-            f"[调试] 缝合前变量: base_vname={base_vname}, build_no={build_no}, fallback_ver={fallback_ver}",
-            flush=True,
-        )
-
-        clean_ver = fallback_ver
-        m_already_4parts = re.search(r"(\d+\.\d+\.\d+\.\d+)", fallback_ver)
-        if m_already_4parts:
-            clean_ver = m_already_4parts.group(1)
-            print(
-                f"[调试] 来源版本已是 4 段式，直接采用: {clean_ver}", flush=True
-            )
+        if base_vname and build_no:
+            clean_ver = f"{base_vname}.{build_no}"
+        elif base_vname:
+            clean_ver = base_vname
         else:
-            v_source = base_vname or fallback_ver
-            m_base = re.search(r"(\d+\.\d+\.\d+)", v_source)
-            if m_base:
-                base_part = m_base.group(1)
-                if build_no:
-                    clean_ver = f"{base_part}.{build_no}"
-                    print(
-                        f"[调试] 缝合成功 (3段+构建号): {clean_ver}", flush=True
-                    )
-                else:
-                    clean_ver = base_part
-                    print(
-                        f"[调试] 未能获取 build_no，保留 3 段式: {clean_ver}",
-                        flush=True,
-                    )
+            clean_ver = fallback_ver
 
-        print("--- [调试结束] ---\n", flush=True)
         return subid, "Android", clean_ver
 
     # ----------------------------------------------------
@@ -698,6 +579,7 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
+            # 3. 提取 SubID 与权威版本
             subid, detected_platform, unified_version = (
                 extract_subid_and_version(
                     TEMP_EXTRACT, downloaded_file, base_version
