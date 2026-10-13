@@ -51,6 +51,7 @@ jobs:
       - name: 运行全量历史回溯与提取流水线
         env:
           START_DATE: ${{ inputs.start_date || '2025-01-01' }}
+          PYTHONUNBUFFERED: "1" # 强制所有输出实时流式打印
         run: |
           python scripts/build_subid_database.py
 
