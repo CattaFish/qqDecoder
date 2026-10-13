@@ -1,0 +1,97 @@
+name: Test Extract QQAppId
+
+on:
+  workflow_dispatch:
+    inputs:
+      download_url:
+        description: '请输入 QQ 安装包直链下载地址'
+        required: true
+        type: string
+        # 预设一个示例（可留空或自定义）
+        default: 'https://dldir1.qq.com/qqfile/qq/PCQQ9.9.36/QQ9.9.36.53644_x64.exe'
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. 下载安装包
+        run: |
+          echo "正在下载安装包: ${{ inputs.download_url }}"
+          curl -L -o qq_installer.exe "${{ inputs.download_url }}"
+          ls -lh qq_installer.exe
+
+      - name: 2. 解压安装包
+        run: |
+          echo "正在解压安装包..."
+          # Ubuntu runner 自带 7z，7z 偶尔会报 NSIS 警告代码，因此加 || true 保证流程不中断
+          7z x qq_installer.exe -oqq_extracted -y || true
+
+      - name: 3. 定位并提取 QQAppId
+        id: parse_appid
+        run: |
+          python3 - << 'EOF'
+          import re
+          import os
+          import sys
+          from pathlib import Path
+
+          root_dir = Path("qq_extracted")
+
+          # 策略 1：优先寻找 major.node
+          target_files = list(root_dir.glob("**/major.node"))
+
+          # 策略 2：如果找不到 major.node，兜底搜索所有 .node 文件
+          if not target_files:
+              print("未找到 major.node，正在全盘搜索所有 .node 扩展模块...")
+              target_files = list(root_dir.glob("**/*.node"))
+
+          if not target_files:
+              print("::error::未在解压包中找到任何可分析的 Native 模块 (.node)")
+              sys.exit(1)
+
+          print(f"找到待分析模块文件: {[str(p) for p in target_files]}")
+
+          # 正则锚点：匹配 QQAppId/ 紧随的纯数字
+          pattern = re.compile(rb"QQAppId/([0-9]+)")
+          matched_ids = set()
+          source_file = ""
+
+          for fpath in target_files:
+              try:
+                  content = fpath.read_bytes()
+                  results = pattern.findall(content)
+                  for r in results:
+                      matched_ids.add(r.decode('ascii'))
+                      source_file = str(fpath)
+              except Exception as e:
+                  print(f"读取 {fpath} 出错: {e}")
+
+          # 结果校验
+          if not matched_ids:
+              print("::error::未在模块中找到 'QQAppId/<数字>' 特征，可能结构已变更！")
+              sys.exit(1)
+
+          if len(matched_ids) > 1:
+              print(f"::warning::检测到多个不一致的 QQAppId: {matched_ids}")
+
+          final_appid = list(matched_ids)[0]
+          print(f"\n==========================================")
+          print(f"🎯 成功定位并提取到 QQAppId: {final_appid}")
+          print(f"📍 命中文件来源: {source_file}")
+          print(f"==========================================\n")
+
+          # 导出给后续 Action 步骤使用
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"app_id={final_appid}\n")
+
+          # 在 GitHub Action 执行摘要页面以 Markdown 卡片展示
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write("### 🎯 QQAppId 定位成功\n\n")
+              f.write(f"- **QQAppId**: `{final_appid}`\n")
+              f.write(f"- **来源文件**: `{source_file}`\n")
+          EOF
+
+      - name: 4. 测试输出结果变量
+        run: |
+          echo "上一步传递出的变量 APP_ID 是: ${{ steps.parse_appid.outputs.app_id }}"
