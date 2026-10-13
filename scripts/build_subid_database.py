@@ -10,7 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 import requests
 
-# 强制 Python 标准输出和错误流实时刷新，杜绝云端缓冲迟滞
+# 强制 Python 标准输出和错误流实时刷新
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
@@ -46,8 +46,6 @@ def get_history_messages(start_date_str):
             break
 
         soup = BeautifulSoup(resp.text, "html.parser")
-
-        # 严格过滤：只选取真正带有 data-post 属性且包含斜杠的消息节点
         msg_divs = [
             div
             for div in soup.find_all("div", class_="tgme_widget_message")
@@ -58,7 +56,6 @@ def get_history_messages(start_date_str):
             print("[提示] 当前页面未检索到更多有效消息，停止翻页。", flush=True)
             break
 
-        # 计算当前页面中最小的数字 ID 作为下一次的翻页游标
         post_ids = []
         for d in msg_divs:
             try:
@@ -76,13 +73,12 @@ def get_history_messages(start_date_str):
         before_id = min_id
 
         current_date_str = "Unknown"
-        # 从新到旧解析消息
         for msg in reversed(msg_divs):
             time_elem = msg.find("time")
             if not time_elem or "datetime" not in time_elem.attrs:
                 continue
 
-            dt_str = time_elem["datetime"][:10]  # YYYY-MM-DD
+            dt_str = time_elem["datetime"][:10]
             current_date_str = dt_str
             try:
                 msg_date = datetime.strptime(dt_str, "%Y-%m-%d").date()
@@ -117,8 +113,8 @@ def get_history_messages(start_date_str):
 
 
 def parse_backup_tasks(messages):
-    """从历史消息中精准提取'备份'区的所有链接及其平台架构"""
-    print("[阶段 2] 正在分析提取各消息中的备份文件下载链接...", flush=True)
+    """从历史消息中精准提取下载任务清单"""
+    print("[阶段 2] 正在分析提取各消息中的文件下载链接...", flush=True)
     tasks = []
 
     for msg in messages:
@@ -144,7 +140,8 @@ def parse_backup_tasks(messages):
         if m_linux:
             linux_ver = m_linux.group(1)
 
-        m_android = re.search(r"QQ(?:_NT)?\s+([0-9\.]+)", text)
+        # 兼容 QQ_NT 9.3.70(16410) 带括号格式
+        m_android = re.search(r"QQ(?:_NT)?\s+([0-9\.\(\)\w\-]+)", text)
         if m_android:
             android_ver = m_android.group(1)
 
@@ -166,7 +163,6 @@ def parse_backup_tasks(messages):
                     )
             continue
 
-        # 截取“备份”关键字之后的区域
         backup_html = html.split("备份", 1)[1]
         current_platform = "Unknown"
         lines = backup_html.split("<br/>")
@@ -181,14 +177,18 @@ def parse_backup_tasks(messages):
                 current_platform = "macOS"
             elif "Linux" in line_text:
                 current_platform = "Linux"
-            elif "Android" in line_text:
+            elif "Android" in line_text or "Phone" in line_text:
                 current_platform = "Android"
 
             for a in line_soup.find_all("a", href=True):
                 href = a["href"].strip()
                 arch_name = a.get_text().strip()
 
-                if "t.me/linqiqi_backup" not in href:
+                if (
+                    "t.me/linqiqi_backup" not in href
+                    and not href.endswith(".apk")
+                    and "qq.com" not in href
+                ):
                     continue
 
                 version = "Unknown"
@@ -201,6 +201,14 @@ def parse_backup_tasks(messages):
                 elif current_platform == "Android":
                     version = android_ver
 
+                # 如果没有明显的架构名，则取链接后缀或者包名
+                if (
+                    not arch_name
+                    or arch_name.startswith("http")
+                    or len(arch_name) > 30
+                ):
+                    arch_name = "Package"
+
                 tasks.append(
                     {
                         "platform": current_platform,
@@ -212,7 +220,6 @@ def parse_backup_tasks(messages):
                     }
                 )
 
-    # 依据 URL 去重
     unique_tasks = []
     seen = set()
     for t in tasks:
@@ -227,44 +234,86 @@ def parse_backup_tasks(messages):
     return unique_tasks
 
 
-def extract_subid(extract_dir, platform):
-    """统一解包提取 SubID"""
-    if platform == "Android":
-        manifest_dump = extract_dir / "manifest_dump.txt"
-        manifest_xml = extract_dir / "AndroidManifest.xml"
+def download_target_file(url, target_dir):
+    """支持 Telegram 与 普通 HTTP CDN 智能分流下载"""
+    if "t.me/" in url:
+        cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
+        return subprocess.run(cmd)
+    else:
+        # 普通 HTTP / CDN 链接使用 curl 下载
+        fname = url.split("?")[0].split("/")[-1] or "installer_file"
+        out_file = target_dir / fname
+        cmd = [
+            "curl",
+            "-fL",
+            "-A",
+            (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                " AppleWebKit/537.36"
+            ),
+            "--retry",
+            "3",
+            "-o",
+            str(out_file),
+            url,
+        ]
+        return subprocess.run(cmd)
 
+
+def extract_subid_adaptive(extract_dir):
+    """自适应提取 SubID，根据实际解压产生的文件类型来判定平台"""
+    # 1. 优先检测 Android (AndroidManifest.xml)
+    manifest_xml = extract_dir / "AndroidManifest.xml"
+    manifest_dump = extract_dir / "manifest_dump.txt"
+
+    if manifest_dump.exists() or manifest_xml.exists():
         if manifest_dump.exists():
             text = manifest_dump.read_text(encoding="utf-8", errors="ignore")
             m = re.search(r'AppSetting_params".*?value.*?="([0-9]+)#', text)
             if m:
-                return m.group(1)
+                return m.group(1), "Android"
 
         if manifest_xml.exists():
             raw = manifest_xml.read_bytes()
-            matches = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
-            if matches:
-                return matches[0].decode("ascii")
+            # 兼容 UTF-8 与 UTF-16LE 宽字符
+            matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
+            matches_u16 = [
+                m.replace(b"\x00", b"")
+                for m in re.findall(
+                    rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
+                    raw,
+                )
+            ]
+            all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
+            if all_m:
+                return all_m[0], "Android"
 
-        return None
-    else:
-        nodes = list(extract_dir.glob("**/major.node"))
-        if not nodes:
-            nodes = list(extract_dir.glob("**/*.node"))
+    # 2. 检测桌面端 (major.node 或任意 .node 动态库)
+    nodes = list(extract_dir.glob("**/major.node"))
+    if not nodes:
+        nodes = list(extract_dir.glob("**/*.node"))
 
-        pattern = re.compile(rb"QQAppId/([0-9]+)")
-        for node in nodes:
-            try:
-                data = node.read_bytes()
-                matched = pattern.findall(data)
-                if matched:
-                    return matched[0].decode("ascii")
-            except Exception:
-                pass
-        return None
+    pattern = re.compile(rb"QQAppId/([0-9]+)")
+    for node in nodes:
+        try:
+            data = node.read_bytes()
+            matched = pattern.findall(data)
+            if matched:
+                path_str = str(node).lower()
+                plat = "Windows"
+                if ".app" in path_str or "macos" in path_str:
+                    plat = "macOS"
+                elif "opt" in path_str or "linux" in path_str:
+                    plat = "Linux"
+                return matched[0].decode("ascii"), plat
+        except Exception:
+            pass
+
+    return None, "Unknown"
 
 
 def run_extraction_pipeline(tasks):
-    """循环下载、解包、提取并写入目标字典（实时显示进度）"""
+    """循环下载、解包、提取并写入目标字典"""
     print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...", flush=True)
 
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -297,14 +346,12 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 调用 tdl 下载文件（直接继承 stdout/stderr，让控制台实时输出下载进度条）
-        dl_cmd = ["tdl", "dl", "-u", t["url"], "-d", str(TEMP_DL)]
-        proc = subprocess.run(dl_cmd)
+        # 1. 智能分流下载
+        proc = download_target_file(t["url"], TEMP_DL)
         if proc.returncode != 0:
-            print(f"[下载异常] tdl 退出码: {proc.returncode}", flush=True)
+            print(f"[下载异常] 退出码: {proc.returncode}", flush=True)
             continue
 
-        # 寻找下载落盘的安装包
         dl_files = [
             f
             for f in TEMP_DL.rglob("*")
@@ -349,7 +396,7 @@ def run_extraction_pipeline(tasks):
                     stderr=subprocess.DEVNULL,
                 )
             else:
-                # 兼容 .exe, .dmg, .apk, .AppImage（静默 stderr，屏蔽 7z 的软链接安全警告）
+                # 兼容 .exe, .dmg, .apk, .AppImage
                 subprocess.run(
                     [
                         "7z",
@@ -362,7 +409,7 @@ def run_extraction_pipeline(tasks):
                     stderr=subprocess.DEVNULL,
                 )
 
-                # 处理 macOS 嵌套 HFS 分区
+                # macOS 嵌套分区
                 hfs_files = list(TEMP_EXTRACT.glob("**/*.hfs"))
                 if hfs_files:
                     hfs_out = TEMP_EXTRACT / "hfs_extracted"
@@ -372,19 +419,26 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 提取 SubID
-            subid = extract_subid(TEMP_EXTRACT, t["platform"])
+            # 3. 自适应提取 SubID
+            subid, detected_platform = extract_subid_adaptive(TEMP_EXTRACT)
 
             if subid:
-                print(f"[提取成功] SubID: {subid}", flush=True)
+                final_platform = (
+                    detected_platform
+                    if t["platform"] == "Unknown"
+                    else t["platform"]
+                )
+                print(
+                    f"[提取成功] 平台: {final_platform} | SubID: {subid}",
+                    flush=True,
+                )
                 subid_map[subid] = {
                     "version": t["version"],
-                    "platform": t["platform"],
+                    "platform": final_platform,
                     "arch": t["arch"],
                     "date": t["date"],
                     "source_url": t["url"],
                 }
-                # 实时更新落盘，防止任务中断丢失进度
                 DATA_FILE.write_text(
                     json.dumps(subid_map, indent=2, ensure_ascii=False),
                     encoding="utf-8",
@@ -397,7 +451,7 @@ def run_extraction_pipeline(tasks):
             print(f"[处理异常] {e}", flush=True)
 
         finally:
-            # 4. 彻底物理清理当前包与解包目录，防止 Runner 磁盘爆满
+            # 4. 彻底物理清理当前包与解包目录
             if TEMP_DL.exists():
                 shutil.rmtree(TEMP_DL)
             if TEMP_EXTRACT.exists():
