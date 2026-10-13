@@ -1,0 +1,57 @@
+name: Auto Check QQ Update
+
+on:
+  schedule:
+    # 每天 UTC 00:00 执行，即北京时间 08:00
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: '是否强制运行（忽略历史记录重复检查）'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境
+        uses: setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装系统底层依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full rpm2cpio cpio curl
+
+      - name: 安装 Python 解析库
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: 执行监控与全架构提取
+        env:
+          FORCE_RUN: ${{ inputs.force_run || 'false' }}
+        run: |
+          python scripts/monitor_and_extract.py
+
+      - name: 提交更新状态与记录到仓库
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "[状态] 没有新生成的数据需要提交。"
+          else
+            git commit -m "Auto-update: sync QQ SubID records [skip ci]"
+            git push
+          fi
