@@ -11,7 +11,8 @@ jobs:
       - name: 1. 安装 tdl
         run: |
           echo "正在下载并安装 tdl..."
-          curl -sSL "https://github.com/iyear/tdl/releases/latest/download/tdl_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local/bin
+          # 使用官方安装脚本，自动安装到 /usr/local/bin/tdl
+          curl -sSL https://docs.iyear.me/tdl/install.sh | sudo bash
           tdl version
 
       - name: 2. 还原登录会话
