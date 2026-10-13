@@ -1,0 +1,28 @@
+name: Test TDL Session
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-login:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. 安装 tdl
+        run: |
+          echo "正在下载并安装 tdl..."
+          curl -sSL "https://github.com/iyear/tdl/releases/latest/download/tdl_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local/bin
+          tdl version
+
+      - name: 2. 还原登录会话
+        run: |
+          echo "正在导入 Session 凭证..."
+          echo "${{ secrets.TDL_SESSION_BASE64 }}" | base64 -d > backup.zip
+          tdl recover -f backup.zip
+          rm backup.zip
+
+      - name: 3. 测试免密拉取备份文件
+        run: |
+          echo "正在测试下载 linqiqi_backup/1385 ..."
+          tdl dl -u "https://t.me/linqiqi_backup/1385" -d ./test_download
+          ls -lh ./test_download
