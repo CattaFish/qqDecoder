@@ -11,11 +11,12 @@ on:
 
 permissions:
   contents: write
+  actions: write # 赋予自动触发下一次 Action 的接力权限
 
 jobs:
   batch-extract:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 360 # 最长运行 6 小时
 
     steps:
       - name: 检出仓库代码
@@ -51,18 +52,29 @@ jobs:
       - name: 运行全量历史回溯与提取流水线
         env:
           START_DATE: ${{ inputs.start_date || '2025-01-01' }}
+          MAX_RUNTIME_MINUTES: "280" # 跑满 4.6 小时主动安全挂起，留时间提交
           PYTHONUNBUFFERED: "1"
         run: |
           python scripts/build_subid_database.py
 
       - name: 提交更新后的数据字典到仓库
+        if: always() # 无论成功、取消还是意外中断，绝对执行提交！
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          git add data/qq_subid_map.json
+          git pull --rebase origin main || true
+          git add data/
           if git diff --staged --quiet; then
             echo "[状态] 没有新数据生成，跳过提交。"
           else
-            git commit -m "Auto-database: update QQ SubID mapping (since 2025) [skip ci]"
+            git commit -m "Auto-database: update QQ SubID mapping [skip ci]"
             git push
+          fi
+
+          # 自动接力：如果发现上一批次没跑完，自动唤起下一次继续跑！
+          if [ -f "data/.has_more" ]; then
+            echo "[自动接力] 检测到仍有未完成任务，正在自动触发下一次任务继续断点续传..."
+            gh workflow run "Crawl All QQ SubIDs (Since 2025)" || true
           fi
