@@ -9,7 +9,7 @@ on:
       force_run:
         description: '是否强制运行（忽略历史记录重复检查）'
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
 permissions:
@@ -24,10 +24,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 配置 Python 环境
-        uses: setup-python@v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: 安装系统底层依赖
         run: |
