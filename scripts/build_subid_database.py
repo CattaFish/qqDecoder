@@ -10,6 +10,10 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 import requests
 
+# 强制 Python 标准输出和错误流实时刷新，杜绝云端缓冲迟滞
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 CHANNEL_URL = "https://t.me/s/qq_updatelog"
 DATA_FILE = Path("data/qq_subid_map.json")
 TEMP_DL = Path("temp_dl")
@@ -19,7 +23,7 @@ START_DATE = os.environ.get("START_DATE", "2025-01-01")
 
 def get_history_messages(start_date_str):
     """从最新消息向前翻页爬取，直到早于指定起始日期"""
-    print(f"[阶段 1] 正在抓取频道历史消息（起始日期: {start_date_str}）...")
+    print(f"[阶段 1] 正在抓取频道历史消息（起始日期: {start_date_str}）...", flush=True)
     messages_data = []
     before_id = None
     headers = {
@@ -38,7 +42,7 @@ def get_history_messages(start_date_str):
 
         resp = requests.get(url, headers=headers, timeout=30)
         if resp.status_code != 200:
-            print(f"[警告] 页面请求失败: {resp.status_code}")
+            print(f"[警告] 页面请求失败: {resp.status_code}", flush=True)
             break
 
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -51,7 +55,7 @@ def get_history_messages(start_date_str):
         ]
 
         if not msg_divs:
-            print("[提示] 当前页面未检索到更多有效消息，停止翻页。")
+            print("[提示] 当前页面未检索到更多有效消息，停止翻页。", flush=True)
             break
 
         # 计算当前页面中最小的数字 ID 作为下一次的翻页游标
@@ -68,7 +72,6 @@ def get_history_messages(start_date_str):
 
         min_id = min(post_ids)
         if before_id is not None and min_id >= before_id:
-            # 游标未能继续向前推进，说明已到频道最开端，避免死循环
             break
         before_id = min_id
 
@@ -101,17 +104,21 @@ def get_history_messages(start_date_str):
                 )
 
         print(
-            f"已抓取批次消息（当前翻页游标 ID: {before_id}，最新扫描日期: {current_date_str}）..."
+            f"[翻页扫描] 消息游标 ID: {before_id} | 当前扫描至日期: {current_date_str} | 已收录消息: {len(messages_data)} 条",
+            flush=True,
         )
         time.sleep(1)
 
-    print(f"[阶段 1 完成] 共收集到 {len(messages_data)} 条符合日期要求的历史消息。")
+    print(
+        f"[阶段 1 完成] 成功收集到 {len(messages_data)} 条符合日期要求的历史消息。\n",
+        flush=True,
+    )
     return messages_data
 
 
 def parse_backup_tasks(messages):
     """从历史消息中精准提取'备份'区的所有链接及其平台架构"""
-    print("[阶段 2] 正在分析提取各消息中的备份文件下载链接...")
+    print("[阶段 2] 正在分析提取各消息中的备份文件下载链接...", flush=True)
     tasks = []
 
     for msg in messages:
@@ -213,7 +220,10 @@ def parse_backup_tasks(messages):
             seen.add(t["url"])
             unique_tasks.append(t)
 
-    print(f"[阶段 2 完成] 共整理出 {len(unique_tasks)} 个独立的架构备份任务。")
+    print(
+        f"[阶段 2 完成] 共整理出 {len(unique_tasks)} 个独立的架构备份任务。\n",
+        flush=True,
+    )
     return unique_tasks
 
 
@@ -254,8 +264,8 @@ def extract_subid(extract_dir, platform):
 
 
 def run_extraction_pipeline(tasks):
-    """循环下载、解包、提取并写入目标字典（支持断点续传）"""
-    print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...")
+    """循环下载、解包、提取并写入目标字典（实时显示进度）"""
+    print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...", flush=True)
 
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     subid_map = {}
@@ -266,47 +276,50 @@ def run_extraction_pipeline(tasks):
             subid_map = {}
 
     processed_urls = {item.get("source_url") for item in subid_map.values()}
+    total_count = len(tasks)
 
     for idx, t in enumerate(tasks, start=1):
         if t["url"] in processed_urls:
             print(
-                f"[{idx}/{len(tasks)}] [跳过] 已记录: {t['platform']} {t['arch']} ({t['version']})"
+                f"[{idx}/{total_count}] [已存在跳过] {t['platform']} {t['arch']} ({t['version']})",
+                flush=True,
             )
             continue
 
+        print("\n" + "=" * 65, flush=True)
         print(
-            f"\n------------------------------------------------------------"
+            f"[{idx}/{total_count}] 正在处理: {t['platform']} - {t['arch']} | 版本: {t['version']} | 日期: {t['date']}",
+            flush=True,
         )
-        print(
-            f"[{idx}/{len(tasks)}] 正在处理: {t['platform']} {t['arch']} | 版本: {t['version']} | 日期: {t['date']}"
-        )
-        print(f"备份链接: {t['url']}")
+        print(f"来源链接: {t['url']}", flush=True)
 
         if TEMP_DL.exists():
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 调用 tdl 下载文件
+        # 1. 调用 tdl 下载文件（直接继承 stdout/stderr，让控制台实时输出下载进度条）
         dl_cmd = ["tdl", "dl", "-u", t["url"], "-d", str(TEMP_DL)]
-        proc = subprocess.run(dl_cmd, capture_output=True, text=True)
+        proc = subprocess.run(dl_cmd)
         if proc.returncode != 0:
-            print(f"[下载失败] {proc.stderr[:100]}")
+            print(f"[下载异常] tdl 退出码: {proc.returncode}", flush=True)
             continue
 
-        # 寻找下载落盘的安装包（递归查找实体文件，排除可能存在的 .tdl 临时缓存）
+        # 寻找下载落盘的安装包
         dl_files = [
             f
             for f in TEMP_DL.rglob("*")
             if f.is_file() and not f.name.endswith(".tdl")
         ]
         if not dl_files:
-            print("[警告] 未能获取到下载文件实体")
+            print("[警告] 未能获取到下载文件实体，进入下一任务", flush=True)
             continue
 
         downloaded_file = dl_files[0]
         fname = downloaded_file.name.lower()
+        file_size_mb = downloaded_file.stat().st_size / 1024 / 1024
         print(
-            f"已下载: {downloaded_file.name} ({downloaded_file.stat().st_size / 1024 / 1024:.2f} MB)"
+            f"\n下载完成: {downloaded_file.name} ({file_size_mb:.2f} MB)，开始解包...",
+            flush=True,
         )
 
         # 2. 解包
@@ -325,6 +338,7 @@ def run_extraction_pipeline(tasks):
                     ],
                     check=True,
                     stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                 )
             elif fname.endswith(".rpm"):
                 cmd = f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv"
@@ -335,6 +349,7 @@ def run_extraction_pipeline(tasks):
                     stderr=subprocess.DEVNULL,
                 )
             else:
+                # 兼容 .exe, .dmg, .apk, .AppImage（静默 stderr，屏蔽 7z 的软链接安全警告）
                 subprocess.run(
                     [
                         "7z",
@@ -344,21 +359,24 @@ def run_extraction_pipeline(tasks):
                         "-y",
                     ],
                     stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                 )
 
+                # 处理 macOS 嵌套 HFS 分区
                 hfs_files = list(TEMP_EXTRACT.glob("**/*.hfs"))
                 if hfs_files:
                     hfs_out = TEMP_EXTRACT / "hfs_extracted"
                     subprocess.run(
                         ["7z", "x", str(hfs_files[0]), f"-o{hfs_out}", "-y"],
                         stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
                     )
 
             # 3. 提取 SubID
             subid = extract_subid(TEMP_EXTRACT, t["platform"])
 
             if subid:
-                print(f"[成功识别 SubID] ==> {subid}")
+                print(f"[提取成功] SubID: {subid}", flush=True)
                 subid_map[subid] = {
                     "version": t["version"],
                     "platform": t["platform"],
@@ -373,13 +391,13 @@ def run_extraction_pipeline(tasks):
                 )
                 processed_urls.add(t["url"])
             else:
-                print("[警告] 解包后未找到特征 SubID")
+                print("[警告] 解包后未检测到 SubID 特征码", flush=True)
 
         except Exception as e:
-            print(f"[处理异常] {e}")
+            print(f"[处理异常] {e}", flush=True)
 
         finally:
-            # 4. 彻底物理清理当前安装包与解包目录，防止磁盘爆满
+            # 4. 彻底物理清理当前包与解包目录，防止 Runner 磁盘爆满
             if TEMP_DL.exists():
                 shutil.rmtree(TEMP_DL)
             if TEMP_EXTRACT.exists():
@@ -387,18 +405,22 @@ def run_extraction_pipeline(tasks):
 
         time.sleep(2)
 
-    print("\n[全量处理完毕] 最终数据已持久化保存至 data/qq_subid_map.json")
+    print("\n" + "=" * 65, flush=True)
+    print(
+        f"[全量任务结束] 已成功整理并持久化保存至 data/qq_subid_map.json",
+        flush=True,
+    )
 
 
 def main():
     messages = get_history_messages(START_DATE)
     if not messages:
-        print("[结束] 未检索到任何指定日期范围内的历史消息。")
+        print("[结束] 未检索到任何指定日期范围内的历史消息。", flush=True)
         return
 
     tasks = parse_backup_tasks(messages)
     if not tasks:
-        print("[结束] 未解析出可下载的备份任务。")
+        print("[结束] 未解析出可下载的备份任务。", flush=True)
         return
 
     run_extraction_pipeline(tasks)
