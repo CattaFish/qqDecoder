@@ -117,7 +117,7 @@ def parse_backup_tasks(messages):
     优先策略：
     1. 若消息中存在'备份'，严格只解析备份直链；
     2. 若消息中无'备份'，才提取直接下载链接；
-    3. 版本号过滤排除中文。
+    3. 过滤中文杂质。
     """
     print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
     tasks = []
@@ -285,78 +285,119 @@ def download_target_file(url, target_dir):
         )
 
 
-def extract_subid_and_version(extract_dir, fallback_ver="Unknown"):
+def get_aapt_cmd():
+    """获取系统中可用的 aapt 工具路径"""
+    cmd = shutil.which("aapt")
+    if cmd:
+        return cmd
+    for env in ["ANDROID_HOME", "ANDROID_SDK_ROOT"]:
+        sdk = os.environ.get(env)
+        if sdk and os.path.isdir(sdk):
+            candidates = list(Path(sdk).glob("build-tools/*/aapt"))
+            if candidates:
+                return str(sorted(candidates)[-1])
+    for p in [
+        "/usr/local/lib/android/sdk/build-tools",
+        "/usr/lib/android-sdk/build-tools",
+    ]:
+        candidates = list(Path(p).glob("*/aapt"))
+        if candidates:
+            return str(sorted(candidates)[-1])
+    return None
+
+
+def extract_subid_and_version(
+    extract_dir, downloaded_file_path, fallback_ver="Unknown"
+):
     """
     自适应提取 SubID，并从二进制/清单内部自动对齐、补全为标准的 4 段式版本号 (X.Y.Z.BUILD)
     """
+    fname_str = str(downloaded_file_path).lower()
+
     # ----------------------------------------------------
-    # 1. Android 端处理
+    # 1. Android 端处理 (APK)
     # ----------------------------------------------------
     manifest_xml = extract_dir / "AndroidManifest.xml"
-    manifest_dump = extract_dir / "manifest_dump.txt"
-
-    if manifest_dump.exists() or manifest_xml.exists():
+    if fname_str.endswith(".apk") or manifest_xml.exists():
         subid = None
+        base_vname = None
         build_no = None
 
-        # 优先从 aapt 转储的明文中提取
-        if manifest_dump.exists():
-            text = manifest_dump.read_text(encoding="utf-8", errors="ignore")
-            m_sub = re.search(r'AppSetting_params".*?value.*?="([0-9]+)#', text)
+        # 核心方法：使用 aapt 导出可读结构树
+        aapt_bin = get_aapt_cmd()
+        dump_text = ""
+        if aapt_bin and downloaded_file_path.exists():
+            try:
+                proc = subprocess.run(
+                    [
+                        aapt_bin,
+                        "dump",
+                        "xmltree",
+                        str(downloaded_file_path),
+                        "AndroidManifest.xml",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                dump_text = proc.stdout
+            except Exception:
+                dump_text = ""
+
+        # 从 aapt 明文中抽取三大核心元数据
+        if dump_text:
+            # 1. 抽取 SubID
+            m_sub = re.search(
+                r'AppSetting_params".*?android:value[^=]*="([0-9]+)#',
+                dump_text,
+                re.DOTALL,
+            )
             if m_sub:
                 subid = m_sub.group(1)
-            m_b = re.search(r'ANDROID_QQ_BUILD_NO".*?value.*?="([0-9]+)"', text)
-            if m_b:
-                build_no = m_b.group(1)
 
-        # 字节流兜底扫描
-        if manifest_xml.exists():
+            # 2. 抽取 base versionName (例如 9.3.70)
+            m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', dump_text)
+            if m_vn:
+                base_vname = m_vn.group(1).strip()
+
+            # 3. 抽取 ANDROID_QQ_BUILD_NO (例如 41925)
+            m_bn = re.search(
+                r'ANDROID_QQ_BUILD_NO".*?android:value[^=]*="([0-9]+)"',
+                dump_text,
+                re.DOTALL,
+            )
+            if m_bn:
+                build_no = m_bn.group(1).strip()
+
+        # 如果没有 aapt 或 aapt 未扫出 SubID，字节流兜底抽取
+        if not subid and manifest_xml.exists():
             raw = manifest_xml.read_bytes()
-
-            if not subid:
-                matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
-                matches_u16 = [
-                    m.replace(b"\x00", b"")
-                    for m in re.findall(
-                        rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
-                        raw,
-                    )
-                ]
-                all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
-                if all_m:
-                    subid = all_m[0]
-
-            if not build_no:
-                # 匹配紧随在 ANDROID_QQ_BUILD_NO 附近的数字构建号
-                m_b_u8 = re.search(
-                    rb"ANDROID_QQ_BUILD_NO.{0,100}?([0-9]{4,6})", raw
+            matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
+            matches_u16 = [
+                m.replace(b"\x00", b"")
+                for m in re.findall(
+                    rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
+                    raw,
                 )
-                if m_b_u8:
-                    build_no = m_b_u8.group(1).decode("ascii")
-                else:
-                    m_b_u16 = re.search(
-                        rb"A\x00N\x00D\x00R\x00O\x00I\x00D\x00_\x00Q\x00Q\x00_\x00B\x00U\x00I\x00L\x00D\x00_\x00N\x00O\x00.{0,150}?((?:[0-9]\x00){4,6})",
-                        raw,
-                    )
-                    if m_b_u16:
-                        build_no = (
-                            m_b_u16.group(1)
-                            .replace(b"\x00", b"")
-                            .decode("ascii")
-                        )
+            ]
+            all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
+            if all_m:
+                subid = all_m[0]
 
-        # 统合为标准 4 段版本号：例如 9.3.70 + 41925 -> 9.3.70.41925
+        # 统合为标准 4 段版本号：9.3.70 + 41925 -> 9.3.70.41925
         clean_ver = fallback_ver
-        m_base = re.search(r"(\d+\.\d+\.\d+)", fallback_ver)
+        v_prefix = base_vname or fallback_ver
+        m_base = re.search(r"(\d+\.\d+\.\d+)", v_prefix)
         if m_base:
-            base_ver = m_base.group(1)
-            m_full = re.search(r"(\d+\.\d+\.\d+\.\d+)", fallback_ver)
+            base_part = m_base.group(1)
+            # 如果已有 4 段式则保持，否则拼上提取到的 build_no
+            m_full = re.search(r"(\d+\.\d+\.\d+\.\d+)", v_prefix)
             if m_full:
                 clean_ver = m_full.group(1)
             elif build_no:
-                clean_ver = f"{base_ver}.{build_no}"
-        elif build_no:
-            clean_ver = f"Unknown.{build_no}"
+                clean_ver = f"{base_part}.{build_no}"
+            else:
+                clean_ver = base_part
 
         return subid, "Android", clean_ver
 
@@ -533,9 +574,11 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 提取 SubID 与权威 4 段式版本号
+            # 3. 提取 SubID 与权威 4 段式版本号（传入实体下载包路径）
             subid, detected_platform, unified_version = (
-                extract_subid_and_version(TEMP_EXTRACT, base_version)
+                extract_subid_and_version(
+                    TEMP_EXTRACT, downloaded_file, base_version
+                )
             )
 
             if subid:
