@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       download_url:
-        description: '请输入 QQ 安装包直链（支持 .exe / .deb / .AppImage / .dmg / .rpm）'
+        description: '请输入 QQ 安装包直链（支持 .exe / .deb / .AppImage / .dmg / .rpm / .apk）'
         required: true
         type: string
         default: 'https://dldir1.qq.com/qqfile/qq/QQNT/mac/QQ_6.9.86_42941.dmg'
@@ -26,10 +26,19 @@ jobs:
           CLEAN_URL="${URL%%\?*}"
           mkdir -p qq_extracted
 
-          if [[ "$CLEAN_URL" =~ \.dmg$ ]]; then
+          if [[ "$CLEAN_URL" =~ \.apk$ ]]; then
+            echo "[格式识别] Android 安装包 (.apk)"
+            7z x package_file -oqq_extracted -y || true
+            # 尝试调用系统自带的 aapt 将二进制 AndroidManifest.xml 转储为明文
+            AAPT_BIN=$(which aapt || find "$ANDROID_HOME/build-tools" -name aapt 2>/dev/null | sort -V | tail -n 1 || true)
+            if [ -n "$AAPT_BIN" ]; then
+              echo "[状态] 找到 aapt 工具，正在导出 AndroidManifest.xml 明文..."
+              $AAPT_BIN dump xmltree package_file AndroidManifest.xml > qq_extracted/manifest_dump.txt 2>/dev/null || true
+            fi
+
+          elif [[ "$CLEAN_URL" =~ \.dmg$ ]]; then
             echo "[格式识别] macOS 磁盘镜像 (.dmg)"
             7z x package_file -oqq_extracted -y || true
-            # 兼容个别存在嵌套 HFS 分区镜像的情况
             HFS_FILE=$(find qq_extracted -type f \( -name "*.hfs" -o -name "*Apple_HFS*" \) | head -n 1)
             if [ -n "$HFS_FILE" ]; then
               echo "[状态] 发现嵌套 HFS 磁盘分区镜像，正在二次解包..."
@@ -70,7 +79,76 @@ jobs:
 
           root_dir = Path("qq_extracted")
 
-          # 递归深度搜索：兼容 Windows(versions/..)、Linux(opt/..) 和 Mac(QQ.app/..)
+          # ----------------------------------------------------
+          # 分支 A: 处理 Android 平台 (APK)
+          # ----------------------------------------------------
+          manifest_xml = root_dir / "AndroidManifest.xml"
+          manifest_dump = root_dir / "manifest_dump.txt"
+
+          if manifest_dump.exists() or manifest_xml.exists():
+              platform = "Android"
+              hit_file = "AndroidManifest.xml"
+              app_id_phone = ""
+              app_id_pad = ""
+
+              # 方案 1: 读取 aapt 导出的明文
+              if manifest_dump.exists():
+                  text = manifest_dump.read_text(encoding="utf-8", errors="ignore")
+                  m_phone = re.search(r'AppSetting_params".*?value.*?="([0-9]+)#', text, re.DOTALL)
+                  m_pad = re.search(r'AppSetting_params_pad".*?value.*?="([0-9]+)#', text, re.DOTALL)
+                  if m_phone:
+                      app_id_phone = m_phone.group(1)
+                  if m_pad:
+                      app_id_pad = m_pad.group(1)
+
+              # 方案 2: 直接通过字节流正则扫描二进制 AndroidManifest.xml
+              if not app_id_phone and manifest_xml.exists():
+                  raw_bytes = manifest_xml.read_bytes()
+                  # 匹配格式: <9位数字>#<16位Hex密钥>#
+                  matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw_bytes)
+                  matches_u16 = [
+                      m.replace(b"\x00", b"")
+                      for m in re.findall(rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00", raw_bytes)
+                  ]
+                  all_matches = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
+                  if len(all_matches) >= 1:
+                      app_id_phone = all_matches[0]
+                  if len(all_matches) >= 2:
+                      app_id_pad = all_matches[1]
+
+              if not app_id_phone:
+                  print("::error::未在 AndroidManifest.xml 中检索到 AppSetting_params！")
+                  sys.exit(1)
+
+              final_appid = app_id_phone
+
+              print("\n" + "="*45)
+              print(f"识别目标平台: {platform}")
+              print(f"成功提取 QQAppId (Phone): {app_id_phone}")
+              if app_id_pad:
+                  print(f"成功提取 QQAppId (Pad):   {app_id_pad}")
+              print(f"命中物理文件: {hit_file}")
+              print("="*45 + "\n")
+
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write(f"app_id={final_appid}\n")
+                  if app_id_pad:
+                      f.write(f"app_id_pad={app_id_pad}\n")
+                  f.write(f"platform={platform}\n")
+
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                  f.write("### QQAppId 自动定位报告\n\n")
+                  f.write(f"- **目标平台**: `{platform}`\n")
+                  f.write(f"- **QQAppId (Phone)**: `{app_id_phone}`\n")
+                  if app_id_pad:
+                      f.write(f"- **QQAppId (Pad)**: `{app_id_pad}`\n")
+                  f.write(f"- **模块文件**: `{hit_file}`\n")
+
+              sys.exit(0)
+
+          # ----------------------------------------------------
+          # 分支 B: 处理桌面端 NT (Windows, Linux, macOS)
+          # ----------------------------------------------------
           target_files = list(root_dir.glob("**/major.node"))
           if not target_files:
               print("提示: 未在默认路径找到 major.node，正在检索所有 .node 模块...")
@@ -82,7 +160,6 @@ jobs:
 
           print(f"待分析文件: {[str(p) for p in target_files]}")
 
-          # 正则匹配单字节 ASCII 字符串 "QQAppId/<纯数字>"
           pattern = re.compile(rb"QQAppId/([0-9]+)")
           matched_ids = set()
           hit_file = ""
@@ -97,14 +174,12 @@ jobs:
               except Exception as e:
                   print(f"读取文件 {fpath} 出错: {e}")
 
-          # 校验匹配结果
           if not matched_ids:
               print("::error::未检测到 QQAppId 特征码！")
               sys.exit(1)
 
           final_appid = list(matched_ids)[0]
 
-          # 智能推断平台类型
           platform = "Unknown"
           if ".app" in hit_file or "MacOS" in hit_file:
               platform = "macOS"
@@ -119,12 +194,10 @@ jobs:
           print(f"命中物理文件: {hit_file}")
           print("="*45 + "\n")
 
-          # 导出变量给下游 Task 使用
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"app_id={final_appid}\n")
               f.write(f"platform={platform}\n")
 
-          # 写入 GitHub Actions 运行摘要 Markdown
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
               f.write("### QQAppId 自动定位报告\n\n")
               f.write(f"- **目标平台**: `{platform}`\n")
@@ -136,3 +209,6 @@ jobs:
         run: |
           echo "平台: ${{ steps.parse_appid.outputs.platform }}"
           echo "ID:   ${{ steps.parse_appid.outputs.app_id }}"
+          if [ -n "${{ steps.parse_appid.outputs.app_id_pad }}" ]; then
+            echo "Pad ID: ${{ steps.parse_appid.outputs.app_id_pad }}"
+          fi
