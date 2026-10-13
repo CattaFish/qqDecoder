@@ -10,7 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 import requests
 
-# 强制 Python 标准输出和错误流实时刷新
+# 强制 Python 标准输出和错误流实时无缓冲刷新
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
@@ -22,7 +22,7 @@ START_DATE = os.environ.get("START_DATE", "2025-01-01")
 
 
 def get_history_messages(start_date_str):
-    """从最新消息向前翻页爬取，直到早于指定起始日期"""
+    """从最新消息向前翻页爬取历史消息"""
     print(f"[阶段 1] 正在抓取频道历史消息（起始日期: {start_date_str}）...", flush=True)
     messages_data = []
     before_id = None
@@ -113,8 +113,12 @@ def get_history_messages(start_date_str):
 
 
 def parse_backup_tasks(messages):
-    """从历史消息中精准提取下载任务清单"""
-    print("[阶段 2] 正在分析提取各消息中的文件下载链接...", flush=True)
+    """
+    优先策略：
+    1. 若消息中存在'备份'，严格只解析备份直链，忽略官方下载区；
+    2. 若消息中无'备份'（如纯 Beta 版），才提取直接下载链接。
+    """
+    print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
     tasks = []
 
     for msg in messages:
@@ -140,17 +144,87 @@ def parse_backup_tasks(messages):
         if m_linux:
             linux_ver = m_linux.group(1)
 
-        # 兼容 QQ_NT 9.3.70(16410) 带括号格式
         m_android = re.search(r"QQ(?:_NT)?\s+([0-9\.\(\)\w\-]+)", text)
         if m_android:
             android_ver = m_android.group(1)
 
-        # 针对 Android 独立推送消息
-        if "备份" not in html:
+        # -----------------------------------------------------------------
+        # 情况 A: 消息中包含“备份” -> 严格只提取备份链接
+        # -----------------------------------------------------------------
+        if "备份" in html:
+            backup_html = html.split("备份", 1)[1]
+
+            # A1: 如果是桌面多端推送格式
+            if (
+                "Windows" in backup_html
+                or "Linux" in backup_html
+                or "MacOS" in backup_html
+            ):
+                current_platform = "Unknown"
+                lines = backup_html.split("<br/>")
+
+                for line in lines:
+                    line_soup = BeautifulSoup(line, "html.parser")
+                    line_text = line_soup.get_text()
+
+                    if "Windows" in line_text:
+                        current_platform = "Windows"
+                    elif "MacOS" in line_text or "Mac" in line_text:
+                        current_platform = "macOS"
+                    elif "Linux" in line_text:
+                        current_platform = "Linux"
+
+                    for a in line_soup.find_all("a", href=True):
+                        href = a["href"].strip()
+                        arch_name = a.get_text().strip()
+
+                        if "t.me/linqiqi_backup" not in href:
+                            continue
+
+                        version = "Unknown"
+                        if current_platform == "Windows":
+                            version = win_ver
+                        elif current_platform == "macOS":
+                            version = mac_ver
+                        elif current_platform == "Linux":
+                            version = linux_ver
+
+                        tasks.append(
+                            {
+                                "platform": current_platform,
+                                "arch": arch_name or "Package",
+                                "version": version,
+                                "date": date,
+                                "url": href,
+                                "post_id": post_id,
+                            }
+                        )
+
+            # A2: 如果是 Android 推送自带备份链接
+            else:
+                soup = BeautifulSoup(backup_html, "html.parser")
+                for a in soup.find_all("a", href=True):
+                    href = a["href"].strip()
+                    if "t.me/linqiqi_backup" in href:
+                        tasks.append(
+                            {
+                                "platform": "Android",
+                                "arch": "Universal",
+                                "version": android_ver or "Unknown",
+                                "date": date,
+                                "url": href,
+                                "post_id": post_id,
+                            }
+                        )
+
+        # -----------------------------------------------------------------
+        # 情况 B: 消息中无“备份”（例如 Beta 尝鲜版），直接使用下载链接
+        # -----------------------------------------------------------------
+        else:
             soup = BeautifulSoup(html, "html.parser")
             for a in soup.find_all("a", href=True):
                 href = a["href"].strip()
-                if "t.me/linqiqi_backup" in href or ".apk" in href:
+                if ".apk" in href or "android_apk" in href:
                     tasks.append(
                         {
                             "platform": "Android",
@@ -161,65 +235,8 @@ def parse_backup_tasks(messages):
                             "post_id": post_id,
                         }
                     )
-            continue
 
-        backup_html = html.split("备份", 1)[1]
-        current_platform = "Unknown"
-        lines = backup_html.split("<br/>")
-
-        for line in lines:
-            line_soup = BeautifulSoup(line, "html.parser")
-            line_text = line_soup.get_text()
-
-            if "Windows" in line_text:
-                current_platform = "Windows"
-            elif "MacOS" in line_text or "Mac" in line_text:
-                current_platform = "macOS"
-            elif "Linux" in line_text:
-                current_platform = "Linux"
-            elif "Android" in line_text or "Phone" in line_text:
-                current_platform = "Android"
-
-            for a in line_soup.find_all("a", href=True):
-                href = a["href"].strip()
-                arch_name = a.get_text().strip()
-
-                if (
-                    "t.me/linqiqi_backup" not in href
-                    and not href.endswith(".apk")
-                    and "qq.com" not in href
-                ):
-                    continue
-
-                version = "Unknown"
-                if current_platform == "Windows":
-                    version = win_ver
-                elif current_platform == "macOS":
-                    version = mac_ver
-                elif current_platform == "Linux":
-                    version = linux_ver
-                elif current_platform == "Android":
-                    version = android_ver
-
-                # 如果没有明显的架构名，则取链接后缀或者包名
-                if (
-                    not arch_name
-                    or arch_name.startswith("http")
-                    or len(arch_name) > 30
-                ):
-                    arch_name = "Package"
-
-                tasks.append(
-                    {
-                        "platform": current_platform,
-                        "arch": arch_name,
-                        "version": version,
-                        "date": date,
-                        "url": href,
-                        "post_id": post_id,
-                    }
-                )
-
+    # 依据 URL 严格去重
     unique_tasks = []
     seen = set()
     for t in tasks:
@@ -228,40 +245,51 @@ def parse_backup_tasks(messages):
             unique_tasks.append(t)
 
     print(
-        f"[阶段 2 完成] 共整理出 {len(unique_tasks)} 个独立的架构备份任务。\n",
+        f"[阶段 2 完成] 精简过滤后共计 {len(unique_tasks)} 个独立任务（已优先保留备份直链）。\n",
         flush=True,
     )
     return unique_tasks
 
 
 def download_target_file(url, target_dir):
-    """支持 Telegram 与 普通 HTTP CDN 智能分流下载"""
+    """
+    静默下载：
+    tdl 与 curl 均屏蔽刷屏进度输出，仅捕获错误信息
+    """
     if "t.me/" in url:
         cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
-        return subprocess.run(cmd)
+        return subprocess.run(
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
+        )
     else:
-        # 普通 HTTP / CDN 链接使用 curl 下载
         fname = url.split("?")[0].split("/")[-1] or "installer_file"
         out_file = target_dir / fname
         cmd = [
             "curl",
             "-fL",
+            "-s",
+            "-S",
+            "--no-progress-meter",
             "-A",
             (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
                 " AppleWebKit/537.36"
             ),
             "--retry",
-            "3",
+            "2",
+            "--connect-timeout",
+            "20",
             "-o",
             str(out_file),
             url,
         ]
-        return subprocess.run(cmd)
+        return subprocess.run(
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
+        )
 
 
 def extract_subid_adaptive(extract_dir):
-    """自适应提取 SubID，根据实际解压产生的文件类型来判定平台"""
+    """自适应提取 SubID"""
     # 1. 优先检测 Android (AndroidManifest.xml)
     manifest_xml = extract_dir / "AndroidManifest.xml"
     manifest_dump = extract_dir / "manifest_dump.txt"
@@ -275,7 +303,6 @@ def extract_subid_adaptive(extract_dir):
 
         if manifest_xml.exists():
             raw = manifest_xml.read_bytes()
-            # 兼容 UTF-8 与 UTF-16LE 宽字符
             matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
             matches_u16 = [
                 m.replace(b"\x00", b"")
@@ -341,15 +368,21 @@ def run_extraction_pipeline(tasks):
             flush=True,
         )
         print(f"来源链接: {t['url']}", flush=True)
+        print("正在下载...", end=" ", flush=True)
 
         if TEMP_DL.exists():
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 智能分流下载
+        # 1. 静默下载
         proc = download_target_file(t["url"], TEMP_DL)
         if proc.returncode != 0:
-            print(f"[下载异常] 退出码: {proc.returncode}", flush=True)
+            err_msg = (
+                proc.stderr.strip()[:80] if proc.stderr else "返回退出码非零"
+            )
+            print(f"[下载失败，跳过] {err_msg}", flush=True)
+            if TEMP_DL.exists():
+                shutil.rmtree(TEMP_DL)
             continue
 
         dl_files = [
@@ -358,14 +391,16 @@ def run_extraction_pipeline(tasks):
             if f.is_file() and not f.name.endswith(".tdl")
         ]
         if not dl_files:
-            print("[警告] 未能获取到下载文件实体，进入下一任务", flush=True)
+            print("[下载未产出文件，跳过]", flush=True)
+            if TEMP_DL.exists():
+                shutil.rmtree(TEMP_DL)
             continue
 
         downloaded_file = dl_files[0]
         fname = downloaded_file.name.lower()
         file_size_mb = downloaded_file.stat().st_size / 1024 / 1024
         print(
-            f"\n下载完成: {downloaded_file.name} ({file_size_mb:.2f} MB)，开始解包...",
+            f"下载完成: {downloaded_file.name} ({file_size_mb:.2f} MB)，开始解包...",
             flush=True,
         )
 
@@ -396,7 +431,6 @@ def run_extraction_pipeline(tasks):
                     stderr=subprocess.DEVNULL,
                 )
             else:
-                # 兼容 .exe, .dmg, .apk, .AppImage
                 subprocess.run(
                     [
                         "7z",
@@ -409,7 +443,6 @@ def run_extraction_pipeline(tasks):
                     stderr=subprocess.DEVNULL,
                 )
 
-                # macOS 嵌套分区
                 hfs_files = list(TEMP_EXTRACT.glob("**/*.hfs"))
                 if hfs_files:
                     hfs_out = TEMP_EXTRACT / "hfs_extracted"
@@ -419,7 +452,7 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 自适应提取 SubID
+            # 3. 提取 SubID
             subid, detected_platform = extract_subid_adaptive(TEMP_EXTRACT)
 
             if subid:
