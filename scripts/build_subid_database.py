@@ -117,7 +117,7 @@ def parse_backup_tasks(messages):
     优先策略：
     1. 若消息中存在'备份'，严格只解析备份直链；
     2. 若消息中无'备份'，才提取直接下载链接；
-    3. 检测 #Beta 标识，传递给下游处理；
+    3. 检测 #Beta 标识；
     4. 版本号过滤排除中文。
     """
     print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
@@ -129,7 +129,6 @@ def parse_backup_tasks(messages):
         date = msg["date"]
         post_id = msg["post_id"]
 
-        # 检测本条消息是否带有 #Beta 标签
         is_beta = bool(re.search(r"#Beta\b", text, re.IGNORECASE))
 
         win_ver = ""
@@ -293,7 +292,7 @@ def download_target_file(url, target_dir):
 
 
 def get_aapt_cmd():
-    """获取系统中可用的 aapt 工具路径"""
+    """获取 aapt 路径"""
     cmd = shutil.which("aapt")
     if cmd:
         return cmd
@@ -317,7 +316,7 @@ def extract_subid_and_version(
     extract_dir, downloaded_file_path, fallback_ver="Unknown"
 ):
     """
-    自适应提取 SubID，并从二进制/清单内部自动对齐、补全为标准的 4 段式版本号 (X.Y.Z.BUILD)
+    自适应提取 SubID，并对齐版本号。
     """
     fname_str = str(downloaded_file_path).lower()
 
@@ -351,49 +350,52 @@ def extract_subid_and_version(
                 dump_text = ""
 
         if dump_text:
-            # 1. 抽取 SubID
-            m_sub = re.search(
-                r'AppSetting_params".*?android:value[^=]*="([0-9]+)#',
-                dump_text,
-                re.DOTALL,
-            )
-            if m_sub:
-                subid = m_sub.group(1)
+            for block in dump_text.split("E: meta-data"):
+                if "AppSetting_params" in block and not subid:
+                    m_sub = re.search(
+                        r'android:value[^=]*="([0-9]{9})#', block
+                    ) or re.search(r'Raw:\s*"([0-9]{9})#', block)
+                    if m_sub:
+                        subid = m_sub.group(1)
 
-            # 2. 抽取 base versionName (例如 9.3.70)
+                if "ANDROID_QQ_BUILD_NO" in block and not build_no:
+                    m_bn = (
+                        re.search(r'android:value[^=]*="([0-9]{4,6})"', block)
+                        or re.search(r'Raw:\s*"([0-9]{4,6})"', block)
+                        or re.search(r'"([0-9]{4,6})"', block)
+                        or re.search(r'\b([0-9]{4,6})\b', block)
+                    )
+                    if m_bn:
+                        build_no = m_bn.group(1)
+
             m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', dump_text)
             if m_vn:
                 base_vname = m_vn.group(1).strip()
 
-            # 3. 抽取 ANDROID_QQ_BUILD_NO (限制 4 到 6 位纯数字)
-            m_bn = re.search(
-                r'ANDROID_QQ_BUILD_NO"[\s\S]{1,150}?android:value[^=]*="([0-9]{4,6})"',
-                dump_text,
-            )
-            if not m_bn:
-                m_bn = re.search(
-                    r'ANDROID_QQ_BUILD_NO"[\s\S]{1,150}?"([0-9]{4,6})"',
-                    dump_text,
-                )
-            if m_bn:
-                build_no = m_bn.group(1).strip()
-
-        # 字节流兜底抽取 SubID
-        if not subid and manifest_xml.exists():
+        # 纯 Python 字节流兜底抽取
+        if manifest_xml.exists():
             raw = manifest_xml.read_bytes()
-            matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
-            matches_u16 = [
-                m.replace(b"\x00", b"")
-                for m in re.findall(
-                    rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
-                    raw,
-                )
-            ]
-            all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
-            if all_m:
-                subid = all_m[0]
 
-        # 统合为标准 4 段版本号
+            if not subid:
+                matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
+                matches_u16 = [
+                    m.replace(b"\x00", b"")
+                    for m in re.findall(
+                        rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
+                        raw,
+                    )
+                ]
+                all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
+                if all_m:
+                    subid = all_m[0]
+
+            if not build_no:
+                m_b_near = re.search(
+                    rb"ANDROID_QQ_BUILD_NO[\s\S]{1,200}?([0-9]{4,6})", raw
+                )
+                if m_b_near:
+                    build_no = m_b_near.group(1).decode("ascii")
+
         clean_ver = fallback_ver
         m_already_4parts = re.search(r"(\d+\.\d+\.\d+\.\d+)", fallback_ver)
         if m_already_4parts:
@@ -433,16 +435,23 @@ def extract_subid_and_version(
                 elif "opt" in path_str or "linux" in path_str:
                     plat = "Linux"
 
+                # 桌面端防污染核心：优先采用外部权威提取的 4 段式版本
                 clean_ver = fallback_ver
-                m_v = pattern_ver.search(data)
-                if m_v:
-                    clean_ver = f"{m_v.group(1).decode('ascii')}.{m_v.group(2).decode('ascii')}"
+                m_already_4parts = re.search(
+                    r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver
+                )
+                if m_already_4parts:
+                    clean_ver = m_already_4parts.group(1)
                 else:
-                    m_fb = re.search(
-                        r"(\d+\.\d+\.\d+(?:[\._]\d+)?)", fallback_ver
-                    )
-                    if m_fb:
-                        clean_ver = m_fb.group(1).replace("_", ".")
+                    # 只有没有 4 段式时才读取二进制，同时强制过滤 8.9.28 历史伪装串
+                    all_vers = pattern_ver.findall(data)
+                    for v_base, v_build in all_vers:
+                        v_str = (
+                            f"{v_base.decode('ascii')}.{v_build.decode('ascii')}"
+                        )
+                        if not v_str.startswith("8.9.28"):
+                            clean_ver = v_str
+                            break
 
                 return subid, plat, clean_ver
         except Exception:
@@ -452,10 +461,20 @@ def extract_subid_and_version(
 
 
 def extract_version_from_filename(filename):
-    """从真实下载的文件名中提炼基础版本号"""
-    m = re.search(r"(\d+\.\d+\.\d+(?:[\._]\d+)?(?:\(\d+\))?)", filename)
-    if m:
-        return m.group(1).replace("_", ".")
+    """
+    从真实文件名中提炼版本号：
+    优先提取完整 4 段式 (如 linuxqq_3.2.34-53644 -> 3.2.34.53644, QQ9.9.17.31219 -> 9.9.17.31219)
+    """
+    # 1. 优先匹配 4 段式 (点/短横杠/下划线连接的构架号)
+    m4 = re.search(r"(\d+\.\d+\.\d+)[-._](\d{4,6})", filename)
+    if m4:
+        return f"{m4.group(1)}.{m4.group(2)}"
+
+    # 2. 匹配 3 段式 (如 9.3.70(16410) 或 9.3.70)
+    m3 = re.search(r"(\d+\.\d+\.\d+(?:\(\d+\))?)", filename)
+    if m3:
+        return m3.group(1)
+
     return None
 
 
@@ -520,6 +539,7 @@ def run_extraction_pipeline(tasks):
         fname = downloaded_file.name
         file_size_mb = downloaded_file.stat().st_size / 1024 / 1024
 
+        # 优先从文件名中提取标准版本号（例如 linuxqq_3.2.34-53644 -> 3.2.34.53644）
         real_version_from_file = extract_version_from_filename(fname)
         base_version = (
             real_version_from_file
@@ -595,7 +615,6 @@ def run_extraction_pipeline(tasks):
                     else t["platform"]
                 )
 
-                # 如果消息本身带有 #Beta 标签，自动在版本号末尾追加 -Beta
                 if t.get("is_beta") and not unified_version.endswith("-Beta"):
                     unified_version = f"{unified_version}-Beta"
 
