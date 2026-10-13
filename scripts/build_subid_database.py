@@ -42,21 +42,37 @@ def get_history_messages(start_date_str):
             break
 
         soup = BeautifulSoup(resp.text, "html.parser")
-        msg_divs = soup.find_all(
-            "div",
-            class_=lambda c: c
-            and "tgme_widget_message" in c
-            and "js-widget_message" in c,
-        )
+
+        # 严格过滤：只选取真正带有 data-post 属性且包含斜杠的消息节点
+        msg_divs = [
+            div
+            for div in soup.find_all("div", class_="tgme_widget_message")
+            if div.get("data-post") and "/" in div.get("data-post")
+        ]
+
         if not msg_divs:
+            print("[提示] 当前页面未检索到更多有效消息，停止翻页。")
             break
 
-        # 获取当前批次最小的消息 ID，用于继续向前翻页
-        min_id = int(msg_divs[0].get("data-post").split("/")[-1])
-        if before_id and min_id >= before_id:
+        # 计算当前页面中最小的数字 ID 作为下一次的翻页游标
+        post_ids = []
+        for d in msg_divs:
+            try:
+                pid = int(d.get("data-post").split("/")[-1])
+                post_ids.append(pid)
+            except Exception:
+                pass
+
+        if not post_ids:
+            break
+
+        min_id = min(post_ids)
+        if before_id is not None and min_id >= before_id:
+            # 游标未能继续向前推进，说明已到频道最开端，避免死循环
             break
         before_id = min_id
 
+        current_date_str = "Unknown"
         # 从新到旧解析消息
         for msg in reversed(msg_divs):
             time_elem = msg.find("time")
@@ -64,11 +80,14 @@ def get_history_messages(start_date_str):
                 continue
 
             dt_str = time_elem["datetime"][:10]  # YYYY-MM-DD
-            msg_date = datetime.strptime(dt_str, "%Y-%m-%d").date()
-
-            if msg_date < start_date:
-                stop_crawling = True
-                break
+            current_date_str = dt_str
+            try:
+                msg_date = datetime.strptime(dt_str, "%Y-%m-%d").date()
+                if msg_date < start_date:
+                    stop_crawling = True
+                    break
+            except Exception:
+                continue
 
             text_elem = msg.find("div", class_="tgme_widget_message_text")
             if text_elem:
@@ -82,7 +101,7 @@ def get_history_messages(start_date_str):
                 )
 
         print(
-            f"已抓取到消息记录（当前翻页游标 ID: {before_id}，最新日期: {dt_str}）..."
+            f"已抓取批次消息（当前翻页游标 ID: {before_id}，最新扫描日期: {current_date_str}）..."
         )
         time.sleep(1)
 
@@ -101,7 +120,6 @@ def parse_backup_tasks(messages):
         date = msg["date"]
         post_id = msg["post_id"]
 
-        # 解析版本号
         win_ver = ""
         mac_ver = ""
         linux_ver = ""
@@ -123,9 +141,8 @@ def parse_backup_tasks(messages):
         if m_android:
             android_ver = m_android.group(1)
 
-        # 定位备份区域：截取“备份”关键字之后的内容
+        # 针对 Android 独立推送消息
         if "备份" not in html:
-            # Android 独立推送消息通常直接附带链接
             soup = BeautifulSoup(html, "html.parser")
             for a in soup.find_all("a", href=True):
                 href = a["href"].strip()
@@ -142,10 +159,8 @@ def parse_backup_tasks(messages):
                     )
             continue
 
+        # 截取“备份”关键字之后的区域
         backup_html = html.split("备份", 1)[1]
-        soup = BeautifulSoup(backup_html, "html.parser")
-
-        # 按行解析段落归属
         current_platform = "Unknown"
         lines = backup_html.split("<br/>")
 
@@ -162,7 +177,6 @@ def parse_backup_tasks(messages):
             elif "Android" in line_text:
                 current_platform = "Android"
 
-            # 寻找该行中的 Telegram 备份直链
             for a in line_soup.find_all("a", href=True):
                 href = a["href"].strip()
                 arch_name = a.get_text().strip()
@@ -170,7 +184,6 @@ def parse_backup_tasks(messages):
                 if "t.me/linqiqi_backup" not in href:
                     continue
 
-                # 匹配对应的版本号
                 version = "Unknown"
                 if current_platform == "Windows":
                     version = win_ver
@@ -244,7 +257,6 @@ def run_extraction_pipeline(tasks):
     """循环下载、解包、提取并写入目标字典（支持断点续传）"""
     print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...")
 
-    # 读取已有记录
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     subid_map = {}
     if DATA_FILE.exists():
@@ -281,8 +293,12 @@ def run_extraction_pipeline(tasks):
             print(f"[下载失败] {proc.stderr[:100]}")
             continue
 
-        # 寻找下载落盘的文件
-        dl_files = list(TEMP_DL.glob("*"))
+        # 寻找下载落盘的安装包（递归查找实体文件，排除可能存在的 .tdl 临时缓存）
+        dl_files = [
+            f
+            for f in TEMP_DL.rglob("*")
+            if f.is_file() and not f.name.endswith(".tdl")
+        ]
         if not dl_files:
             print("[警告] 未能获取到下载文件实体")
             continue
@@ -319,7 +335,6 @@ def run_extraction_pipeline(tasks):
                     stderr=subprocess.DEVNULL,
                 )
             else:
-                # 兼容 .exe, .dmg, .apk, .AppImage
                 subprocess.run(
                     [
                         "7z",
@@ -331,7 +346,6 @@ def run_extraction_pipeline(tasks):
                     stdout=subprocess.DEVNULL,
                 )
 
-                # 处理 macOS 嵌套 HFS 分区
                 hfs_files = list(TEMP_EXTRACT.glob("**/*.hfs"))
                 if hfs_files:
                     hfs_out = TEMP_EXTRACT / "hfs_extracted"
@@ -352,7 +366,7 @@ def run_extraction_pipeline(tasks):
                     "date": t["date"],
                     "source_url": t["url"],
                 }
-                # 实时更新落盘，防止中断丢失
+                # 实时更新落盘，防止任务中断丢失进度
                 DATA_FILE.write_text(
                     json.dumps(subid_map, indent=2, ensure_ascii=False),
                     encoding="utf-8",
@@ -365,13 +379,12 @@ def run_extraction_pipeline(tasks):
             print(f"[处理异常] {e}")
 
         finally:
-            # 4. 彻底物理清理当前包与解包文件夹，杜绝磁盘溢出
+            # 4. 彻底物理清理当前安装包与解包目录，防止磁盘爆满
             if TEMP_DL.exists():
                 shutil.rmtree(TEMP_DL)
             if TEMP_EXTRACT.exists():
                 shutil.rmtree(TEMP_EXTRACT)
 
-        # 间隔 2 秒，避免 Telegram 请求频控
         time.sleep(2)
 
     print("\n[全量处理完毕] 最终数据已持久化保存至 data/qq_subid_map.json")
