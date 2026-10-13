@@ -1,14 +1,13 @@
-name: Test Extract QQAppId
+name: Universal Extract QQAppId (Win & Linux)
 
 on:
   workflow_dispatch:
     inputs:
       download_url:
-        description: '请输入 QQ 安装包直链下载地址'
+        description: '请输入 QQ 安装包直链（支持 .exe / .deb / .AppImage）'
         required: true
         type: string
-        # 预设一个示例（可留空或自定义）
-        default: 'https://dldir1.qq.com/qqfile/qq/PCQQ9.9.36/QQ9.9.36.53644_x64.exe'
+        default: 'https://dldir1.qq.com/qqfile/qq/QQNT/Linux/qq_3.2.22_241219_amd64_01.deb'
 
 jobs:
   extract:
@@ -17,15 +16,39 @@ jobs:
     steps:
       - name: 1. 下载安装包
         run: |
-          echo "正在下载安装包: ${{ inputs.download_url }}"
-          curl -L -o qq_installer.exe "${{ inputs.download_url }}"
-          ls -lh qq_installer.exe
+          echo "正在下载: ${{ inputs.download_url }}"
+          # 去除 URL 参数后保留后缀名，以便后续判断格式
+          curl -fL -o package_file "${{ inputs.download_url }}"
+          ls -lh package_file
 
-      - name: 2. 解压安装包
+      - name: 2. 智能识别格式并解压
         run: |
-          echo "正在解压安装包..."
-          # Ubuntu runner 自带 7z，7z 偶尔会报 NSIS 警告代码，因此加 || true 保证流程不中断
-          7z x qq_installer.exe -oqq_extracted -y || true
+          URL="${{ inputs.download_url }}"
+          # 提取纯净 URL 后缀（剔除 ? 后的查询参数）
+          CLEAN_URL="${URL%%\?*}"
+          mkdir -p qq_extracted
+
+          if [[ "$CLEAN_URL" =~ \.deb$ ]]; then
+            echo "📦 检测到 Linux Debian/Ubuntu 安装包 (.deb)，使用 dpkg-deb 解压..."
+            dpkg-deb -x package_file qq_extracted
+
+          elif [[ "$CLEAN_URL" =~ \.AppImage$ ]]; then
+            echo "📦 检测到 Linux AppImage，使用 7z 解压..."
+            7z x package_file -oqq_extracted -y || true
+
+          elif [[ "$CLEAN_URL" =~ \.exe$ ]]; then
+            echo "📦 检测到 Windows 安装包 (.exe)，使用 7z 解压..."
+            7z x package_file -oqq_extracted -y || true
+
+          elif [[ "$CLEAN_URL" =~ \.rpm$ ]]; then
+            echo "📦 检测到 Linux RPM 安装包 (.rpm)..."
+            sudo apt-get update && sudo apt-get install -y rpm2cpio cpio
+            cd qq_extracted && rpm2cpio ../package_file | cpio -idmv && cd ..
+
+          else
+            echo "⚠️ 未识别文件后缀，尝试使用 7z 通用解包..."
+            7z x package_file -oqq_extracted -y || true
+          fi
 
       - name: 3. 定位并提取 QQAppId
         id: parse_appid
@@ -38,24 +61,22 @@ jobs:
 
           root_dir = Path("qq_extracted")
 
-          # 策略 1：优先寻找 major.node
+          # 优先匹配 major.node，兜底匹配所有 .node 动态库
           target_files = list(root_dir.glob("**/major.node"))
-
-          # 策略 2：如果找不到 major.node，兜底搜索所有 .node 文件
           if not target_files:
-              print("未找到 major.node，正在全盘搜索所有 .node 扩展模块...")
+              print("提示: 未在常规路径找到 major.node，正在全盘检索 .node 模块...")
               target_files = list(root_dir.glob("**/*.node"))
 
           if not target_files:
-              print("::error::未在解压包中找到任何可分析的 Native 模块 (.node)")
+              print("::error::解压目录中未找到任何 .node 模块！")
               sys.exit(1)
 
-          print(f"找到待分析模块文件: {[str(p) for p in target_files]}")
+          print(f"找到待分析模块: {[str(p) for p in target_files]}")
 
-          # 正则锚点：匹配 QQAppId/ 紧随的纯数字
+          # 正则锚点：匹配单字节流中的 "QQAppId/<纯数字>"
           pattern = re.compile(rb"QQAppId/([0-9]+)")
           matched_ids = set()
-          source_file = ""
+          hit_file = ""
 
           for fpath in target_files:
               try:
@@ -63,35 +84,36 @@ jobs:
                   results = pattern.findall(content)
                   for r in results:
                       matched_ids.add(r.decode('ascii'))
-                      source_file = str(fpath)
+                      hit_file = str(fpath)
               except Exception as e:
-                  print(f"读取 {fpath} 出错: {e}")
+                  print(f"读取文件 {fpath} 出错: {e}")
 
-          # 结果校验
+          # 校验与输出
           if not matched_ids:
-              print("::error::未在模块中找到 'QQAppId/<数字>' 特征，可能结构已变更！")
+              print("::error::未检测到 QQAppId 特征码，可能格式发生了变动！")
               sys.exit(1)
 
           if len(matched_ids) > 1:
-              print(f"::warning::检测到多个不一致的 QQAppId: {matched_ids}")
+              print(f"::warning::检测到多个不同的 AppId: {matched_ids}")
 
           final_appid = list(matched_ids)[0]
-          print(f"\n==========================================")
-          print(f"🎯 成功定位并提取到 QQAppId: {final_appid}")
-          print(f"📍 命中文件来源: {source_file}")
-          print(f"==========================================\n")
+          print(f"\n" + "="*45)
+          print(f"🎉 成功提取 QQAppId: {final_appid}")
+          print(f"📁 命中文件路径: {hit_file}")
+          print(f"="*45 + "\n")
 
-          # 导出给后续 Action 步骤使用
+          # 写入 Step 输出
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"app_id={final_appid}\n")
 
-          # 在 GitHub Action 执行摘要页面以 Markdown 卡片展示
+          # 写入 Action 运行摘要 (Markdown 卡片)
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-              f.write("### 🎯 QQAppId 定位成功\n\n")
+              f.write("### 🚀 QQAppId 提取成功\n\n")
+              f.write(f"- **目标平台**: `{'Linux' if 'opt' in hit_file else 'Windows'}`\n")
               f.write(f"- **QQAppId**: `{final_appid}`\n")
-              f.write(f"- **来源文件**: `{source_file}`\n")
+              f.write(f"- **命中模块**: `{hit_file}`\n")
           EOF
 
-      - name: 4. 测试输出结果变量
+      - name: 4. 检查结果
         run: |
-          echo "上一步传递出的变量 APP_ID 是: ${{ steps.parse_appid.outputs.app_id }}"
+          echo "本次提取出的 APP_ID 是: ${{ steps.parse_appid.outputs.app_id }}"
