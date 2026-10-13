@@ -1,10 +1,10 @@
-name: Universal Extract QQAppId (Win, Linux & Mac)
+name: Universal Extract QQAppId
 
 on:
   workflow_dispatch:
     inputs:
       download_url:
-        description: '请输入 QQ 安装包直链（支持 .exe / .deb / .AppImage / .dmg）'
+        description: '请输入 QQ 安装包直链（支持 .exe / .deb / .AppImage / .dmg / .rpm）'
         required: true
         type: string
         default: 'https://dldir1.qq.com/qqfile/qq/QQNT/mac/QQ_6.9.86_42941.dmg'
@@ -27,37 +27,35 @@ jobs:
           mkdir -p qq_extracted
 
           if [[ "$CLEAN_URL" =~ \.dmg$ ]]; then
-            echo "🍏 检测到 macOS 磁盘镜像 (.dmg)..."
-            # 第一层解压
-            7z x package_file -oqq_dmg_raw -y || true
-            # 检查是否有嵌套的 HFS 分区文件，如果有则进行第二层穿透解压
-            HFS_FILE=$(find qq_dmg_raw -type f \( -name "*.hfs" -o -name "*Apple_HFS*" \) | head -n 1)
+            echo "[格式识别] macOS 磁盘镜像 (.dmg)"
+            7z x package_file -oqq_extracted -y || true
+            # 兼容个别存在嵌套 HFS 分区镜像的情况
+            HFS_FILE=$(find qq_extracted -type f \( -name "*.hfs" -o -name "*Apple_HFS*" \) | head -n 1)
             if [ -n "$HFS_FILE" ]; then
-              echo "📦 发现嵌套 HFS 磁盘分区镜像，正在二次解包..."
-              7z x "$HFS_FILE" -oqq_extracted -y || true
-            else
-              cp -r qq_dmg_raw/* qq_extracted/ 2>/dev/null || true
+              echo "[状态] 发现嵌套 HFS 磁盘分区镜像，正在二次解包..."
+              7z x "$HFS_FILE" -oqq_extracted_hfs -y || true
+              cp -r qq_extracted_hfs/* qq_extracted/ 2>/dev/null || true
             fi
 
           elif [[ "$CLEAN_URL" =~ \.deb$ ]]; then
-            echo "🐧 检测到 Linux Debian/Ubuntu 安装包 (.deb)..."
+            echo "[格式识别] Linux Debian/Ubuntu 安装包 (.deb)"
             dpkg-deb -x package_file qq_extracted
 
           elif [[ "$CLEAN_URL" =~ \.AppImage$ ]]; then
-            echo "🐧 检测到 Linux AppImage..."
+            echo "[格式识别] Linux AppImage"
             7z x package_file -oqq_extracted -y || true
 
           elif [[ "$CLEAN_URL" =~ \.exe$ ]]; then
-            echo "🪟 检测到 Windows 安装包 (.exe)..."
+            echo "[格式识别] Windows 安装包 (.exe)"
             7z x package_file -oqq_extracted -y || true
 
           elif [[ "$CLEAN_URL" =~ \.rpm$ ]]; then
-            echo "🐧 检测到 Linux RPM 安装包 (.rpm)..."
+            echo "[格式识别] Linux RPM 安装包 (.rpm)"
             sudo apt-get update && sudo apt-get install -y rpm2cpio cpio
             cd qq_extracted && rpm2cpio ../package_file | cpio -idmv && cd ..
 
           else
-            echo "⚠️ 未知后缀，尝试 7z 通用盲解..."
+            echo "[格式识别] 未知后缀，使用 7z 通用解包"
             7z x package_file -oqq_extracted -y || true
           fi
 
@@ -99,7 +97,7 @@ jobs:
               except Exception as e:
                   print(f"读取文件 {fpath} 出错: {e}")
 
-          # 校验
+          # 校验匹配结果
           if not matched_ids:
               print("::error::未检测到 QQAppId 特征码！")
               sys.exit(1)
@@ -115,11 +113,11 @@ jobs:
           elif "versions" in hit_file or "Files" in hit_file:
               platform = "Windows"
 
-          print(f"\n" + "="*45)
-          print(f"🎯 识别目标平台: {platform}")
-          print(f"🎉 成功提取 QQAppId: {final_appid}")
-          print(f"📁 命中物理文件: {hit_file}")
-          print(f"="*45 + "\n")
+          print("\n" + "="*45)
+          print(f"识别目标平台: {platform}")
+          print(f"成功提取 QQAppId: {final_appid}")
+          print(f"命中物理文件: {hit_file}")
+          print("="*45 + "\n")
 
           # 导出变量给下游 Task 使用
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -128,13 +126,13 @@ jobs:
 
           # 写入 GitHub Actions 运行摘要 Markdown
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-              f.write("### 🚀 QQAppId 自动定位报告\n\n")
+              f.write("### QQAppId 自动定位报告\n\n")
               f.write(f"- **目标平台**: `{platform}`\n")
               f.write(f"- **QQAppId**: `{final_appid}`\n")
               f.write(f"- **模块文件**: `{hit_file}`\n")
           EOF
 
-      - name: 4. 变量集成测试
+      - name: 4. 检查提取结果
         run: |
           echo "平台: ${{ steps.parse_appid.outputs.platform }}"
           echo "ID:   ${{ steps.parse_appid.outputs.app_id }}"
