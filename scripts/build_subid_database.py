@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import time
@@ -113,13 +114,7 @@ def get_history_messages(start_date_str):
 
 
 def parse_backup_tasks(messages):
-    """
-    优先策略：
-    1. 若消息中存在'备份'，严格只解析备份直链；
-    2. 若消息中无'备份'，才提取直接下载链接；
-    3. 检测 #Beta 标识；
-    4. 版本号过滤排除中文。
-    """
+    """提取下载任务清单（优先提取备份）"""
     print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
     tasks = []
 
@@ -155,9 +150,6 @@ def parse_backup_tasks(messages):
         if m_android:
             android_ver = m_android.group(1)
 
-        # -----------------------------------------------------------------
-        # 情况 A: 消息中包含“备份” -> 严格只提取备份链接
-        # -----------------------------------------------------------------
         if "备份" in html:
             backup_html = html.split("备份", 1)[1]
 
@@ -222,10 +214,6 @@ def parse_backup_tasks(messages):
                                 "is_beta": is_beta,
                             }
                         )
-
-        # -----------------------------------------------------------------
-        # 情况 B: 消息中无“备份”，直接使用下载链接
-        # -----------------------------------------------------------------
         else:
             soup = BeautifulSoup(html, "html.parser")
             for a in soup.find_all("a", href=True):
@@ -292,7 +280,7 @@ def download_target_file(url, target_dir):
 
 
 def get_aapt_cmd():
-    """获取 aapt 路径"""
+    """获取 aapt 工具路径"""
     cmd = shutil.which("aapt")
     if cmd:
         return cmd
@@ -312,12 +300,55 @@ def get_aapt_cmd():
     return None
 
 
+def get_axml_strings(raw):
+    """纯 Python 从二进制 AXML 中直接提取所有字符串"""
+    try:
+        sp_type, sp_header_size, sp_size, str_count, _, flags, str_start, _ = (
+            struct.unpack_from("<HHIIIIII", raw, 8)
+        )
+        if sp_type != 0x0001:
+            return []
+        is_utf8 = bool(flags & (1 << 8))
+        offsets = struct.unpack_from(f"<{str_count}I", raw, 8 + sp_header_size)
+        data_start = 8 + str_start
+        strings = []
+        for off in offsets:
+            pos = data_start + off
+            if is_utf8:
+                if pos >= len(raw):
+                    break
+                l1 = raw[pos]
+                pos += 1
+                if l1 & 0x80:
+                    pos += 1
+                if pos >= len(raw):
+                    break
+                u1 = raw[pos]
+                pos += 1
+                if u1 & 0x80:
+                    pos += 1
+                end = raw.find(b"\x00", pos)
+                if end == -1:
+                    end = len(raw)
+                strings.append(raw[pos:end].decode("utf-8", errors="ignore"))
+            else:
+                pos += 2
+                end = raw.find(b"\x00\x00", pos)
+                if end == -1:
+                    end = len(raw)
+                if (end - pos) % 2 != 0:
+                    end += 1
+                strings.append(raw[pos:end].decode("utf-16le", errors="ignore"))
+        return strings
+    except Exception as e:
+        print(f"[调试] AXML 字符串池解析异常: {e}", flush=True)
+        return []
+
+
 def extract_subid_and_version(
     extract_dir, downloaded_file_path, fallback_ver="Unknown"
 ):
-    """
-    自适应提取 SubID，并对齐版本号。
-    """
+    """自适应提取 SubID 和统合版本号，附带全面调试追踪"""
     fname_str = str(downloaded_file_path).lower()
 
     # ----------------------------------------------------
@@ -329,7 +360,12 @@ def extract_subid_and_version(
         base_vname = None
         build_no = None
 
+        print("\n--- [调试: 开始分析 Android 安装包] ---", flush=True)
+        print(f"[调试] 目标文件: {downloaded_file_path.name}", flush=True)
+
         aapt_bin = get_aapt_cmd()
+        print(f"[调试] 检测到 aapt 路径: {aapt_bin}", flush=True)
+
         dump_text = ""
         if aapt_bin and downloaded_file_path.exists():
             try:
@@ -345,61 +381,125 @@ def extract_subid_and_version(
                     text=True,
                     timeout=30,
                 )
+                print(
+                    f"[调试] aapt 返回码: {proc.returncode}, 标准输出长度: {len(proc.stdout)}, 报错: {proc.stderr[:100]}",
+                    flush=True,
+                )
                 dump_text = proc.stdout
-            except Exception:
-                dump_text = ""
+            except Exception as e:
+                print(f"[调试] 执行 aapt 异常: {e}", flush=True)
 
+        # 路径 A: 从 aapt dump 明文中提取
         if dump_text:
-            for block in dump_text.split("E: meta-data"):
-                if "AppSetting_params" in block and not subid:
-                    m_sub = re.search(
-                        r'android:value[^=]*="([0-9]{9})#', block
-                    ) or re.search(r'Raw:\s*"([0-9]{9})#', block)
+            lines = dump_text.splitlines()
+            for idx, line in enumerate(lines):
+                if "versionName" in line and not base_vname:
+                    m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
+                    if m_vn:
+                        base_vname = m_vn.group(1).strip()
+                        print(
+                            f"[调试] aapt 找到 versionName: {base_vname}",
+                            flush=True,
+                        )
+
+                if "AppSetting_params" in line and not subid:
+                    # 打印上下文
+                    ctx = "\n".join(
+                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
+                    )
+                    m_sub = re.search(r'([0-9]{9})#', ctx)
                     if m_sub:
                         subid = m_sub.group(1)
+                        print(f"[调试] aapt 找到 SubID: {subid}", flush=True)
 
-                if "ANDROID_QQ_BUILD_NO" in block and not build_no:
-                    m_bn = (
-                        re.search(r'android:value[^=]*="([0-9]{4,6})"', block)
-                        or re.search(r'Raw:\s*"([0-9]{4,6})"', block)
-                        or re.search(r'"([0-9]{4,6})"', block)
-                        or re.search(r'\b([0-9]{4,6})\b', block)
+                if "ANDROID_QQ_BUILD_NO" in line:
+                    print(f"[调试] aapt 发现 BUILD_NO 行: {line}", flush=True)
+                    ctx = "\n".join(
+                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-                    if m_bn:
-                        build_no = m_bn.group(1)
+                    print(
+                        f"[调试] ANDROID_QQ_BUILD_NO 上下文 4 行:\n{ctx}",
+                        flush=True,
+                    )
+                    # 匹配任何 4~6 位纯数字
+                    m_b = re.search(r'["\s:=]([0-9]{4,6})["\s\)]', ctx)
+                    if m_b:
+                        build_no = m_b.group(1)
+                        print(
+                            f"[调试] aapt 成功提取 build_no: {build_no}",
+                            flush=True,
+                        )
 
-            m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', dump_text)
-            if m_vn:
-                base_vname = m_vn.group(1).strip()
-
-        # 纯 Python 字节流兜底抽取
+        # 路径 B: 纯 Python 二进制字节流兜底扫描
         if manifest_xml.exists():
             raw = manifest_xml.read_bytes()
+            print(
+                f"[调试] manifest_xml 存在，二进制大小: {len(raw)} 字节",
+                flush=True,
+            )
 
+            # 兜底 SubID
             if not subid:
                 matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
-                matches_u16 = [
-                    m.replace(b"\x00", b"")
-                    for m in re.findall(
-                        rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
-                        raw,
+                if matches_u8:
+                    subid = matches_u8[0].decode("ascii")
+                    print(
+                        f"[调试] 二进制流兜底抓取到 SubID: {subid}", flush=True
                     )
-                ]
-                all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
-                if all_m:
-                    subid = all_m[0]
 
+            # 兜底 build_no: 解析 AXML 字符串池
             if not build_no:
-                m_b_near = re.search(
-                    rb"ANDROID_QQ_BUILD_NO[\s\S]{1,200}?([0-9]{4,6})", raw
+                print(
+                    "[调试] aapt 未能产出 build_no，启动纯 Python 字符串池解析...",
+                    flush=True,
                 )
-                if m_b_near:
-                    build_no = m_b_near.group(1).decode("ascii")
+                axml_strings = get_axml_strings(raw)
+                print(
+                    f"[调试] 提取到 AXML 字符串池总计: {len(axml_strings)} 个项",
+                    flush=True,
+                )
+                if "ANDROID_QQ_BUILD_NO" in axml_strings:
+                    idx_target = axml_strings.index("ANDROID_QQ_BUILD_NO")
+                    print(
+                        f"[调试] ANDROID_QQ_BUILD_NO 位于字符串池索引: {idx_target}",
+                        flush=True,
+                    )
+                    # 寻找字符串池中所有的 4 到 6 位纯数字
+                    num_candidates = [
+                        s
+                        for s in axml_strings
+                        if re.fullmatch(r"[0-9]{4,6}", s)
+                    ]
+                    print(
+                        f"[调试] 字符串池中的 4~6 位纯数字候选集: {num_candidates}",
+                        flush=True,
+                    )
+                    if num_candidates:
+                        # 按与 target 的索引距离排序，取最近的
+                        num_candidates.sort(
+                            key=lambda s: abs(axml_strings.index(s) - idx_target)
+                        )
+                        build_no = num_candidates[0]
+                        print(
+                            f"[调试] 纯 Python 从字符串池成功锁定最近的构建号: {build_no}",
+                            flush=True,
+                        )
+
+        # ----------------------------------------------------
+        # 版本号缝合
+        # ----------------------------------------------------
+        print(
+            f"[调试] 缝合前变量: base_vname={base_vname}, build_no={build_no}, fallback_ver={fallback_ver}",
+            flush=True,
+        )
 
         clean_ver = fallback_ver
         m_already_4parts = re.search(r"(\d+\.\d+\.\d+\.\d+)", fallback_ver)
         if m_already_4parts:
             clean_ver = m_already_4parts.group(1)
+            print(
+                f"[调试] 来源版本已是 4 段式，直接采用: {clean_ver}", flush=True
+            )
         else:
             v_source = base_vname or fallback_ver
             m_base = re.search(r"(\d+\.\d+\.\d+)", v_source)
@@ -407,18 +507,25 @@ def extract_subid_and_version(
                 base_part = m_base.group(1)
                 if build_no:
                     clean_ver = f"{base_part}.{build_no}"
+                    print(
+                        f"[调试] 缝合成功 (3段+构建号): {clean_ver}", flush=True
+                    )
                 else:
                     clean_ver = base_part
+                    print(
+                        f"[调试] 未能获取 build_no，保留 3 段式: {clean_ver}",
+                        flush=True,
+                    )
 
+        print("--- [调试结束] ---\n", flush=True)
         return subid, "Android", clean_ver
 
     # ----------------------------------------------------
     # 2. 桌面端处理 (Win / Linux / macOS)
     # ----------------------------------------------------
-    nodes = list(extract_dir.glob("**/major.node"))
-    if not nodes:
-        nodes = list(extract_dir.glob("**/*.node"))
-
+    nodes = list(extract_dir.glob("**/major.node")) or list(
+        extract_dir.glob("**/*.node")
+    )
     pattern_subid = re.compile(rb"QQAppId/([0-9]+)")
     pattern_ver = re.compile(rb"QQ(?:EX)?/(\d+\.\d+\.\d+)[-\.](\d+)")
 
@@ -435,7 +542,6 @@ def extract_subid_and_version(
                 elif "opt" in path_str or "linux" in path_str:
                     plat = "Linux"
 
-                # 桌面端防污染核心：优先采用外部权威提取的 4 段式版本
                 clean_ver = fallback_ver
                 m_already_4parts = re.search(
                     r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver
@@ -443,7 +549,6 @@ def extract_subid_and_version(
                 if m_already_4parts:
                     clean_ver = m_already_4parts.group(1)
                 else:
-                    # 只有没有 4 段式时才读取二进制，同时强制过滤 8.9.28 历史伪装串
                     all_vers = pattern_ver.findall(data)
                     for v_base, v_build in all_vers:
                         v_str = (
@@ -461,16 +566,11 @@ def extract_subid_and_version(
 
 
 def extract_version_from_filename(filename):
-    """
-    从真实文件名中提炼版本号：
-    优先提取完整 4 段式 (如 linuxqq_3.2.34-53644 -> 3.2.34.53644, QQ9.9.17.31219 -> 9.9.17.31219)
-    """
-    # 1. 优先匹配 4 段式 (点/短横杠/下划线连接的构架号)
+    """从真实文件名提炼基础版本号"""
     m4 = re.search(r"(\d+\.\d+\.\d+)[-._](\d{4,6})", filename)
     if m4:
         return f"{m4.group(1)}.{m4.group(2)}"
 
-    # 2. 匹配 3 段式 (如 9.3.70(16410) 或 9.3.70)
     m3 = re.search(r"(\d+\.\d+\.\d+(?:\(\d+\))?)", filename)
     if m3:
         return m3.group(1)
@@ -513,7 +613,6 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 下载
         proc = download_target_file(t["url"], TEMP_DL)
         if proc.returncode != 0:
             err_msg = (
@@ -539,7 +638,6 @@ def run_extraction_pipeline(tasks):
         fname = downloaded_file.name
         file_size_mb = downloaded_file.stat().st_size / 1024 / 1024
 
-        # 优先从文件名中提取标准版本号（例如 linuxqq_3.2.34-53644 -> 3.2.34.53644）
         real_version_from_file = extract_version_from_filename(fname)
         base_version = (
             real_version_from_file
@@ -552,7 +650,6 @@ def run_extraction_pipeline(tasks):
             flush=True,
         )
 
-        # 2. 解包
         if TEMP_EXTRACT.exists():
             shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
@@ -601,7 +698,6 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 提取 SubID 与权威 4 段式版本号
             subid, detected_platform, unified_version = (
                 extract_subid_and_version(
                     TEMP_EXTRACT, downloaded_file, base_version
