@@ -17,9 +17,90 @@ sys.stderr.reconfigure(line_buffering=True)
 
 CHANNEL_URL = "https://t.me/s/qq_updatelog"
 DATA_FILE = Path("data/qq_subid_map.json")
+BAK_FILE = Path("data/qq_subid_map.json.bak")
+MORE_FLAG = Path("data/.has_more")
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
+
 START_DATE = os.environ.get("START_DATE", "2025-01-01")
+# 单次最大运行分钟数（预留时间给 git 提交和清理）
+MAX_RUNTIME_MINUTES = int(os.environ.get("MAX_RUNTIME_MINUTES", "280"))
+
+
+def load_and_sanitize_database():
+    """读取已有数据，并自动清洗明显的异常残缺数据（自愈机制）"""
+    subid_map = {}
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    for f in [DATA_FILE, BAK_FILE]:
+        if f.exists():
+            try:
+                subid_map = json.loads(f.read_text(encoding="utf-8"))
+                break
+            except Exception as e:
+                print(
+                    f"[警告] 读取 {f.name} 失败 ({e})，尝试备用文件...", flush=True
+                )
+
+    if not subid_map:
+        return {}
+
+    cleaned_map = {}
+    purged_count = 0
+
+    # 遍历现有数据进行检查
+    for s_id, item in subid_map.items():
+        is_bad = False
+        ver = str(item.get("version", ""))
+        plat = str(item.get("platform", ""))
+
+        # 坏数据特征 1: 缺少版本、版本为 Unknown 或 SubID 非纯数字
+        if not s_id or not str(s_id).isdigit() or not ver or ver == "Unknown":
+            is_bad = True
+
+        # 坏数据特征 2: 版本中混入汉字
+        if re.search(r"[\u4e00-\u9fa5]", ver):
+            is_bad = True
+
+        # 坏数据特征 3: 包含十位以上的长数字（如 19 位小米推送 ID）
+        if re.search(r"\d{10,}", ver):
+            is_bad = True
+
+        # 坏数据特征 4: Android 平台版本号只有 3 段（缺少构建号）
+        if plat == "Android":
+            pure_v = ver.replace("-Beta", "").strip()
+            if not re.fullmatch(r"\d+\.\d+\.\d+\.\d{4,6}", pure_v):
+                is_bad = True
+
+        if is_bad:
+            purged_count += 1
+            print(
+                f"[自愈清理] 检测到残缺数据并自动移除重跑: SubID={s_id} | 错误版本={ver} | 来源={item.get('source_url')}",
+                flush=True,
+            )
+        else:
+            cleaned_map[s_id] = item
+
+    if purged_count > 0:
+        print(
+            f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条残缺数据，将自动加入本次队列重跑。\n",
+            flush=True,
+        )
+        save_database_atomically(cleaned_map)
+
+    return cleaned_map
+
+
+def save_database_atomically(data_map):
+    """原子写盘与备份，防止写入中断导致 JSON 文件损坏"""
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = DATA_FILE.with_suffix(".tmp")
+    json_str = json.dumps(data_map, indent=2, ensure_ascii=False)
+
+    temp_file.write_text(json_str, encoding="utf-8")
+    if DATA_FILE.exists():
+        shutil.copy2(DATA_FILE, BAK_FILE)
+    temp_file.replace(DATA_FILE)
 
 
 def get_history_messages(start_date_str):
@@ -114,7 +195,7 @@ def get_history_messages(start_date_str):
 
 
 def parse_backup_tasks(messages):
-    """提取下载任务清单（优先提取备份）"""
+    """提取任务清单，严格优先提取备份直链"""
     print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
     tasks = []
 
@@ -303,15 +384,10 @@ def get_aapt_cmd():
 def extract_subid_and_version(
     extract_dir, downloaded_file_path, fallback_ver="Unknown"
 ):
-    """
-    自适应提取 SubID 和统合版本号：
-    对 Android 完全脱钩外部文件名，直接从内部 aapt 解析出 versionName 和十六进制转十进制的 build_no。
-    """
+    """自适应提取 SubID 和统合版本号"""
     fname_str = str(downloaded_file_path).lower()
 
-    # ----------------------------------------------------
     # 1. Android 端处理 (APK)
-    # ----------------------------------------------------
     manifest_xml = extract_dir / "AndroidManifest.xml"
     if fname_str.endswith(".apk") or manifest_xml.exists():
         subid = None
@@ -341,39 +417,34 @@ def extract_subid_and_version(
         if dump_text:
             lines = dump_text.splitlines()
             for idx, line in enumerate(lines):
-                # 提取 APK 内部权威主版本号 (如 9.3.75, 9.3.70)
                 if "versionName" in line and not base_vname:
                     m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
                     if m_vn:
                         base_vname = m_vn.group(1).strip()
 
-                # 提取 SubID
                 if "AppSetting_params" in line and not subid:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-                    m_sub = re.search(r'([0-9]{9})#', ctx)
+                    m_sub = re.search(r"([0-9]{9})#", ctx)
                     if m_sub:
                         subid = m_sub.group(1)
 
-                # 提取 ANDROID_QQ_BUILD_NO
                 if "ANDROID_QQ_BUILD_NO" in line and not build_no:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
 
-                    # 核心突破：捕获 (type 0x10)0xa505，自动将十六进制 a505 转为十进制 42245！
+                    # 捕获十六进制机器码 (如 a505 -> 42245, 8c87 -> 35975)
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
                     if m_hex:
                         build_no = str(int(m_hex.group(1), 16))
 
-                    # 兼容普通十进制 (type 0x10)42245
                     if not build_no:
                         m_dec = re.search(r"\(type 0x10\)([0-9]+)", ctx)
                         if m_dec:
                             build_no = m_dec.group(1)
 
-                    # 兼容字符串形式 ="42245" 或 (Raw: "42245")
                     if not build_no:
                         m_str = re.search(
                             r'(?:Raw:\s*"|=")([0-9]+)"', ctx
@@ -381,17 +452,14 @@ def extract_subid_and_version(
                         if m_str:
                             build_no = m_str.group(1)
 
-        # 字节流兜底抽取 SubID
+        # 字节流兜底抽取
         if not subid and manifest_xml.exists():
             raw = manifest_xml.read_bytes()
             matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
             if matches_u8:
                 subid = matches_u8[0].decode("ascii")
 
-        # ----------------------------------------------------
-        # APK 内部统合：彻底不依赖外部文件名
-        # 内部主版本 (base_vname) + 内部 Build (build_no) -> 4 段式
-        # ----------------------------------------------------
+        # 内部主版本 + 内部构建号 -> 强制 4 段式
         if base_vname and build_no:
             clean_ver = f"{base_vname}.{build_no}"
         elif base_vname:
@@ -401,9 +469,7 @@ def extract_subid_and_version(
 
         return subid, "Android", clean_ver
 
-    # ----------------------------------------------------
     # 2. 桌面端处理 (Win / Linux / macOS)
-    # ----------------------------------------------------
     nodes = list(extract_dir.glob("**/major.node")) or list(
         extract_dir.glob("**/*.node")
     )
@@ -423,6 +489,7 @@ def extract_subid_and_version(
                 elif "opt" in path_str or "linux" in path_str:
                     plat = "Linux"
 
+                # 桌面端优先信赖已有的 4 段式版本号（来自文件名或标题）
                 clean_ver = fallback_ver
                 m_already_4parts = re.search(
                     r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver
@@ -435,9 +502,8 @@ def extract_subid_and_version(
                         v_str = (
                             f"{v_base.decode('ascii')}.{v_build.decode('ascii')}"
                         )
-                        if not v_str.startswith("8.9.28"):
-                            clean_ver = v_str
-                            break
+                        clean_ver = v_str
+                        break
 
                 return subid, plat, clean_ver
         except Exception:
@@ -460,21 +526,26 @@ def extract_version_from_filename(filename):
 
 
 def run_extraction_pipeline(tasks):
-    """循环下载、解包、提取并写入目标字典"""
+    """循环下载、解包、提取流水线（支持接力限时与自愈）"""
     print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...", flush=True)
 
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    subid_map = {}
-    if DATA_FILE.exists():
-        try:
-            subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            subid_map = {}
-
+    subid_map = load_and_sanitize_database()
     processed_urls = {item.get("source_url") for item in subid_map.values()}
     total_count = len(tasks)
 
+    start_loop_time = time.time()
+    interrupted_by_timeout = False
+
     for idx, t in enumerate(tasks, start=1):
+        elapsed_min = (time.time() - start_loop_time) / 60
+        if elapsed_min >= MAX_RUNTIME_MINUTES:
+            print(
+                f"\n[安全停机] 本次运行已达 {elapsed_min:.1f} 分钟，主动暂停并保存当前进度，准备触发下一次接力！",
+                flush=True,
+            )
+            interrupted_by_timeout = True
+            break
+
         if t["url"] in processed_urls:
             print(
                 f"[{idx}/{total_count}] [已存在跳过] {t['platform']} {t['arch']} ({t['version']})",
@@ -494,6 +565,7 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
+        # 1. 静默下载
         proc = download_target_file(t["url"], TEMP_DL)
         if proc.returncode != 0:
             err_msg = (
@@ -531,6 +603,7 @@ def run_extraction_pipeline(tasks):
             flush=True,
         )
 
+        # 2. 解包
         if TEMP_EXTRACT.exists():
             shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
@@ -607,10 +680,7 @@ def run_extraction_pipeline(tasks):
                     "date": t["date"],
                     "source_url": t["url"],
                 }
-                DATA_FILE.write_text(
-                    json.dumps(subid_map, indent=2, ensure_ascii=False),
-                    encoding="utf-8",
-                )
+                save_database_atomically(subid_map)
                 processed_urls.add(t["url"])
             else:
                 print("状态: [警告] 解包后未检测到 SubID 特征码", flush=True)
@@ -626,9 +696,21 @@ def run_extraction_pipeline(tasks):
 
         time.sleep(2)
 
+    remaining = [t for t in tasks if t["url"] not in processed_urls]
+    if remaining:
+        MORE_FLAG.write_text(f"remaining={len(remaining)}\n")
+        print(
+            f"\n[任务标记] 仍有 {len(remaining)} 个任务尚未处理完成，已写入接力标记。",
+            flush=True,
+        )
+    else:
+        if MORE_FLAG.exists():
+            MORE_FLAG.unlink()
+        print("\n[全部完成] 历史全量任务已全部处理完毕！", flush=True)
+
     print("\n" + "=" * 65, flush=True)
     print(
-        f"[全量任务结束] 已成功整理并持久化保存至 data/qq_subid_map.json",
+        f"[本批次结束] 已成功持久化保存至 data/qq_subid_map.json",
         flush=True,
     )
 
