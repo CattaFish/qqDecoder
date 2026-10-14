@@ -2,7 +2,6 @@ import json
 import os
 import re
 import shutil
-import struct
 import subprocess
 import sys
 import time
@@ -23,12 +22,11 @@ TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
 
 START_DATE = os.environ.get("START_DATE", "2025-01-01")
-# 单次最大运行分钟数（预留时间给 git 提交和清理）
 MAX_RUNTIME_MINUTES = int(os.environ.get("MAX_RUNTIME_MINUTES", "280"))
 
 
 def load_and_sanitize_database():
-    """读取已有数据，并自动清洗明显的异常残缺数据（自愈机制）"""
+    """读取已有数据，并自动清洗残缺数据（包含自动重跑未提取 Pad 的旧 Android 记录）"""
     subid_map = {}
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -48,11 +46,11 @@ def load_and_sanitize_database():
     cleaned_map = {}
     purged_count = 0
 
-    # 遍历现有数据进行检查
     for s_id, item in subid_map.items():
         is_bad = False
         ver = str(item.get("version", ""))
         plat = str(item.get("platform", ""))
+        arch = str(item.get("arch", ""))
 
         # 坏数据特征 1: 缺少版本、版本为 Unknown 或 SubID 非纯数字
         if not s_id or not str(s_id).isdigit() or not ver or ver == "Unknown":
@@ -66,16 +64,18 @@ def load_and_sanitize_database():
         if re.search(r"\d{10,}", ver):
             is_bad = True
 
-        # 坏数据特征 4: Android 平台版本号只有 3 段（缺少构建号）
+        # 坏数据特征 4: Android 平台版本号只有 3 段（缺少构建号）或旧的 Universal 未拆分架构
         if plat == "Android":
             pure_v = ver.replace("-Beta", "").strip()
             if not re.fullmatch(r"\d+\.\d+\.\d+\.\d{4,6}", pure_v):
+                is_bad = True
+            if arch == "Universal":  # 标记旧版未拆分 Phone/Pad 的记录，使其自动重跑补全
                 is_bad = True
 
         if is_bad:
             purged_count += 1
             print(
-                f"[自愈清理] 检测到残缺数据并自动移除重跑: SubID={s_id} | 错误版本={ver} | 来源={item.get('source_url')}",
+                f"[自愈清理] 检测到需升级或残缺数据，自动移除重跑: SubID={s_id} | 版本={ver} | 来源={item.get('source_url')}",
                 flush=True,
             )
         else:
@@ -83,7 +83,7 @@ def load_and_sanitize_database():
 
     if purged_count > 0:
         print(
-            f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条残缺数据，将自动加入本次队列重跑。\n",
+            f"[自愈完成] 历史数据体检完毕，已整理 {purged_count} 条数据进入重跑补全队列。\n",
             flush=True,
         )
         save_database_atomically(cleaned_map)
@@ -287,7 +287,7 @@ def parse_backup_tasks(messages):
                         tasks.append(
                             {
                                 "platform": "Android",
-                                "arch": "Universal",
+                                "arch": "Package",
                                 "version": android_ver or "Unknown",
                                 "date": date,
                                 "url": href,
@@ -303,7 +303,7 @@ def parse_backup_tasks(messages):
                     tasks.append(
                         {
                             "platform": "Android",
-                            "arch": "Universal",
+                            "arch": "Package",
                             "version": android_ver or "Unknown",
                             "date": date,
                             "url": href,
@@ -381,16 +381,24 @@ def get_aapt_cmd():
     return None
 
 
-def extract_subid_and_version(
-    extract_dir, downloaded_file_path, fallback_ver="Unknown"
+def extract_subids_and_version(
+    extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown"
 ):
-    """自适应提取 SubID 和统合版本号"""
+    """
+    自适应提取 SubID 列表和统合版本号：
+    - 对 Android：同时提取 Phone 与 Pad 的 SubID；
+    - 对 桌面端：提取对应的单 SubID。
+    返回值: ([(subid, arch), ...], detected_platform, unified_version)
+    """
     fname_str = str(downloaded_file_path).lower()
 
+    # ----------------------------------------------------
     # 1. Android 端处理 (APK)
+    # ----------------------------------------------------
     manifest_xml = extract_dir / "AndroidManifest.xml"
     if fname_str.endswith(".apk") or manifest_xml.exists():
-        subid = None
+        subid_phone = None
+        subid_pad = None
         base_vname = None
         build_no = None
 
@@ -417,25 +425,37 @@ def extract_subid_and_version(
         if dump_text:
             lines = dump_text.splitlines()
             for idx, line in enumerate(lines):
+                # 提取 APK 内部权威主版本号
                 if "versionName" in line and not base_vname:
                     m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
                     if m_vn:
                         base_vname = m_vn.group(1).strip()
 
-                if "AppSetting_params" in line and not subid:
+                # 提取手机版 SubID (AppSetting_params)
+                if "AppSetting_params" in line and not subid_phone:
+                    if "AppSetting_params_pad" not in line:
+                        ctx = "\n".join(
+                            lines[max(0, idx - 1) : min(len(lines), idx + 3)]
+                        )
+                        m_sub = re.search(r"([0-9]{9})#", ctx)
+                        if m_sub:
+                            subid_phone = m_sub.group(1)
+
+                # 提取平板版 SubID (AppSetting_params_pad)
+                if "AppSetting_params_pad" in line and not subid_pad:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
                     m_sub = re.search(r"([0-9]{9})#", ctx)
                     if m_sub:
-                        subid = m_sub.group(1)
+                        subid_pad = m_sub.group(1)
 
+                # 提取 ANDROID_QQ_BUILD_NO
                 if "ANDROID_QQ_BUILD_NO" in line and not build_no:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-
-                    # 捕获十六进制机器码 (如 a505 -> 42245, 8c87 -> 35975)
+                    # 十六进制转换: 0xa505 -> 42245, 0x8c87 -> 35975
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
                     if m_hex:
                         build_no = str(int(m_hex.group(1), 16))
@@ -452,14 +472,28 @@ def extract_subid_and_version(
                         if m_str:
                             build_no = m_str.group(1)
 
-        # 字节流兜底抽取
-        if not subid and manifest_xml.exists():
+        # 字节流兜底抽取双端 SubID
+        if manifest_xml.exists() and (not subid_phone or not subid_pad):
             raw = manifest_xml.read_bytes()
-            matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
-            if matches_u8:
-                subid = matches_u8[0].decode("ascii")
+            matches_u8 = [
+                m.decode("ascii")
+                for m in re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw)
+            ]
+            matches_u16 = [
+                m.replace(b"\x00", b"").decode("ascii")
+                for m in re.findall(
+                    rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00",
+                    raw,
+                )
+            ]
+            all_found = matches_u8 + matches_u16
+            if all_found:
+                if not subid_phone:
+                    subid_phone = all_found[0]
+                if len(all_found) >= 2 and not subid_pad:
+                    subid_pad = all_found[1]
 
-        # 内部主版本 + 内部构建号 -> 强制 4 段式
+        # 统合版本号
         if base_vname and build_no:
             clean_ver = f"{base_vname}.{build_no}"
         elif base_vname:
@@ -467,9 +501,17 @@ def extract_subid_and_version(
         else:
             clean_ver = fallback_ver
 
-        return subid, "Android", clean_ver
+        extracted_pairs = []
+        if subid_phone:
+            extracted_pairs.append((subid_phone, "Phone"))
+        if subid_pad:
+            extracted_pairs.append((subid_pad, "Pad"))
 
+        return extracted_pairs, "Android", clean_ver
+
+    # ----------------------------------------------------
     # 2. 桌面端处理 (Win / Linux / macOS)
+    # ----------------------------------------------------
     nodes = list(extract_dir.glob("**/major.node")) or list(
         extract_dir.glob("**/*.node")
     )
@@ -489,7 +531,6 @@ def extract_subid_and_version(
                 elif "opt" in path_str or "linux" in path_str:
                     plat = "Linux"
 
-                # 桌面端优先信赖已有的 4 段式版本号（来自文件名或标题）
                 clean_ver = fallback_ver
                 m_already_4parts = re.search(
                     r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver
@@ -505,11 +546,11 @@ def extract_subid_and_version(
                         clean_ver = v_str
                         break
 
-                return subid, plat, clean_ver
+                return [(subid, default_arch)], plat, clean_ver
         except Exception:
             pass
 
-    return None, "Unknown", fallback_ver
+    return [], "Unknown", fallback_ver
 
 
 def extract_version_from_filename(filename):
@@ -526,7 +567,7 @@ def extract_version_from_filename(filename):
 
 
 def run_extraction_pipeline(tasks):
-    """循环下载、解包、提取流水线（支持接力限时与自愈）"""
+    """循环下载、解包、提取流水线（支持双端 SubID、接力限时与自愈）"""
     print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...", flush=True)
 
     subid_map = load_and_sanitize_database()
@@ -534,16 +575,14 @@ def run_extraction_pipeline(tasks):
     total_count = len(tasks)
 
     start_loop_time = time.time()
-    interrupted_by_timeout = False
 
     for idx, t in enumerate(tasks, start=1):
         elapsed_min = (time.time() - start_loop_time) / 60
         if elapsed_min >= MAX_RUNTIME_MINUTES:
             print(
-                f"\n[安全停机] 本次运行已达 {elapsed_min:.1f} 分钟，主动暂停并保存当前进度，准备触发下一次接力！",
+                f"\n[安全停机] 本次运行已达 {elapsed_min:.1f} 分钟，主动暂停保存当前进度，准备触发下一次接力！",
                 flush=True,
             )
-            interrupted_by_timeout = True
             break
 
         if t["url"] in processed_urls:
@@ -565,7 +604,7 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 静默下载
+        # 1. 下载
         proc = download_target_file(t["url"], TEMP_DL)
         if proc.returncode != 0:
             err_msg = (
@@ -652,14 +691,14 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 提取 SubID 与权威版本
-            subid, detected_platform, unified_version = (
-                extract_subid_and_version(
-                    TEMP_EXTRACT, downloaded_file, base_version
+            # 3. 提取 SubID 与权威版本 (支持多条 SubID 返回)
+            subid_pairs, detected_platform, unified_version = (
+                extract_subids_and_version(
+                    TEMP_EXTRACT, downloaded_file, t["arch"], base_version
                 )
             )
 
-            if subid:
+            if subid_pairs:
                 final_platform = (
                     detected_platform
                     if t["platform"] == "Unknown"
@@ -669,17 +708,19 @@ def run_extraction_pipeline(tasks):
                 if t.get("is_beta") and not unified_version.endswith("-Beta"):
                     unified_version = f"{unified_version}-Beta"
 
-                print(
-                    f"[提取成功] 平台: {final_platform} | 统合版本: {unified_version} | SubID: {subid}",
-                    flush=True,
-                )
-                subid_map[subid] = {
-                    "version": unified_version,
-                    "platform": final_platform,
-                    "arch": t["arch"],
-                    "date": t["date"],
-                    "source_url": t["url"],
-                }
+                for subid_val, arch_val in subid_pairs:
+                    print(
+                        f"[提取成功] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | SubID: {subid_val}",
+                        flush=True,
+                    )
+                    subid_map[subid_val] = {
+                        "version": unified_version,
+                        "platform": final_platform,
+                        "arch": arch_val,
+                        "date": t["date"],
+                        "source_url": t["url"],
+                    }
+
                 save_database_atomically(subid_map)
                 processed_urls.add(t["url"])
             else:
