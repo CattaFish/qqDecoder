@@ -9,14 +9,19 @@ on:
         default: '2025-01-01'
         type: string
 
+# 并发控制：防止多个接力任务同时运行导致 Git 推送冲突
+concurrency:
+  group: crawl-qq-subids
+  cancel-in-progress: false
+
 permissions:
   contents: write
-  actions: write # 赋予自动触发下一次 Action 的接力权限
+  actions: write
 
 jobs:
   batch-extract:
     runs-on: ubuntu-latest
-    timeout-minutes: 360 # 最长运行 6 小时
+    timeout-minutes: 360
 
     steps:
       - name: 检出仓库代码
@@ -52,28 +57,34 @@ jobs:
       - name: 运行全量历史回溯与提取流水线
         env:
           START_DATE: ${{ inputs.start_date || '2025-01-01' }}
-          MAX_RUNTIME_MINUTES: "280" # 跑满 4.6 小时主动安全挂起，留时间提交
+          MAX_RUNTIME_MINUTES: "280"
           PYTHONUNBUFFERED: "1"
         run: |
           python scripts/build_subid_database.py
 
       - name: 提交更新后的数据字典到仓库
-        if: always() # 无论成功、取消还是意外中断，绝对执行提交！
+        if: always() # 无论正常结束还是中断，绝对执行提交
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          git pull --rebase origin main || true
+
+          # 1. 先把本地刚提取的新数据暂存并提交到本地分支
           git add data/
           if git diff --staged --quiet; then
             echo "[状态] 没有新数据生成，跳过提交。"
           else
             git commit -m "Auto-database: update QQ SubID mapping [skip ci]"
-            git push
+
+            # 2. 本地工作区已干净，此时安全拉取远程分支并进行变基合并
+            git pull --rebase origin main || (git rebase --abort && git merge origin/main -m "Merge remote" --strategy-option theirs) || true
+
+            # 3. 推送最新进度
+            git push origin main || (git pull --rebase origin main && git push origin main)
           fi
 
-          # 自动接力：如果发现上一批次没跑完，自动唤起下一次继续跑！
+          # 4. 自动接力：如果发现上一批次没跑完，自动唤起下一次继续跑
           if [ -f "data/.has_more" ]; then
             echo "[自动接力] 检测到仍有未完成任务，正在自动触发下一次任务继续断点续传..."
             gh workflow run "Crawl All QQ SubIDs (Since 2025)" || true
