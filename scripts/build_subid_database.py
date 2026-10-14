@@ -25,65 +25,69 @@ START_DATE = os.environ.get("START_DATE", "2025-01-01")
 MAX_RUNTIME_MINUTES = int(os.environ.get("MAX_RUNTIME_MINUTES", "280"))
 
 
+def is_bad_item(s_id, item):
+    """判断单个条目是否为异常坏数据"""
+    ver = str(item.get("version", ""))
+    plat = str(item.get("platform", ""))
+    arch = str(item.get("arch", ""))
+
+    if not s_id or not str(s_id).isdigit() or not ver or ver == "Unknown":
+        return True
+    if re.search(r"[\u4e00-\u9fa5]", ver):
+        return True
+    if re.search(r"\d{10,}", ver):
+        return True
+    if plat == "Android":
+        pure_v = ver.replace("-Beta", "").strip()
+        if not re.fullmatch(r"\d+\.\d+\.\d+\.\d{4,6}", pure_v):
+            return True
+        if arch == "Universal":
+            return True
+    return False
+
+
 def load_and_sanitize_database():
-    """读取已有数据，并自动清洗残缺数据（包含自动重跑未提取 Pad 的旧 Android 记录）"""
-    subid_map = {}
+    """读取已有数据，平滑升级为列表结构，并清理残缺数据"""
+    raw_map = {}
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
 
     for f in [DATA_FILE, BAK_FILE]:
         if f.exists():
             try:
-                subid_map = json.loads(f.read_text(encoding="utf-8"))
+                raw_map = json.loads(f.read_text(encoding="utf-8"))
                 break
             except Exception as e:
                 print(
                     f"[警告] 读取 {f.name} 失败 ({e})，尝试备用文件...", flush=True
                 )
 
-    if not subid_map:
+    if not raw_map:
         return {}
 
     cleaned_map = {}
     purged_count = 0
 
-    for s_id, item in subid_map.items():
-        is_bad = False
-        ver = str(item.get("version", ""))
-        plat = str(item.get("platform", ""))
-        arch = str(item.get("arch", ""))
+    for s_id, val in raw_map.items():
+        # 兼容平滑迁移：无论之前是单个 dict 还是 list，统一转换为 list
+        items = val if isinstance(val, list) else [val]
+        valid_items = []
 
-        # 坏数据特征 1: 缺少版本、版本为 Unknown 或 SubID 非纯数字
-        if not s_id or not str(s_id).isdigit() or not ver or ver == "Unknown":
-            is_bad = True
+        for item in items:
+            if is_bad_item(s_id, item):
+                purged_count += 1
+                print(
+                    f"[自愈清理] 移除残缺项: SubID={s_id} | 版本={item.get('version')} | 来源={item.get('source_url')}",
+                    flush=True,
+                )
+            else:
+                valid_items.append(item)
 
-        # 坏数据特征 2: 版本中混入汉字
-        if re.search(r"[\u4e00-\u9fa5]", ver):
-            is_bad = True
-
-        # 坏数据特征 3: 包含十位以上的长数字（如 19 位小米推送 ID）
-        if re.search(r"\d{10,}", ver):
-            is_bad = True
-
-        # 坏数据特征 4: Android 平台版本号只有 3 段（缺少构建号）或旧的 Universal 未拆分架构
-        if plat == "Android":
-            pure_v = ver.replace("-Beta", "").strip()
-            if not re.fullmatch(r"\d+\.\d+\.\d+\.\d{4,6}", pure_v):
-                is_bad = True
-            if arch == "Universal":  # 标记旧版未拆分 Phone/Pad 的记录，使其自动重跑补全
-                is_bad = True
-
-        if is_bad:
-            purged_count += 1
-            print(
-                f"[自愈清理] 检测到需升级或残缺数据，自动移除重跑: SubID={s_id} | 版本={ver} | 来源={item.get('source_url')}",
-                flush=True,
-            )
-        else:
-            cleaned_map[s_id] = item
+        if valid_items:
+            cleaned_map[s_id] = valid_items
 
     if purged_count > 0:
         print(
-            f"[自愈完成] 历史数据体检完毕，已整理 {purged_count} 条数据进入重跑补全队列。\n",
+            f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条残缺项进入重跑队列。\n",
             flush=True,
         )
         save_database_atomically(cleaned_map)
@@ -388,13 +392,10 @@ def extract_subids_and_version(
     自适应提取 SubID 列表和统合版本号：
     - 对 Android：同时提取 Phone 与 Pad 的 SubID；
     - 对 桌面端：提取对应的单 SubID。
-    返回值: ([(subid, arch), ...], detected_platform, unified_version)
     """
     fname_str = str(downloaded_file_path).lower()
 
-    # ----------------------------------------------------
     # 1. Android 端处理 (APK)
-    # ----------------------------------------------------
     manifest_xml = extract_dir / "AndroidManifest.xml"
     if fname_str.endswith(".apk") or manifest_xml.exists():
         subid_phone = None
@@ -425,13 +426,11 @@ def extract_subids_and_version(
         if dump_text:
             lines = dump_text.splitlines()
             for idx, line in enumerate(lines):
-                # 提取 APK 内部权威主版本号
                 if "versionName" in line and not base_vname:
                     m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
                     if m_vn:
                         base_vname = m_vn.group(1).strip()
 
-                # 提取手机版 SubID (AppSetting_params)
                 if "AppSetting_params" in line and not subid_phone:
                     if "AppSetting_params_pad" not in line:
                         ctx = "\n".join(
@@ -441,7 +440,6 @@ def extract_subids_and_version(
                         if m_sub:
                             subid_phone = m_sub.group(1)
 
-                # 提取平板版 SubID (AppSetting_params_pad)
                 if "AppSetting_params_pad" in line and not subid_pad:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
@@ -450,12 +448,10 @@ def extract_subids_and_version(
                     if m_sub:
                         subid_pad = m_sub.group(1)
 
-                # 提取 ANDROID_QQ_BUILD_NO
                 if "ANDROID_QQ_BUILD_NO" in line and not build_no:
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-                    # 十六进制转换: 0xa505 -> 42245, 0x8c87 -> 35975
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
                     if m_hex:
                         build_no = str(int(m_hex.group(1), 16))
@@ -493,7 +489,6 @@ def extract_subids_and_version(
                 if len(all_found) >= 2 and not subid_pad:
                     subid_pad = all_found[1]
 
-        # 统合版本号
         if base_vname and build_no:
             clean_ver = f"{base_vname}.{build_no}"
         elif base_vname:
@@ -509,9 +504,7 @@ def extract_subids_and_version(
 
         return extracted_pairs, "Android", clean_ver
 
-    # ----------------------------------------------------
     # 2. 桌面端处理 (Win / Linux / macOS)
-    # ----------------------------------------------------
     nodes = list(extract_dir.glob("**/major.node")) or list(
         extract_dir.glob("**/*.node")
     )
@@ -567,13 +560,21 @@ def extract_version_from_filename(filename):
 
 
 def run_extraction_pipeline(tasks):
-    """循环下载、解包、提取流水线（支持双端 SubID、接力限时与自愈）"""
+    """循环下载、解包、提取流水线（列表模式，杜绝覆盖与无限重复跑）"""
     print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...", flush=True)
 
     subid_map = load_and_sanitize_database()
-    processed_urls = {item.get("source_url") for item in subid_map.values()}
-    total_count = len(tasks)
 
+    # 核心修复：全面收集所有条目中的已处理链接（不管一个 SubID 下有几条记录，全部收录）
+    processed_urls = set()
+    for val in subid_map.values():
+        items = val if isinstance(val, list) else [val]
+        for it in items:
+            u = it.get("source_url")
+            if u:
+                processed_urls.add(u)
+
+    total_count = len(tasks)
     start_loop_time = time.time()
 
     for idx, t in enumerate(tasks, start=1):
@@ -691,7 +692,7 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 提取 SubID 与权威版本 (支持多条 SubID 返回)
+            # 3. 提取 SubID 与权威版本
             subid_pairs, detected_platform, unified_version = (
                 extract_subids_and_version(
                     TEMP_EXTRACT, downloaded_file, t["arch"], base_version
@@ -709,17 +710,35 @@ def run_extraction_pipeline(tasks):
                     unified_version = f"{unified_version}-Beta"
 
                 for subid_val, arch_val in subid_pairs:
-                    print(
-                        f"[提取成功] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | SubID: {subid_val}",
-                        flush=True,
-                    )
-                    subid_map[subid_val] = {
+                    new_item = {
                         "version": unified_version,
                         "platform": final_platform,
                         "arch": arch_val,
                         "date": t["date"],
                         "source_url": t["url"],
                     }
+
+                    # 核心改动：如果 SubID 已存在，追加进列表；如果不存在，初始化列表
+                    if subid_val not in subid_map:
+                        subid_map[subid_val] = [new_item]
+                        print(
+                            f"[提取成功] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | SubID: {subid_val}",
+                            flush=True,
+                        )
+                    else:
+                        if isinstance(subid_map[subid_val], dict):
+                            subid_map[subid_val] = [subid_map[subid_val]]
+
+                        # 防止完全相同的 URL 重复追加
+                        exist_urls = {
+                            x.get("source_url") for x in subid_map[subid_val]
+                        }
+                        if t["url"] not in exist_urls:
+                            subid_map[subid_val].append(new_item)
+                            print(
+                                f"[架构追加] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | SubID: {subid_val} (当前共关联 {len(subid_map[subid_val])} 项)",
+                                flush=True,
+                            )
 
                 save_database_atomically(subid_map)
                 processed_urls.add(t["url"])
