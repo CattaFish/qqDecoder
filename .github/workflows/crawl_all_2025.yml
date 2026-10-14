@@ -9,7 +9,6 @@ on:
         default: '2025-01-01'
         type: string
 
-# 并发控制：防止多个接力任务同时运行导致 Git 推送冲突
 concurrency:
   group: crawl-qq-subids
   cancel-in-progress: false
@@ -70,21 +69,42 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
 
-          # 1. 先把本地刚提取的新数据暂存并提交到本地分支
+          # 1. 暂存 data/ 目录中的所有有效成果
           git add data/
           if git diff --staged --quiet; then
             echo "[状态] 没有新数据生成，跳过提交。"
           else
             git commit -m "Auto-database: update QQ SubID mapping [skip ci]"
 
-            # 2. 本地工作区已干净，此时安全拉取远程分支并进行变基合并
-            git pull --rebase origin main || (git rebase --abort && git merge origin/main -m "Merge remote" --strategy-option theirs) || true
+            # 2. 核心修复：强制清除工作区除了已提交数据之外的所有临时杂质，确保工作区 100% 绝对纯净！
+            git checkout -- . 2>/dev/null || true
+            git clean -fd
 
-            # 3. 推送最新进度
-            git push origin main || (git pull --rebase origin main && git push origin main)
+            # 3. 循环重试拉取远程并推送（最多重试 5 次，彻底消除并发与远程领先冲突）
+            for i in {1..5}; do
+              echo "[同步] 正在尝试合并远程分支并推送 (尝试 $i/5)..."
+              git fetch origin main
+
+              # 优先使用变基，若有冲突则自动使用合并策略，以本地提取出的 data 数据为准
+              if git rebase origin/main 2>/dev/null; then
+                if git push origin main; then
+                  echo "[成功] 数据已通过变基成功推送到远程仓库！"
+                  break
+                fi
+              else
+                echo "[策略切换] 变基遇阻，自动切换为安全合并策略..."
+                git rebase --abort 2>/dev/null || true
+                git merge origin/main -m "Merge remote changes [skip ci]" --strategy-option ours || true
+                if git push origin main; then
+                  echo "[成功] 数据已通过合并策略成功推送到远程仓库！"
+                  break
+                fi
+              fi
+              sleep 3
+            done
           fi
 
-          # 4. 自动接力：如果发现上一批次没跑完，自动唤起下一次继续跑
+          # 4. 自动接力：如果发现仍有未跑完的任务，唤起下一次接力
           if [ -f "data/.has_more" ]; then
             echo "[自动接力] 检测到仍有未完成任务，正在自动触发下一次任务继续断点续传..."
             gh workflow run "Crawl All QQ SubIDs (Since 2025)" || true
