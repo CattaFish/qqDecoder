@@ -23,12 +23,11 @@ TEMP_EXTRACT = Path("temp_extracted")
 
 START_DATE = os.environ.get("START_DATE", "2025-01-01")
 MAX_RUNTIME_MINUTES = int(os.environ.get("MAX_RUNTIME_MINUTES", "280"))
-# 单个文件下载的最大硬性超时时间（秒），超时直接强杀跳过
-SINGLE_DOWNLOAD_TIMEOUT = 300
+SINGLE_DOWNLOAD_TIMEOUT = int(os.environ.get("SINGLE_DOWNLOAD_TIMEOUT", "600"))
 
 
 def is_bad_item(s_id, item):
-    """判断单个条目是否为异常坏数据"""
+    """判断单个条目是否为异常坏数据（兼容早期纯 3 段式，杜绝误伤）"""
     ver = str(item.get("version", ""))
     plat = str(item.get("platform", ""))
     arch = str(item.get("arch", ""))
@@ -39,12 +38,21 @@ def is_bad_item(s_id, item):
         return True
     if re.search(r"\d{10,}", ver):
         return True
+
+    # Android 规则修复：同时允许合法的 3 段式 (如 9.2.20) 和 4 段式 (如 9.3.70.35975)
     if plat == "Android":
         pure_v = ver.replace("-Beta", "").strip()
-        if not re.fullmatch(r"\d+\.\d+\.\d+\.\d{4,6}", pure_v):
+        if not re.fullmatch(r"\d+\.\d+\.\d+(?:\.\d{4,6})?", pure_v):
             return True
-        if arch == "Universal":
+        if arch == "Universal":  # 早期旧版未拆分 Phone/Pad 的存量依然标记重跑
             return True
+
+    # 桌面端基本规范
+    if plat in ("Windows", "macOS", "Linux"):
+        pure_v = ver.replace("-Beta", "").strip()
+        if not re.search(r"\d+\.\d+\.\d+", pure_v):
+            return True
+
     return False
 
 
@@ -332,7 +340,7 @@ def parse_backup_tasks(messages):
 
 
 def download_target_file(url, target_dir):
-    """带单文件硬性超时的静默下载（绝不无限期死锁卡住）"""
+    """带 600 秒 (10分钟) 硬超时的静默下载"""
     try:
         if "t.me/" in url:
             cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
@@ -340,8 +348,8 @@ def download_target_file(url, target_dir):
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,  # 绝不等待用户输入
-                timeout=SINGLE_DOWNLOAD_TIMEOUT,  # 5 分钟硬超时
+                stdin=subprocess.DEVNULL,
+                timeout=SINGLE_DOWNLOAD_TIMEOUT,
                 text=True,
             )
         else:
@@ -363,7 +371,7 @@ def download_target_file(url, target_dir):
                 "--connect-timeout",
                 "20",
                 "--max-time",
-                str(SINGLE_DOWNLOAD_TIMEOUT),  # 5 分钟硬超时
+                str(SINGLE_DOWNLOAD_TIMEOUT),
                 "-o",
                 str(out_file),
                 url,
@@ -471,7 +479,7 @@ def extract_subids_and_version(
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-                    # 十六进制转换 (如 0xa505 -> 42245, 0x8c87 -> 35975)
+                    # 十六进制转换: 0xa505 -> 42245, 0x8c87 -> 35975
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
                     if m_hex:
                         build_no = str(int(m_hex.group(1), 16))
@@ -509,12 +517,19 @@ def extract_subids_and_version(
                 if len(all_found) >= 2 and not subid_pad:
                     subid_pad = all_found[1]
 
-        if base_vname and build_no:
-            clean_ver = f"{base_vname}.{build_no}"
-        elif base_vname:
-            clean_ver = base_vname
+        # ----------------------------------------------------
+        # 版本号规范化：
+        # 1. 如果有内部 build_no，拼接成 4 段式 (如 9.3.70.35975)
+        # 2. 如果早期没有 build_no，规范提纯为纯 3 段式 (如 9.2.20，剔除带括号的 11650)
+        # ----------------------------------------------------
+        raw_v = base_vname or fallback_ver
+        m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
+        base_3parts = m_v3.group(1) if m_v3 else raw_v
+
+        if build_no:
+            clean_ver = f"{base_3parts}.{build_no}"
         else:
-            clean_ver = fallback_ver
+            clean_ver = base_3parts
 
         extracted_pairs = []
         if subid_phone:
@@ -624,7 +639,7 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 下载（包含 5 分钟单包超时熔断）
+        # 1. 下载（包含 10 分钟单包超时熔断）
         proc = download_target_file(t["url"], TEMP_DL)
         if proc is None or proc.returncode != 0:
             err_msg = ""
