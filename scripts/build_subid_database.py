@@ -14,6 +14,19 @@ import requests
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
+# -----------------------------------------------------------------
+# 人工应急修补通道（若日后发现某条历史数据异常，在此登记即可全自动修正）
+# -----------------------------------------------------------------
+# 1. 强制重跑列表：包含此特征 URL 的包启动时会自动从数据库抹除并重新下载分析
+FORCE_REPROCESS_PATTERNS = [
+    # 示例: "t.me/linqiqi_backup/1740",
+]
+
+# 2. 极端情况人工指定映射 (平台_架构_版本 -> 指定SubID)
+MANUAL_SUBID_OVERRIDES = {
+    # 示例: "Windows_X86_9.9.19.35469": "537291398",
+}
+
 CHANNEL_URL = "https://t.me/s/qq_updatelog"
 DATA_FILE = Path("data/qq_subid_map.json")
 BAK_FILE = Path("data/qq_subid_map.json.bak")
@@ -27,10 +40,16 @@ SINGLE_DOWNLOAD_TIMEOUT = int(os.environ.get("SINGLE_DOWNLOAD_TIMEOUT", "600"))
 
 
 def is_bad_item(s_id, item):
-    """判断单个条目是否为异常坏数据（兼容早期纯 3 段式，杜绝误伤）"""
+    """判断单个条目是否为异常坏数据"""
     ver = str(item.get("version", ""))
     plat = str(item.get("platform", ""))
     arch = str(item.get("arch", ""))
+    url = str(item.get("source_url", ""))
+
+    # 检查是否命中了人工强制重跑列表
+    for pat in FORCE_REPROCESS_PATTERNS:
+        if pat and pat in url:
+            return True
 
     if not s_id or not str(s_id).isdigit() or not ver or ver == "Unknown":
         return True
@@ -39,12 +58,12 @@ def is_bad_item(s_id, item):
     if re.search(r"\d{10,}", ver):
         return True
 
-    # Android 规则修复：同时允许合法的 3 段式 (如 9.2.20) 和 4 段式 (如 9.3.70.35975)
+    # Android 规则：兼容 3 段式与 4 段式
     if plat == "Android":
         pure_v = ver.replace("-Beta", "").strip()
         if not re.fullmatch(r"\d+\.\d+\.\d+(?:\.\d{4,6})?", pure_v):
             return True
-        if arch == "Universal":  # 早期旧版未拆分 Phone/Pad 的存量依然标记重跑
+        if arch == "Universal":
             return True
 
     # 桌面端基本规范
@@ -85,7 +104,7 @@ def load_and_sanitize_database():
             if is_bad_item(s_id, item):
                 purged_count += 1
                 print(
-                    f"[自愈清理] 移除残缺项: SubID={s_id} | 版本={item.get('version')} | 来源={item.get('source_url')}",
+                    f"[自愈清理] 移除残缺/重跑项: SubID={s_id} | 版本={item.get('version')} | 来源={item.get('source_url')}",
                     flush=True,
                 )
             else:
@@ -96,7 +115,7 @@ def load_and_sanitize_database():
 
     if purged_count > 0:
         print(
-            f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条残缺项进入重跑队列。\n",
+            f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条数据进入重跑队列。\n",
             flush=True,
         )
         save_database_atomically(cleaned_map)
@@ -105,7 +124,7 @@ def load_and_sanitize_database():
 
 
 def save_database_atomically(data_map):
-    """原子写盘与备份，防止写入中断导致 JSON 文件损坏"""
+    """原子写盘与备份"""
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
     json_str = json.dumps(data_map, indent=2, ensure_ascii=False)
@@ -422,7 +441,9 @@ def extract_subids_and_version(
     """自适应提取 SubID 列表和统合版本号"""
     fname_str = str(downloaded_file_path).lower()
 
+    # ----------------------------------------------------
     # 1. Android 端处理 (APK)
+    # ----------------------------------------------------
     manifest_xml = extract_dir / "AndroidManifest.xml"
     if fname_str.endswith(".apk") or manifest_xml.exists():
         subid_phone = None
@@ -479,7 +500,6 @@ def extract_subids_and_version(
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
-                    # 十六进制转换: 0xa505 -> 42245, 0x8c87 -> 35975
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
                     if m_hex:
                         build_no = str(int(m_hex.group(1), 16))
@@ -517,11 +537,7 @@ def extract_subids_and_version(
                 if len(all_found) >= 2 and not subid_pad:
                     subid_pad = all_found[1]
 
-        # ----------------------------------------------------
-        # 版本号规范化：
-        # 1. 如果有内部 build_no，拼接成 4 段式 (如 9.3.70.35975)
-        # 2. 如果早期没有 build_no，规范提纯为纯 3 段式 (如 9.2.20，剔除带括号的 11650)
-        # ----------------------------------------------------
+        # 规范化版本号
         raw_v = base_vname or fallback_ver
         m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
         base_3parts = m_v3.group(1) if m_v3 else raw_v
@@ -539,19 +555,64 @@ def extract_subids_and_version(
 
         return extracted_pairs, "Android", clean_ver
 
+    # ----------------------------------------------------
     # 2. 桌面端处理 (Win / Linux / macOS)
+    # ----------------------------------------------------
     nodes = list(extract_dir.glob("**/major.node")) or list(
         extract_dir.glob("**/*.node")
     )
-    pattern_subid = re.compile(rb"QQAppId/([0-9]+)")
+    pattern_subid_new = re.compile(rb"QQAppId/([0-9]+)")
     pattern_ver = re.compile(rb"QQ(?:EX)?/(\d+\.\d+\.\d+)[-\.](\d+)")
+
+    # 提取已知构建号作为交叉加固锁
+    m_cur_build = re.search(r"\d{4,6}$", fallback_ver)
+    cur_build_bytes = (
+        m_cur_build.group(0).encode("ascii") if m_cur_build else None
+    )
 
     for node in nodes:
         try:
             data = node.read_bytes()
-            m_id = pattern_subid.findall(data)
+            subid = None
+
+            # 策略 1 (新版本官方标准): 匹配 QQAppId/ 标识
+            m_id = pattern_subid_new.findall(data)
             if m_id:
                 subid = m_id[0].decode("ascii")
+            else:
+                # 策略 2 (老版本加固锁): 边界隔离 9 位数 + 空间伴生 fabu 校验 + 构建号验证
+                # 匹配前后为非数字的 537 开头 9 位数
+                pattern_candidate = re.compile(
+                    rb"(?<![0-9])(537[0-9]{6})(?![0-9])"
+                )
+                candidates = []
+
+                for match in pattern_candidate.finditer(data):
+                    cand_subid = match.group(1).decode("ascii")
+                    start_pos = match.start()
+                    end_pos = match.end()
+
+                    # 取前后 150 字节的物理上下文
+                    ctx_start = max(0, start_pos - 150)
+                    ctx_end = min(len(data), end_pos + 150)
+                    context = data[ctx_start:ctx_end]
+
+                    # 铁锁 1: 必须包含腾讯专有发布流水线签名 b"fabu"
+                    if b"fabu" not in context:
+                        continue
+
+                    # 加分项: 紧挨当前包的构建号
+                    score = 1
+                    if cur_build_bytes and cur_build_bytes in context:
+                        score += 2
+
+                    candidates.append((score, cand_subid))
+
+                if candidates:
+                    candidates.sort(key=lambda x: x[0], reverse=True)
+                    subid = candidates[0][1]
+
+            if subid:
                 path_str = str(node).lower()
                 plat = "Windows"
                 if ".app" in path_str or "macos" in path_str:
@@ -633,13 +694,41 @@ def run_extraction_pipeline(tasks):
             flush=True,
         )
         print(f"来源链接: {t['url']}", flush=True)
+
+        # 检查是否命中了人工指定字典
+        override_key = f"{t['platform']}_{t['arch']}_{t['version']}"
+        manual_override_subid = MANUAL_SUBID_OVERRIDES.get(override_key)
+        if manual_override_subid:
+            print(
+                f"[人工指定命中] 直接采纳人工预设 SubID: {manual_override_subid}",
+                flush=True,
+            )
+            new_item = {
+                "version": t["version"],
+                "platform": t["platform"],
+                "arch": t["arch"],
+                "date": t["date"],
+                "source_url": t["url"],
+            }
+            if manual_override_subid not in subid_map:
+                subid_map[manual_override_subid] = [new_item]
+            else:
+                if isinstance(subid_map[manual_override_subid], dict):
+                    subid_map[manual_override_subid] = [
+                        subid_map[manual_override_subid]
+                    ]
+                subid_map[manual_override_subid].append(new_item)
+            save_database_atomically(subid_map)
+            processed_urls.add(t["url"])
+            continue
+
         print("状态: 正在下载文件...", flush=True)
 
         if TEMP_DL.exists():
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 下载（包含 10 分钟单包超时熔断）
+        # 1. 下载
         proc = download_target_file(t["url"], TEMP_DL)
         if proc is None or proc.returncode != 0:
             err_msg = ""
