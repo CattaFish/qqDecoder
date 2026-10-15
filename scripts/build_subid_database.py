@@ -15,17 +15,17 @@ sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
 # -----------------------------------------------------------------
-# 人工应急修补通道（若日后发现某条历史数据异常，在此登记即可全自动修正）
+# 永久黑名单与跳过列表（确认卡死、损坏或无法拉取的备份链接）
 # -----------------------------------------------------------------
-# 1. 强制重跑列表：包含此特征 URL 的包启动时会自动从数据库抹除并重新下载分析
-FORCE_REPROCESS_PATTERNS = [
-    # 示例: "t.me/linqiqi_backup/1740",
+BLACKLIST_URLS = [
+    "https://t.me/linqiqi_backup/1972",
 ]
 
-# 2. 极端情况人工指定映射 (平台_架构_版本 -> 指定SubID)
-MANUAL_SUBID_OVERRIDES = {
-    # 示例: "Windows_X86_9.9.19.35469": "537291398",
-}
+# 人工强制重跑列表
+FORCE_REPROCESS_PATTERNS = []
+
+# 极端情况人工指定映射
+MANUAL_SUBID_OVERRIDES = {}
 
 CHANNEL_URL = "https://t.me/s/qq_updatelog"
 DATA_FILE = Path("data/qq_subid_map.json")
@@ -46,7 +46,6 @@ def is_bad_item(s_id, item):
     arch = str(item.get("arch", ""))
     url = str(item.get("source_url", ""))
 
-    # 检查是否命中了人工强制重跑列表
     for pat in FORCE_REPROCESS_PATTERNS:
         if pat and pat in url:
             return True
@@ -58,7 +57,6 @@ def is_bad_item(s_id, item):
     if re.search(r"\d{10,}", ver):
         return True
 
-    # Android 规则：兼容 3 段式与 4 段式
     if plat == "Android":
         pure_v = ver.replace("-Beta", "").strip()
         if not re.fullmatch(r"\d+\.\d+\.\d+(?:\.\d{4,6})?", pure_v):
@@ -66,7 +64,6 @@ def is_bad_item(s_id, item):
         if arch == "Universal":
             return True
 
-    # 桌面端基本规范
     if plat in ("Windows", "macOS", "Linux"):
         pure_v = ver.replace("-Beta", "").strip()
         if not re.search(r"\d+\.\d+\.\d+", pure_v):
@@ -227,7 +224,7 @@ def get_history_messages(start_date_str):
 
 
 def parse_backup_tasks(messages):
-    """提取任务清单，严格优先提取备份直链"""
+    """提取任务清单，严格优先提取备份直链并剔除黑名单"""
     print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
     tasks = []
 
@@ -292,6 +289,10 @@ def parse_backup_tasks(messages):
                         if "t.me/linqiqi_backup" not in href:
                             continue
 
+                        # 过滤硬编码黑名单
+                        if any(b in href for b in BLACKLIST_URLS):
+                            continue
+
                         version = "Unknown"
                         if current_platform == "Windows":
                             version = win_ver
@@ -316,6 +317,8 @@ def parse_backup_tasks(messages):
                 for a in soup.find_all("a", href=True):
                     href = a["href"].strip()
                     if "t.me/linqiqi_backup" in href:
+                        if any(b in href for b in BLACKLIST_URLS):
+                            continue
                         tasks.append(
                             {
                                 "platform": "Android",
@@ -332,6 +335,8 @@ def parse_backup_tasks(messages):
             for a in soup.find_all("a", href=True):
                 href = a["href"].strip()
                 if ".apk" in href or "android_apk" in href:
+                    if any(b in href for b in BLACKLIST_URLS):
+                        continue
                     tasks.append(
                         {
                             "platform": "Android",
@@ -441,9 +446,7 @@ def extract_subids_and_version(
     """自适应提取 SubID 列表和统合版本号"""
     fname_str = str(downloaded_file_path).lower()
 
-    # ----------------------------------------------------
     # 1. Android 端处理 (APK)
-    # ----------------------------------------------------
     manifest_xml = extract_dir / "AndroidManifest.xml"
     if fname_str.endswith(".apk") or manifest_xml.exists():
         subid_phone = None
@@ -555,16 +558,14 @@ def extract_subids_and_version(
 
         return extracted_pairs, "Android", clean_ver
 
-    # ----------------------------------------------------
     # 2. 桌面端处理 (Win / Linux / macOS)
-    # ----------------------------------------------------
     nodes = list(extract_dir.glob("**/major.node")) or list(
         extract_dir.glob("**/*.node")
     )
     pattern_subid_new = re.compile(rb"QQAppId/([0-9]+)")
     pattern_ver = re.compile(rb"QQ(?:EX)?/(\d+\.\d+\.\d+)[-\.](\d+)")
 
-    # 提取已知构建号作为交叉加固锁
+    # 提取已知构建号做交叉校验
     m_cur_build = re.search(r"\d{4,6}$", fallback_ver)
     cur_build_bytes = (
         m_cur_build.group(0).encode("ascii") if m_cur_build else None
@@ -575,13 +576,12 @@ def extract_subids_and_version(
             data = node.read_bytes()
             subid = None
 
-            # 策略 1 (新版本官方标准): 匹配 QQAppId/ 标识
+            # 策略 1: 匹配标准的 QQAppId/ 标识
             m_id = pattern_subid_new.findall(data)
             if m_id:
                 subid = m_id[0].decode("ascii")
             else:
-                # 策略 2 (老版本加固锁): 边界隔离 9 位数 + 空间伴生 fabu 校验 + 构建号验证
-                # 匹配前后为非数字的 537 开头 9 位数
+                # 策略 2: 边界隔离 9 位数 + 空间伴生 fabu 签名校验 + 构建号交叉验证
                 pattern_candidate = re.compile(
                     rb"(?<![0-9])(537[0-9]{6})(?![0-9])"
                 )
@@ -592,16 +592,13 @@ def extract_subids_and_version(
                     start_pos = match.start()
                     end_pos = match.end()
 
-                    # 取前后 150 字节的物理上下文
                     ctx_start = max(0, start_pos - 150)
                     ctx_end = min(len(data), end_pos + 150)
                     context = data[ctx_start:ctx_end]
 
-                    # 铁锁 1: 必须包含腾讯专有发布流水线签名 b"fabu"
                     if b"fabu" not in context:
                         continue
 
-                    # 加分项: 紧挨当前包的构建号
                     score = 1
                     if cur_build_bytes and cur_build_bytes in context:
                         score += 2
@@ -681,6 +678,15 @@ def run_extraction_pipeline(tasks):
             )
             break
 
+        # 检查是否为永久黑名单
+        if any(bad in t["url"] for bad in BLACKLIST_URLS):
+            print(
+                f"[{idx}/{total_count}] [黑名单跳过] 永久跳过已知损坏备份: {t['url']}",
+                flush=True,
+            )
+            processed_urls.add(t["url"])
+            continue
+
         if t["url"] in processed_urls:
             print(
                 f"[{idx}/{total_count}] [已存在跳过] {t['platform']} {t['arch']} ({t['version']})",
@@ -695,7 +701,6 @@ def run_extraction_pipeline(tasks):
         )
         print(f"来源链接: {t['url']}", flush=True)
 
-        # 检查是否命中了人工指定字典
         override_key = f"{t['platform']}_{t['arch']}_{t['version']}"
         manual_override_subid = MANUAL_SUBID_OVERRIDES.get(override_key)
         if manual_override_subid:
