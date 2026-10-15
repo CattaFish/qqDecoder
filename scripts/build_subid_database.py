@@ -593,8 +593,8 @@ def extract_subids_and_version(
                     start_pos = match.start()
                     end_pos = match.end()
 
-                    ctx_start = max(0, start_pos - 150)
-                    ctx_end = min(len(data), end_pos + 150)
+                    ctx_start = max(0, start_pos - 500)
+                    ctx_end = min(len(data), end_pos + 500)
                     context = data[ctx_start:ctx_end]
 
                     if b"fabu" not in context:
