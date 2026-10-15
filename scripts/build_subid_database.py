@@ -19,6 +19,7 @@ sys.stderr.reconfigure(line_buffering=True)
 # -----------------------------------------------------------------
 BLACKLIST_URLS = [
     "https://t.me/linqiqi_backup/1972",
+    "https://t.me/linqiqi_backup/1917",
 ]
 
 # 人工强制重跑列表
