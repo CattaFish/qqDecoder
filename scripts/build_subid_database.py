@@ -23,6 +23,8 @@ TEMP_EXTRACT = Path("temp_extracted")
 
 START_DATE = os.environ.get("START_DATE", "2025-01-01")
 MAX_RUNTIME_MINUTES = int(os.environ.get("MAX_RUNTIME_MINUTES", "280"))
+# 单个文件下载的最大硬性超时时间（秒），超时直接强杀跳过
+SINGLE_DOWNLOAD_TIMEOUT = 300
 
 
 def is_bad_item(s_id, item):
@@ -68,7 +70,6 @@ def load_and_sanitize_database():
     purged_count = 0
 
     for s_id, val in raw_map.items():
-        # 兼容平滑迁移：无论之前是单个 dict 还是 list，统一转换为 list
         items = val if isinstance(val, list) else [val]
         valid_items = []
 
@@ -331,37 +332,59 @@ def parse_backup_tasks(messages):
 
 
 def download_target_file(url, target_dir):
-    """静默下载"""
-    if "t.me/" in url:
-        cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
-        return subprocess.run(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
+    """带单文件硬性超时的静默下载（绝不无限期死锁卡住）"""
+    try:
+        if "t.me/" in url:
+            cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
+            return subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL,  # 绝不等待用户输入
+                timeout=SINGLE_DOWNLOAD_TIMEOUT,  # 5 分钟硬超时
+                text=True,
+            )
+        else:
+            fname = url.split("?")[0].split("/")[-1] or "installer_file"
+            out_file = target_dir / fname
+            cmd = [
+                "curl",
+                "-fL",
+                "-s",
+                "-S",
+                "--no-progress-meter",
+                "-A",
+                (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                    " AppleWebKit/537.36"
+                ),
+                "--retry",
+                "2",
+                "--connect-timeout",
+                "20",
+                "--max-time",
+                str(SINGLE_DOWNLOAD_TIMEOUT),  # 5 分钟硬超时
+                "-o",
+                str(out_file),
+                url,
+            ]
+            return subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL,
+                timeout=SINGLE_DOWNLOAD_TIMEOUT,
+                text=True,
+            )
+    except subprocess.TimeoutExpired:
+        print(
+            f"\n[超时熔断] 单文件下载超过 {SINGLE_DOWNLOAD_TIMEOUT} 秒，强行跳过此任务！",
+            flush=True,
         )
-    else:
-        fname = url.split("?")[0].split("/")[-1] or "installer_file"
-        out_file = target_dir / fname
-        cmd = [
-            "curl",
-            "-fL",
-            "-s",
-            "-S",
-            "--no-progress-meter",
-            "-A",
-            (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-                " AppleWebKit/537.36"
-            ),
-            "--retry",
-            "2",
-            "--connect-timeout",
-            "20",
-            "-o",
-            str(out_file),
-            url,
-        ]
-        return subprocess.run(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
-        )
+        return None
+    except Exception as e:
+        print(f"\n[下载抛出异常] {e}", flush=True)
+        return None
 
 
 def get_aapt_cmd():
@@ -388,11 +411,7 @@ def get_aapt_cmd():
 def extract_subids_and_version(
     extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown"
 ):
-    """
-    自适应提取 SubID 列表和统合版本号：
-    - 对 Android：同时提取 Phone 与 Pad 的 SubID；
-    - 对 桌面端：提取对应的单 SubID。
-    """
+    """自适应提取 SubID 列表和统合版本号"""
     fname_str = str(downloaded_file_path).lower()
 
     # 1. Android 端处理 (APK)
@@ -452,6 +471,7 @@ def extract_subids_and_version(
                     ctx = "\n".join(
                         lines[max(0, idx - 1) : min(len(lines), idx + 3)]
                     )
+                    # 十六进制转换 (如 0xa505 -> 42245, 0x8c87 -> 35975)
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
                     if m_hex:
                         build_no = str(int(m_hex.group(1), 16))
@@ -560,12 +580,11 @@ def extract_version_from_filename(filename):
 
 
 def run_extraction_pipeline(tasks):
-    """循环下载、解包、提取流水线（列表模式，杜绝覆盖与无限重复跑）"""
+    """循环下载、解包、提取流水线"""
     print("[阶段 3] 开始执行批量下载与 SubID 提取流水线...", flush=True)
 
     subid_map = load_and_sanitize_database()
 
-    # 核心修复：全面收集所有条目中的已处理链接（不管一个 SubID 下有几条记录，全部收录）
     processed_urls = set()
     for val in subid_map.values():
         items = val if isinstance(val, list) else [val]
@@ -605,13 +624,13 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 下载
+        # 1. 下载（包含 5 分钟单包超时熔断）
         proc = download_target_file(t["url"], TEMP_DL)
-        if proc.returncode != 0:
-            err_msg = (
-                proc.stderr.strip()[:80] if proc.stderr else "下载退出码非零"
-            )
-            print(f"状态: [下载失败，已跳过] 原因: {err_msg}", flush=True)
+        if proc is None or proc.returncode != 0:
+            err_msg = ""
+            if proc and proc.stderr:
+                err_msg = proc.stderr.strip()[:80]
+            print(f"状态: [下载失败或超时，已跳过] {err_msg}", flush=True)
             if TEMP_DL.exists():
                 shutil.rmtree(TEMP_DL)
             continue
@@ -718,7 +737,6 @@ def run_extraction_pipeline(tasks):
                         "source_url": t["url"],
                     }
 
-                    # 核心改动：如果 SubID 已存在，追加进列表；如果不存在，初始化列表
                     if subid_val not in subid_map:
                         subid_map[subid_val] = [new_item]
                         print(
@@ -729,7 +747,6 @@ def run_extraction_pipeline(tasks):
                         if isinstance(subid_map[subid_val], dict):
                             subid_map[subid_val] = [subid_map[subid_val]]
 
-                        # 防止完全相同的 URL 重复追加
                         exist_urls = {
                             x.get("source_url") for x in subid_map[subid_val]
                         }
