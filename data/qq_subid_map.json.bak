@@ -2370,6 +2370,13 @@
       "arch": "DEB",
       "date": "2025-09-02",
       "source_url": "https://t.me/linqiqi_backup/1988?single"
+    },
+    {
+      "version": "3.2.19.39038",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1990?single"
     }
   ],
   "537313944": [
@@ -2955,24 +2962,6 @@
       "arch": "Pad",
       "date": "2025-09-24",
       "source_url": "https://t.me/linqiqi_backup/2011"
-    }
-  ],
-  "537312176": [
-    {
-      "version": "9.2.15",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2025-09-10",
-      "source_url": "https://t.me/linqiqi_backup/2001"
-    }
-  ],
-  "537312215": [
-    {
-      "version": "9.2.15",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2025-09-10",
-      "source_url": "https://t.me/linqiqi_backup/2001"
     }
   ]
 }
