@@ -67,12 +67,15 @@ jobs:
           git push origin main
 
       # ==========================================
-      # 联动步骤：仅当发现 Android 更新时，唤起 decompile.yml
+      # 联动步骤：检测到 Android 更新时唤起 decompile.yml 并投喂参数
       # ==========================================
       - name: 自动唤起 Android 反编译与 Diff 工作流
         if: steps.monitor_step.outputs.trigger_decompile == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "[联动触发] 检测到 Android 新版发布，唤醒 Auto Decompile & Twinflame DEX Diff QQ APK 工作流..."
-          gh workflow run "Auto Decompile & Twinflame DEX Diff QQ APK"
+          echo "[联动触发] 检测到 Android 新版发布，唤醒 decompile 工作流并传递 APK 链接..."
+          gh workflow run "Auto Decompile & Twinflame DEX Diff QQ APK" \
+            -f apk_url="${{ steps.monitor_step.outputs.android_apk_url }}" \
+            -f version_short="${{ steps.monitor_step.outputs.android_version }}" \
+            -f is_beta="${{ steps.monitor_step.outputs.android_is_beta }}"
