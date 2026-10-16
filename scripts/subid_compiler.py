@@ -2,6 +2,7 @@
 """
 SubID 结构化运行时字典编译器 (方案 A 规范)
 供 daily_monitor.py 与 build_subid_database.py 自动调用
+summary 保持原始规范，独立透传保留 channel 等新增键
 """
 
 REAL_HW_ARCHES = {
@@ -15,6 +16,8 @@ REAL_HW_ARCHES = {
 }
 
 PACKAGE_FORMATS = {"rpm", "deb", "appimage", "dmg", "pkg", "apk"}
+STANDARD_RAW_KEYS = {"platform", "arch", "version", "date", "source_url"}
+
 
 def build_single_entry(subid: str, items: list) -> dict:
     if not items:
@@ -46,6 +49,7 @@ def build_single_entry(subid: str, items: list) -> dict:
     ver_str = " / ".join(versions) if versions else "未知版本"
     plat_low = platform.lower()
 
+    # 保持原版 summary 前缀逻辑，不做任何改动
     if "win" in plat_low:
         prefix = f"QQ(Win-{arch_display})" if arch_display else "QQ(Win)"
     elif "mac" in plat_low:
@@ -82,7 +86,22 @@ def build_single_entry(subid: str, items: list) -> dict:
         if len(dates) > 1:
             entry["dates"] = dates
 
+    # -------------------------------------------------------------
+    # 仅在此处保留新增键（例如 channel / 渠道 等扩展键）
+    # -------------------------------------------------------------
+    all_extra_keys = set()
+    for it in items:
+        all_extra_keys.update(k for k in it.keys() if k not in STANDARD_RAW_KEYS)
+
+    for k in sorted(all_extra_keys):
+        vals = list(dict.fromkeys(str(it[k]).strip() for it in items if it.get(k)))
+        if vals:
+            entry[k] = " / ".join(vals)
+            if len(vals) > 1:
+                entry[f"{k}s"] = vals
+
     return entry
+
 
 def compile_subid_map_to_runtime_dict(raw_map: dict) -> dict:
     runtime_dict = {}
