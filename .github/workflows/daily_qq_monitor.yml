@@ -1,0 +1,78 @@
+name: Daily QQ Monitor & SubID Sync
+
+on:
+  schedule:
+    # 每天北京时间早上 8:00 (UTC 0:00) 自动执行检测
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: qq-subid-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装底层解包工具与系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full rpm2cpio cpio curl aapt
+
+      - name: 安装 Python 网页解析依赖
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: 安装官方 tdl 客户端
+        run: |
+          curl -sSL https://docs.iyear.me/tdl/install.sh | sudo bash
+          tdl version
+
+      - name: 恢复 Telegram 登录会话
+        run: |
+          echo "${{ secrets.TDL_SESSION_BASE64 }}" | base64 -d > backup.zip
+          tdl recover -f backup.zip
+          rm backup.zip
+
+      - name: 运行每日增量监听与 SubID 追加
+        id: monitor_step
+        run: |
+          python scripts/daily_monitor.py
+
+      - name: 提交更新后的数据字典到仓库
+        if: steps.monitor_step.outputs.has_new_version == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add data/
+          git commit -m "Auto-database: append new release SubID mapping [skip ci]"
+          git checkout -- . 2>/dev/null || true
+          git clean -fd
+          git pull --rebase origin main || true
+          git push origin main
+
+      # ==========================================
+      # 联动步骤：仅当发现 Android 更新时，唤起 decompile.yml
+      # ==========================================
+      - name: 自动唤起 Android 反编译与 Diff 工作流
+        if: steps.monitor_step.outputs.trigger_decompile == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "[联动触发] 检测到 Android 新版发布，唤醒 Auto Decompile & Twinflame DEX Diff QQ APK 工作流..."
+          gh workflow run "Auto Decompile & Twinflame DEX Diff QQ APK"
