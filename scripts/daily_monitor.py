@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from subid_compiler import compile_subid_map_to_runtime_dict
 import json
 import os
 import re
@@ -519,7 +523,7 @@ def main():
             shutil.rmtree(TEMP_DL, ignore_errors=True)
             shutil.rmtree(TEMP_EXTRACT, ignore_errors=True)
 
-    # 原子保存
+    # 原子保存原始数据库
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
     temp_file.write_text(
@@ -528,6 +532,17 @@ def main():
     if DATA_FILE.exists():
         shutil.copy2(DATA_FILE, BAK_FILE)
     temp_file.replace(DATA_FILE)
+
+    # 同步派生编译出运行时字典 data/subid.json (方案 A)
+    try:
+        compiled_data = compile_subid_map_to_runtime_dict(subid_map)
+        runtime_file = DATA_FILE.parent / "subid.json"
+        temp_rt = runtime_file.with_suffix(".tmp")
+        temp_rt.write_text(json.dumps(compiled_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp_rt.replace(runtime_file)
+        print(f"[运行时同步] 已派生编译 data/subid.json (收录 {len(compiled_data)} 条)")
+    except Exception as e:
+        print(f"[警告] 编译运行时字典异常: {e}")
 
     print("\n[更新完毕] 新版本数据已追加写入 data/qq_subid_map.json")
 
