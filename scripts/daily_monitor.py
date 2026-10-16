@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import time
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import requests
 
@@ -66,22 +67,21 @@ def get_wandoujia_info():
             a_text = a.get_text().strip()
             if "普通下载" in a_text:
                 download_url = a.get("href") or a.get("data-download") or a.get("data-url")
-                if download_url and download_url.startswith("//"):
-                    download_url = "https:" + download_url
                 break
 
-        # 兜底：如果文本不完全是“普通下载”，正则匹配含普通下载字样的链接
+        # 兜底：若未精确匹配，按文本包含“普通下载”查找
         if not download_url:
             for a in soup.find_all("a", href=True):
                 if "普通下载" in a.get_text():
                     download_url = a["href"]
-                    if download_url.startswith("//"):
-                        download_url = "https:" + download_url
                     break
 
         if not version or not download_url:
             print(f"[豌豆荚] 解析异常: 版本={version}, 下载URL={download_url}")
             return None
+
+        # 核心补全：将相对路径 (/app/dl/...) 转换为完整可下载的绝对 URL
+        download_url = urljoin(WANDOUJIA_URL, download_url.strip())
 
         return {
             "version": version,
@@ -98,7 +98,7 @@ def get_wandoujia_info():
 # 2. Telegram 频道解析模块 (原有逻辑)
 # =====================================================================
 def get_latest_message():
-    """获取 TG 频道的最新一条有效更新消息"""
+    """获取频道的最新一条有效更新消息"""
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -133,7 +133,7 @@ def get_latest_message():
 
 
 def parse_tasks_from_message(msg):
-    """解析 TG 消息包含的所有架构直链"""
+    """解析该消息包含的所有架构直链，优先备份"""
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
@@ -240,7 +240,7 @@ def parse_tasks_from_message(msg):
 
 
 # =====================================================================
-# 3. 工具与提取函数
+# 3. 底层下载与反编译抽取工具
 # =====================================================================
 def download_target_file(url, target_dir):
     try:
@@ -270,6 +270,8 @@ def download_target_file(url, target_dir):
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
                     " AppleWebKit/537.36"
                 ),
+                "-e",
+                "https://wap.pp.cn/",
                 "--retry",
                 "2",
                 "--connect-timeout",
@@ -638,7 +640,6 @@ def main():
                 if t.get("mark_wdj_version"):
                     wdj_new_ver_to_record = t["mark_wdj_version"]
 
-                # 仅对官方 Android 触发反编译 Diff，避免第三方二次打包 APK 污染基准
                 if plat == "Android" and t.get("channel") != "豌豆荚":
                     has_android = True
                     android_info = {
