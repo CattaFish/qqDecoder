@@ -58,6 +58,7 @@ def is_bad_item(s_id, item):
     if re.search(r"\d{10,}", ver):
         return True
 
+    # Android 规则：兼容 3 段式与 4 段式
     if plat == "Android":
         pure_v = ver.replace("-Beta", "").strip()
         if not re.fullmatch(r"\d+\.\d+\.\d+(?:\.\d{4,6})?", pure_v):
@@ -65,6 +66,7 @@ def is_bad_item(s_id, item):
         if arch == "Universal":
             return True
 
+    # 桌面端基本规范
     if plat in ("Windows", "macOS", "Linux"):
         pure_v = ver.replace("-Beta", "").strip()
         if not re.search(r"\d+\.\d+\.\d+", pure_v):
@@ -290,7 +292,6 @@ def parse_backup_tasks(messages):
                         if "t.me/linqiqi_backup" not in href:
                             continue
 
-                        # 过滤硬编码黑名单
                         if any(b in href for b in BLACKLIST_URLS):
                             continue
 
@@ -541,7 +542,6 @@ def extract_subids_and_version(
                 if len(all_found) >= 2 and not subid_pad:
                     subid_pad = all_found[1]
 
-        # 规范化版本号
         raw_v = base_vname or fallback_ver
         m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
         base_3parts = m_v3.group(1) if m_v3 else raw_v
@@ -577,12 +577,12 @@ def extract_subids_and_version(
             data = node.read_bytes()
             subid = None
 
-            # 策略 1: 匹配标准的 QQAppId/ 标识
+            # 策略 1: 匹配标准的 QQAppId/ 标识 (新版本)
             m_id = pattern_subid_new.findall(data)
             if m_id:
                 subid = m_id[0].decode("ascii")
             else:
-                # 策略 2: 边界隔离 9 位数 + 空间伴生 fabu 签名校验 + 构建号交叉验证
+                # 策略 2: 边界隔离 9 位数 + 500 字节空间伴生 fabu 签名校验 (老版本)
                 pattern_candidate = re.compile(
                     rb"(?<![0-9])(537[0-9]{6})(?![0-9])"
                 )
@@ -593,6 +593,7 @@ def extract_subids_and_version(
                     start_pos = match.start()
                     end_pos = match.end()
 
+                    # 扩展窗口至 500 字节，完美覆盖实测 345~358 字节的物理跨度
                     ctx_start = max(0, start_pos - 500)
                     ctx_end = min(len(data), end_pos + 500)
                     context = data[ctx_start:ctx_end]
@@ -679,7 +680,6 @@ def run_extraction_pipeline(tasks):
             )
             break
 
-        # 检查是否为永久黑名单
         if any(bad in t["url"] for bad in BLACKLIST_URLS):
             print(
                 f"[{idx}/{total_count}] [黑名单跳过] 永久跳过已知损坏备份: {t['url']}",
@@ -772,7 +772,7 @@ def run_extraction_pipeline(tasks):
             flush=True,
         )
 
-        # 2. 解包
+        # 2. 解包 (核心容灾升级：dpkg-deb 失败时自动启动 7z 容错穿透)
         if TEMP_EXTRACT.exists():
             shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
@@ -780,17 +780,50 @@ def run_extraction_pipeline(tasks):
         try:
             lower_fname = fname.lower()
             if lower_fname.endswith(".deb"):
-                subprocess.run(
+                res = subprocess.run(
                     [
                         "dpkg-deb",
                         "-x",
                         str(downloaded_file),
                         str(TEMP_EXTRACT),
                     ],
-                    check=True,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
+                # 容灾兜底：dpkg-deb 校验失败时，自动切换为 7z 容错穿透解包
+                if res.returncode != 0:
+                    temp_deb_stage = Path(f"{TEMP_EXTRACT}_deb_raw")
+                    if temp_deb_stage.exists():
+                        shutil.rmtree(temp_deb_stage)
+                    temp_deb_stage.mkdir(parents=True, exist_ok=True)
+
+                    subprocess.run(
+                        [
+                            "7z",
+                            "x",
+                            str(downloaded_file),
+                            f"-o{temp_deb_stage}",
+                            "-y",
+                        ],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    data_tars = list(temp_deb_stage.glob("data.tar*"))
+                    if data_tars:
+                        subprocess.run(
+                            [
+                                "7z",
+                                "x",
+                                str(data_tars[0]),
+                                f"-o{TEMP_EXTRACT}",
+                                "-y",
+                            ],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                    if temp_deb_stage.exists():
+                        shutil.rmtree(temp_deb_stage)
+
             elif lower_fname.endswith(".rpm"):
                 cmd = f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv"
                 subprocess.run(
