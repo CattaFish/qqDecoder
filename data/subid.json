@@ -1,10 +1,23 @@
 {
+  "537395488": {
+    "summary": "QQ(Pad) 9.3.70.41925",
+    "platform": "Android",
+    "version": "9.3.70.41925",
+    "arch": "Pad",
+    "date": "2026-09-29"
+  },
   "537395477": {
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
     "arch": "Pad",
     "date": "2026-09-24"
+  },
+  "537395449": {
+    "summary": "QQ 9.3.70.41925",
+    "platform": "Android",
+    "version": "9.3.70.41925",
+    "date": "2026-09-29"
   },
   "537395438": {
     "summary": "QQ 9.3.70.41925",
