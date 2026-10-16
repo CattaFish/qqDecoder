@@ -1,42 +1,105 @@
-name: Universal Extract QQAppId
+name: Universal Extract QQAppId & Auto Record
 
 on:
   workflow_dispatch:
     inputs:
       download_url:
-        description: '请输入 QQ 安装包直链（支持 .exe / .deb / .AppImage / .dmg / .rpm / .apk）'
+        description: '【必填】QQ 安装包下载直链 (支持 .apk / .exe / .dmg / .deb / .AppImage / .rpm)'
         required: true
         type: string
-        default: 'https://dldir1.qq.com/qqfile/qq/QQNT/mac/QQ_6.9.86_42941.dmg'
+        default: 'https://wap.pp.cn/app/dl/fs08/2026/09/29/8/110_7f1c36fc2af6b3dd952c277aa39739ef.apk'
+      version:
+        description: '【必填】安装包版本号 (例如 9.3.70 或 6.9.86.42941)'
+        required: true
+        type: string
+        default: '9.3.70'
+      platform:
+        description: '【选填】指定操作系统平台 (留空或 Auto 则智能自动识别)'
+        required: false
+        type: choice
+        default: 'Auto'
+        options:
+          - 'Auto'
+          - 'Android'
+          - 'Windows'
+          - 'macOS'
+          - 'Linux'
+      arch:
+        description: '【选填】指定系统架构 (例如 x64 / arm64 / Phone / Pad，留空自动推断)'
+        required: false
+        type: string
+        default: ''
+      channel:
+        description: '【选填】指定分发渠道 (默认: 官方，可填写如: 豌豆荚 / 华为 / 酷安)'
+        required: false
+        type: string
+        default: '官方'
+      date:
+        description: '【选填】发布构建日期 (格式 YYYY-MM-DD，留空则自动取当天日期)'
+        required: false
+        type: string
+        default: ''
+      is_beta:
+        description: '【选填】是否标记为测试版 (#Beta)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: qq-subid-manual-extract
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
 
 jobs:
-  extract:
+  extract-and-record:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. 下载安装包
+      - name: 1. 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 2. 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 3. 安装解包工具链与依赖
         run: |
-          echo "正在下载: ${{ inputs.download_url }}"
-          curl -fL -o package_file "${{ inputs.download_url }}"
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full rpm2cpio cpio curl aapt
+
+      - name: 4. 下载目标安装包
+        run: |
+          echo "正在下载安装包: ${{ inputs.download_url }}"
+          curl -fL \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            -e "https://wap.pp.cn/" \
+            --retry 3 \
+            --connect-timeout 20 \
+            -o package_file \
+            "${{ inputs.download_url }}"
           ls -lh package_file
 
-      - name: 2. 智能识别格式并解压
+      - name: 5. 智能识别格式并深度解包
         run: |
           URL="${{ inputs.download_url }}"
           CLEAN_URL="${URL%%\?*}"
+          LOWER_URL=$(echo "$CLEAN_URL" | tr '[:upper:]' '[:lower:]')
           mkdir -p qq_extracted
 
-          if [[ "$CLEAN_URL" =~ \.apk$ ]]; then
+          if [[ "$LOWER_URL" =~ \.apk$ ]] || 7z l package_file | grep -q "AndroidManifest.xml"; then
             echo "[格式识别] Android 安装包 (.apk)"
             7z x package_file -oqq_extracted -y || true
-            # 尝试调用系统自带的 aapt 将二进制 AndroidManifest.xml 转储为明文
             AAPT_BIN=$(which aapt || find "$ANDROID_HOME/build-tools" -name aapt 2>/dev/null | sort -V | tail -n 1 || true)
             if [ -n "$AAPT_BIN" ]; then
               echo "[状态] 找到 aapt 工具，正在导出 AndroidManifest.xml 明文..."
               $AAPT_BIN dump xmltree package_file AndroidManifest.xml > qq_extracted/manifest_dump.txt 2>/dev/null || true
             fi
 
-          elif [[ "$CLEAN_URL" =~ \.dmg$ ]]; then
+          elif [[ "$LOWER_URL" =~ \.dmg$ ]]; then
             echo "[格式识别] macOS 磁盘镜像 (.dmg)"
             7z x package_file -oqq_extracted -y || true
             HFS_FILE=$(find qq_extracted -type f \( -name "*.hfs" -o -name "*Apple_HFS*" \) | head -n 1)
@@ -46,169 +109,295 @@ jobs:
               cp -r qq_extracted_hfs/* qq_extracted/ 2>/dev/null || true
             fi
 
-          elif [[ "$CLEAN_URL" =~ \.deb$ ]]; then
+          elif [[ "$LOWER_URL" =~ \.deb$ ]]; then
             echo "[格式识别] Linux Debian/Ubuntu 安装包 (.deb)"
-            dpkg-deb -x package_file qq_extracted
+            dpkg-deb -x package_file qq_extracted || 7z x package_file -oqq_extracted -y
 
-          elif [[ "$CLEAN_URL" =~ \.AppImage$ ]]; then
+          elif [[ "$LOWER_URL" =~ \.rpm$ ]]; then
+            echo "[格式识别] Linux RPM 安装包 (.rpm)"
+            cd qq_extracted && rpm2cpio ../package_file | cpio -idmv && cd ..
+
+          elif [[ "$LOWER_URL" =~ \.appimage$ ]]; then
             echo "[格式识别] Linux AppImage"
             7z x package_file -oqq_extracted -y || true
 
-          elif [[ "$CLEAN_URL" =~ \.exe$ ]]; then
-            echo "[格式识别] Windows 安装包 (.exe)"
+          elif [[ "$LOWER_URL" =~ \.exe$ ]]; then
+            echo "[格式识别] Windows PE 安装包 (.exe)"
             7z x package_file -oqq_extracted -y || true
 
-          elif [[ "$CLEAN_URL" =~ \.rpm$ ]]; then
-            echo "[格式识别] Linux RPM 安装包 (.rpm)"
-            sudo apt-get update && sudo apt-get install -y rpm2cpio cpio
-            cd qq_extracted && rpm2cpio ../package_file | cpio -idmv && cd ..
-
           else
-            echo "[格式识别] 未知后缀，使用 7z 通用解包"
+            echo "[格式识别] 未知或动态后缀，尝试 7z 通用穿透解包"
             7z x package_file -oqq_extracted -y || true
           fi
 
-      - name: 3. 定位并提取 QQAppId
-        id: parse_appid
+      - name: 6. 提取 SubID 并自动录入数据库与派生运行时字典
+        id: parse_and_record
+        shell: python
         run: |
-          python3 - << 'EOF'
-          import re
           import os
           import sys
+          import json
+          import re
+          import time
           from pathlib import Path
 
+          sys.path.insert(0, str(Path("scripts").resolve()))
+          from subid_compiler import compile_subid_map_to_runtime_dict
+
+          input_url = """${{ inputs.download_url }}""".strip()
+          input_ver = """${{ inputs.version }}""".strip()
+          input_plat = """${{ inputs.platform }}""".strip()
+          input_arch = """${{ inputs.arch }}""".strip()
+          input_channel = """${{ inputs.channel }}""".strip() or "官方"
+          input_date = """${{ inputs.date }}""".strip()
+          is_beta = "${{ inputs.is_beta }}".strip().lower() == "true"
+
+          if not input_date:
+              input_date = time.strftime("%Y-%m-%d")
+
           root_dir = Path("qq_extracted")
+          manifest_dump = root_dir / "manifest_dump.txt"
+          manifest_xml = root_dir / "AndroidManifest.xml"
+
+          extracted_records = [] # (subid, platform, arch, version)
+          detected_platform = "Unknown"
 
           # ----------------------------------------------------
           # 分支 A: 处理 Android 平台 (APK)
           # ----------------------------------------------------
-          manifest_xml = root_dir / "AndroidManifest.xml"
-          manifest_dump = root_dir / "manifest_dump.txt"
-
           if manifest_dump.exists() or manifest_xml.exists():
-              platform = "Android"
-              hit_file = "AndroidManifest.xml"
-              app_id_phone = ""
-              app_id_pad = ""
+              detected_platform = "Android"
+              subid_phone = None
+              subid_pad = None
+              base_vname = None
+              build_no = None
 
-              # 方案 1: 读取 aapt 导出的明文
               if manifest_dump.exists():
-                  text = manifest_dump.read_text(encoding="utf-8", errors="ignore")
-                  m_phone = re.search(r'AppSetting_params".*?value.*?="([0-9]+)#', text, re.DOTALL)
-                  m_pad = re.search(r'AppSetting_params_pad".*?value.*?="([0-9]+)#', text, re.DOTALL)
-                  if m_phone:
-                      app_id_phone = m_phone.group(1)
-                  if m_pad:
-                      app_id_pad = m_pad.group(1)
+                  dump_text = manifest_dump.read_text(encoding="utf-8", errors="ignore")
+                  lines = dump_text.splitlines()
+                  for idx, line in enumerate(lines):
+                      if "versionName" in line and not base_vname:
+                          m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
+                          if m_vn: base_vname = m_vn.group(1).strip()
+                      if "AppSetting_params" in line and not subid_phone:
+                          if "AppSetting_params_pad" not in line:
+                              ctx_s = "\n".join(lines[max(0, idx - 1): min(len(lines), idx + 3)])
+                              m_s = re.search(r"([0-9]{9})#", ctx_s)
+                              if m_s: subid_phone = m_s.group(1)
+                      if "AppSetting_params_pad" in line and not subid_pad:
+                          ctx_s = "\n".join(lines[max(0, idx - 1): min(len(lines), idx + 3)])
+                          m_s = re.search(r"([0-9]{9})#", ctx_s)
+                          if m_s: subid_pad = m_s.group(1)
+                      if "ANDROID_QQ_BUILD_NO" in line and not build_no:
+                          ctx_s = "\n".join(lines[max(0, idx - 1): min(len(lines), idx + 3)])
+                          m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx_s)
+                          if m_hex: build_no = str(int(m_hex.group(1), 16))
+                          if not build_no:
+                              m_dec = re.search(r"\(type 0x10\)([0-9]+)", ctx_s)
+                              if m_dec: build_no = m_dec.group(1)
 
-              # 方案 2: 直接通过字节流正则扫描二进制 AndroidManifest.xml
-              if not app_id_phone and manifest_xml.exists():
+              if manifest_xml.exists() and (not subid_phone or not subid_pad):
                   raw_bytes = manifest_xml.read_bytes()
-                  # 匹配格式: <9位数字>#<16位Hex密钥>#
                   matches_u8 = re.findall(rb"([0-9]{9})#[A-Fa-f0-9]{16}#", raw_bytes)
                   matches_u16 = [
                       m.replace(b"\x00", b"")
                       for m in re.findall(rb"((?:[0-9]\x00){9})#\x00(?:[A-Fa-f0-9]\x00){16}#\x00", raw_bytes)
                   ]
-                  all_matches = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
-                  if len(all_matches) >= 1:
-                      app_id_phone = all_matches[0]
-                  if len(all_matches) >= 2:
-                      app_id_pad = all_matches[1]
+                  all_m = [m.decode("ascii") for m in (matches_u8 + matches_u16)]
+                  if len(all_m) >= 1 and not subid_phone: subid_phone = all_m[0]
+                  if len(all_m) >= 2 and not subid_pad: subid_pad = all_m[1]
 
-              if not app_id_phone:
-                  print("::error::未在 AndroidManifest.xml 中检索到 AppSetting_params！")
-                  sys.exit(1)
+              # 版本规整
+              raw_ver = base_vname or input_ver
+              m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_ver)
+              base_3p = m_v3.group(1) if m_v3 else raw_ver
+              clean_v = f"{base_3p}.{build_no}" if build_no and not raw_ver.endswith(f".{build_no}") else raw_ver
+              if is_beta and not clean_v.endswith("-Beta"):
+                  clean_v = f"{clean_v}-Beta"
 
-              final_appid = app_id_phone
+              plat_to_use = input_plat if input_plat != "Auto" else "Android"
 
-              print("\n" + "="*45)
-              print(f"识别目标平台: {platform}")
-              print(f"成功提取 QQAppId (Phone): {app_id_phone}")
-              if app_id_pad:
-                  print(f"成功提取 QQAppId (Pad):   {app_id_pad}")
-              print(f"命中物理文件: {hit_file}")
-              print("="*45 + "\n")
-
-              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                  f.write(f"app_id={final_appid}\n")
-                  if app_id_pad:
-                      f.write(f"app_id_pad={app_id_pad}\n")
-                  f.write(f"platform={platform}\n")
-
-              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-                  f.write("### QQAppId 自动定位报告\n\n")
-                  f.write(f"- **目标平台**: `{platform}`\n")
-                  f.write(f"- **QQAppId (Phone)**: `{app_id_phone}`\n")
-                  if app_id_pad:
-                      f.write(f"- **QQAppId (Pad)**: `{app_id_pad}`\n")
-                  f.write(f"- **模块文件**: `{hit_file}`\n")
-
-              sys.exit(0)
+              # 架构指定/全选处理
+              if input_arch:
+                  target_sid = subid_pad if input_arch.lower() == "pad" else (subid_phone or subid_pad)
+                  if target_sid:
+                      extracted_records.append((target_sid, plat_to_use, input_arch, clean_v))
+              else:
+                  if subid_phone:
+                      extracted_records.append((subid_phone, plat_to_use, "Phone", clean_v))
+                  if subid_pad:
+                      extracted_records.append((subid_pad, plat_to_use, "Pad", clean_v))
 
           # ----------------------------------------------------
           # 分支 B: 处理桌面端 NT (Windows, Linux, macOS)
           # ----------------------------------------------------
-          target_files = list(root_dir.glob("**/major.node"))
-          if not target_files:
-              print("提示: 未在默认路径找到 major.node，正在检索所有 .node 模块...")
-              target_files = list(root_dir.glob("**/*.node"))
+          else:
+              target_nodes = list(root_dir.glob("**/major.node")) or list(root_dir.glob("**/*.node"))
+              if not target_nodes:
+                  print("::error::解包产物中未检测到 AndroidManifest.xml 或任何 .node 原生模块！")
+                  sys.exit(1)
 
-          if not target_files:
-              print("::error::未在解压结果中找到任何 .node 原生模块！")
+              pattern_new = re.compile(rb"QQAppId/([0-9]+)")
+              pattern_cand = re.compile(rb"(?<![0-9])(537[0-9]{6})(?![0-9])")
+
+              found_subid = None
+              hit_file = ""
+
+              for node in target_nodes:
+                  try:
+                      content = node.read_bytes()
+                      m_id = pattern_new.findall(content)
+                      if m_id:
+                          found_subid = m_id[0].decode("ascii")
+                          hit_file = str(node)
+                          break
+                      else:
+                          for m in pattern_cand.finditer(content):
+                              cand = m.group(1).decode("ascii")
+                              ctx_bytes = content[max(0, m.start() - 500): min(len(content), m.end() + 500)]
+                              if b"fabu" in ctx_bytes:
+                                  found_subid = cand
+                                  hit_file = str(node)
+                                  break
+                          if found_subid: break
+                  except Exception:
+                      pass
+
+              if not found_subid:
+                  print("::error::未在 .node 模块中检索到有效的 QQAppId 特征码！")
+                  sys.exit(1)
+
+              hit_str = hit_file.lower()
+              if ".app" in hit_str or "macos" in hit_str or "dmg" in input_url.lower():
+                  detected_platform = "macOS"
+              elif "opt" in hit_str or "linux" in hit_str or any(x in input_url.lower() for x in [".deb", ".rpm", ".appimage"]):
+                  detected_platform = "Linux"
+              else:
+                  detected_platform = "Windows"
+
+              plat_to_use = input_plat if input_plat != "Auto" else detected_platform
+
+              arch_to_use = input_arch
+              if not arch_to_use:
+                  m_arch = re.search(r"\b(x64|arm64|x86|arm|loongarch|mips)\b", input_url, re.IGNORECASE)
+                  arch_to_use = m_arch.group(1).upper() if m_arch else "Package"
+
+              clean_v = input_ver
+              if is_beta and not clean_v.endswith("-Beta"):
+                  clean_v = f"{clean_v}-Beta"
+
+              extracted_records.append((found_subid, plat_to_use, arch_to_use, clean_v))
+
+          if not extracted_records:
+              print("::error::未能提取到任何有效的 SubID 实体！")
               sys.exit(1)
 
-          print(f"待分析文件: {[str(p) for p in target_files]}")
+          # ----------------------------------------------------
+          # 核心录入：原子写入 data/qq_subid_map.json & data/subid.json
+          # ----------------------------------------------------
+          data_file = Path("data/qq_subid_map.json")
+          data_file.parent.mkdir(parents=True, exist_ok=True)
 
-          pattern = re.compile(rb"QQAppId/([0-9]+)")
-          matched_ids = set()
-          hit_file = ""
-
-          for fpath in target_files:
+          subid_map = {}
+          if data_file.exists():
               try:
-                  content = fpath.read_bytes()
-                  results = pattern.findall(content)
-                  for r in results:
-                      matched_ids.add(r.decode('ascii'))
-                      hit_file = str(fpath)
-              except Exception as e:
-                  print(f"读取文件 {fpath} 出错: {e}")
+                  subid_map = json.loads(data_file.read_text(encoding="utf-8"))
+              except Exception:
+                  subid_map = {}
 
-          if not matched_ids:
-              print("::error::未检测到 QQAppId 特征码！")
-              sys.exit(1)
+          recorded_info = []
 
-          final_appid = list(matched_ids)[0]
+          for sid, plat, arch, ver in extracted_records:
+              new_item = {
+                  "version": ver,
+                  "platform": plat,
+                  "arch": arch,
+                  "date": input_date,
+                  "source_url": input_url,
+                  "channel": input_channel
+              }
 
-          platform = "Unknown"
-          if ".app" in hit_file or "MacOS" in hit_file:
-              platform = "macOS"
-          elif "opt" in hit_file or "linux" in hit_file.lower():
-              platform = "Linux"
-          elif "versions" in hit_file or "Files" in hit_file:
-              platform = "Windows"
+              if sid not in subid_map:
+                  subid_map[sid] = [new_item]
+              else:
+                  if isinstance(subid_map[sid], dict):
+                      subid_map[sid] = [subid_map[sid]]
+                  # 根据 source_url 和 arch 去重更新
+                  exist_idx = -1
+                  for i, ex in enumerate(subid_map[sid]):
+                      if ex.get("source_url") == input_url and ex.get("arch") == arch:
+                          exist_idx = i
+                          break
+                  if exist_idx >= 0:
+                      subid_map[sid][exist_idx] = new_item
+                  else:
+                      subid_map[sid].append(new_item)
 
-          print("\n" + "="*45)
-          print(f"识别目标平台: {platform}")
-          print(f"成功提取 QQAppId: {final_appid}")
-          print(f"命中物理文件: {hit_file}")
-          print("="*45 + "\n")
+              recorded_info.append(f"SubID: `{sid}` | 平台: `{plat}` | 架构: `{arch}` | 版本: `{ver}` | 渠道: `{input_channel}`")
+              print(f"[录入成功] SubID: {sid} | 平台: {plat} | 架构: {arch} | 版本: {ver} | 渠道: {input_channel}")
 
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"app_id={final_appid}\n")
-              f.write(f"platform={platform}\n")
+          # 1. 原子持久化原始数据库
+          tmp_file = data_file.with_suffix(".tmp")
+          tmp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
+          tmp_file.replace(data_file)
+          print("[持久化] 已成功更新 data/qq_subid_map.json")
 
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-              f.write("### QQAppId 自动定位报告\n\n")
-              f.write(f"- **目标平台**: `{platform}`\n")
-              f.write(f"- **QQAppId**: `{final_appid}`\n")
-              f.write(f"- **模块文件**: `{hit_file}`\n")
-          EOF
+          # 2. 同步派生编译出运行时字典 data/subid.json
+          runtime_file = Path("data/subid.json")
+          compiled_dict = compile_subid_map_to_runtime_dict(subid_map)
+          tmp_rt = runtime_file.with_suffix(".tmp")
+          tmp_rt.write_text(json.dumps(compiled_dict, indent=2, ensure_ascii=False), encoding="utf-8")
+          tmp_rt.replace(runtime_file)
+          print(f"[运行时同步] 已成功派生编译 data/subid.json (收录 {len(compiled_dict)} 条)")
 
-      - name: 4. 检查提取结果
+          # 3. 若为豌豆荚渠道，联动更新记录文件
+          if input_channel == "豌豆荚":
+              wdj_file = Path("data/wandoujia_latest_version.txt")
+              wdj_file.write_text(input_ver.strip(), encoding="utf-8")
+              print(f"[版本记录] 豌豆荚版本文件已同步写入: {input_ver}")
+
+          # 4. 生成 Step Summary
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as f:
+                  f.write("### 🚀 Universal Extract QQAppId 自动录入报告\n\n")
+                  f.write(f"- **安装包链接**: `{input_url}`\n")
+                  f.write(f"- **录入版本**: `{input_ver}`\n")
+                  f.write(f"- **分发渠道**: `{input_channel}`\n")
+                  f.write(f"- **构建日期**: `{input_date}`\n")
+                  f.write(f"- **测试版状态**: `{'是 (#Beta)' if is_beta else '否'}`\n\n")
+                  f.write("#### 🎯 提取并落盘结果清单：\n")
+                  for rec in recorded_info:
+                      f.write(f"- {rec}\n")
+                  f.write(f"\n> 原始数据库 `data/qq_subid_map.json` 与运行时字典 `data/subid.json` 均已更新完毕。\n")
+
+      - name: 7. 提交并推送到仓库主分支
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "平台: ${{ steps.parse_appid.outputs.platform }}"
-          echo "ID:   ${{ steps.parse_appid.outputs.app_id }}"
-          if [ -n "${{ steps.parse_appid.outputs.app_id_pad }}" ]; then
-            echo "Pad ID: ${{ steps.parse_appid.outputs.app_id_pad }}"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add data/
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-database: manually extract and record SubID [skip ci]"
+            for i in {1..5}; do
+              echo "[同步] 正在尝试合并远程分支并推送 (尝试 $i/5)..."
+              git fetch origin main
+              if git rebase origin/main 2>/dev/null; then
+                if git push origin main; then
+                  echo "[成功] 数据已通过变基成功推送到远程仓库！"
+                  break
+                fi
+              else
+                git rebase --abort 2>/dev/null || true
+                git merge origin/main -m "Merge remote changes [skip ci]" --strategy-option ours || true
+                if git push origin main; then
+                  echo "[成功] 数据已通过合并策略成功推送到远程仓库！"
+                  break
+                fi
+              fi
+              sleep 2
+            done
+          else
+            echo "[提示] 数据无变动，无需重复提交。"
           fi
