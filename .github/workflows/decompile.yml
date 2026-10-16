@@ -1,10 +1,24 @@
 name: Auto Decompile & Twinflame DEX Diff QQ APK
 
 on:
-  schedule:
-    - cron: '0 0 * * *' # 每天北京时间早上 8:00 (UTC 0:00) 自动执行检测
+  # 彻底移除 schedule 定时，统一由 daily_qq_monitor.yml 在检测到 Android 新版时自动唤起
   workflow_dispatch:
     inputs:
+      apk_url:
+        description: '指定待反编译的 APK 下载链接 (留空则自动检测最新版)'
+        required: false
+        type: string
+        default: ''
+      version_short:
+        description: '指定版本号 (例如 9.3.75，留空则自动提取)'
+        required: false
+        type: string
+        default: ''
+      is_beta:
+        description: '是否标记为测试版'
+        required: false
+        type: boolean
+        default: false
       decompile_all:
         description: '是否完整反编译整个 APK 源码 (产物较大)'
         required: true
@@ -36,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ==========================================
-      # 2. 自动检测更新队列 (使用原生 Python 脚本)
+      # 2. 自动检测更新队列 / 接收外部联动参数
       # ==========================================
       - name: Check for QQ Update
         id: check_update
@@ -46,6 +60,26 @@ jobs:
           import re
           import os
 
+          # 优先接收外部工作流传递的指定参数
+          input_apk_url = "${{ inputs.apk_url }}".strip()
+          input_ver = "${{ inputs.version_short }}".strip()
+          input_beta = "${{ inputs.is_beta }}".strip().lower()
+          github_output = os.environ.get('GITHUB_OUTPUT')
+
+          if input_apk_url:
+              print(f"[联动触发] 接收到外部指定参数 APK: {input_apk_url}")
+              fname = input_apk_url.split('/')[-1].replace('.apk', '')
+              v_short = input_ver or fname.split('_')[0]
+              with open(github_output, 'a', encoding='utf-8') as f:
+                  f.write(f"apk_url={input_apk_url}\n")
+                  f.write(f"version_short={v_short}\n")
+                  f.write(f"version_full={fname}\n")
+                  f.write(f"is_beta={input_beta}\n")
+                  f.write("has_update=true\n")
+                  f.write("has_more=false\n")
+              exit(0)
+
+          # 若无外部参数，自主扫描 TG 频道
           url = "https://t.me/s/qq_updatelog"
           req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
           
@@ -93,7 +127,6 @@ jobs:
           if not pending_entries and event_name == 'workflow_dispatch':
               pending_entries = [apk_entries[-1]]
 
-          github_output = os.environ.get('GITHUB_OUTPUT')
           if not has_update or not pending_entries:
               print("未检测到新版本，跳过本次处理。")
               with open(github_output, 'a', encoding='utf-8') as f:
@@ -386,7 +419,7 @@ jobs:
           fi
 
       # ==========================================
-      # 9. 安装 Twinflame 与 Baksmali (仅当存在历史 DEX 时安装)
+      # 9. 安装 Twinflame 与 Baksmali
       # ==========================================
       - name: Install Twinflame & Baksmali
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -723,7 +756,7 @@ jobs:
           gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
 
       # ==========================================
-      # 15. 更新版本记录与多版本轮询
+      # 15. 更新版本记录与多版本轮询 (加上重试拉取防冲突)
       # ==========================================
       - name: Commit and Push Version Update
         if: steps.check_update.outputs.has_update == 'true'
@@ -732,9 +765,27 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add latest_version.txt
-          git commit -m "Auto-update QQ APK record: ${{ steps.check_update.outputs.version_short }} [skip ci]" || echo "No changes to commit"
-          git pull --rebase origin main || true
-          git push
+          if ! git diff --staged --quiet; then
+            git commit -m "Auto-update QQ APK record: ${{ steps.check_update.outputs.version_short }} [skip ci]"
+            for i in {1..5}; do
+              echo "[同步] 尝试拉取并推送最新版本记录 ($i/5)..."
+              git fetch origin main
+              if git rebase origin/main 2>/dev/null; then
+                if git push origin main; then
+                  echo "[成功] 版本记录已推送到 main 分支！"
+                  break
+                fi
+              else
+                git rebase --abort 2>/dev/null || true
+                git merge origin/main -m "Merge remote [skip ci]" --strategy-option ours || true
+                if git push origin main; then
+                  echo "[成功] 版本记录已合并推送到 main 分支！"
+                  break
+                fi
+              fi
+              sleep 2
+            done
+          fi
 
       - name: Trigger Next Run If More Versions Pending
         if: steps.check_update.outputs.has_more == 'true'
