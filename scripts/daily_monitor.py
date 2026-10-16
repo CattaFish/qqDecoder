@@ -48,7 +48,6 @@ def get_wandoujia_info():
 
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # 1. 解析版本号与更新时间
         version = None
         date_str = time.strftime("%Y-%m-%d")
 
@@ -61,7 +60,6 @@ def get_wandoujia_info():
         if m_date:
             date_str = m_date.group(1).replace("/", "-").strip()
 
-        # 2. 查找“普通下载”按钮直链
         download_url = None
         for a in soup.find_all("a"):
             a_text = a.get_text().strip()
@@ -69,7 +67,6 @@ def get_wandoujia_info():
                 download_url = a.get("href") or a.get("data-download") or a.get("data-url")
                 break
 
-        # 兜底：若未精确匹配，按文本包含“普通下载”查找
         if not download_url:
             for a in soup.find_all("a", href=True):
                 if "普通下载" in a.get_text():
@@ -80,7 +77,6 @@ def get_wandoujia_info():
             print(f"[豌豆荚] 解析异常: 版本={version}, 下载URL={download_url}")
             return None
 
-        # 核心补全：将相对路径 (/app/dl/...) 转换为完整可下载的绝对 URL
         download_url = urljoin(WANDOUJIA_URL, download_url.strip())
 
         return {
@@ -95,7 +91,7 @@ def get_wandoujia_info():
 
 
 # =====================================================================
-# 2. Telegram 频道解析模块 (原有逻辑)
+# 2. Telegram 频道解析模块 (全面兼容 Markdown 超链接与新格式)
 # =====================================================================
 def get_latest_message():
     """获取频道的最新一条有效更新消息"""
@@ -133,7 +129,7 @@ def get_latest_message():
 
 
 def parse_tasks_from_message(msg):
-    """解析该消息包含的所有架构直链，优先备份"""
+    """解析该消息包含的所有架构直链，兼容 Markdown 超链接与新版排版"""
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
@@ -145,6 +141,7 @@ def parse_tasks_from_message(msg):
     linux_ver = ""
     android_ver = ""
 
+    # 1. 尝试常规带前缀的版本号提取
     m_win = re.search(r"Windows QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
     if m_win:
         win_ver = m_win.group(1)
@@ -160,81 +157,129 @@ def parse_tasks_from_message(msg):
     if m_android:
         android_ver = m_android.group(1)
 
-    tasks = []
-    if "备份" in html:
-        backup_html = html.split("备份", 1)[1]
-        if (
-            "Windows" in backup_html
-            or "Linux" in backup_html
-            or "MacOS" in backup_html
-        ):
-            current_platform = "Unknown"
-            lines = re.split(r"<br\s*/?>|\n", backup_html)
-            for line in lines:
-                line_soup = BeautifulSoup(line, "html.parser")
-                line_text = line_soup.get_text()
-                if "Windows" in line_text:
-                    current_platform = "Windows"
-                elif "MacOS" in line_text or "Mac" in line_text:
-                    current_platform = "macOS"
-                elif "Linux" in line_text:
-                    current_platform = "Linux"
+    # 2. 兼容新格式：首行无前缀直接是版本号（例如 "9.3.75.42350 (16580)"）
+    if not (win_ver or mac_ver or linux_ver or android_ver):
+        lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
+        if lines:
+            m_top = re.search(r"^([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\))?)", lines[0])
+            if m_top:
+                extracted_v = m_top.group(1).replace(" ", "")
+                if any(k in text for k in ["Windows QQ_NT", "Windows"]):
+                    win_ver = extracted_v
+                elif any(k in text for k in ["Mac QQ_NT", "MacOS", "Mac"]):
+                    mac_ver = extracted_v
+                elif any(k in text for k in ["Linux QQ_NT", "Linux"]):
+                    linux_ver = extracted_v
+                else:
+                    android_ver = extracted_v
 
-                for a in line_soup.find_all("a", href=True):
-                    href = a["href"].strip()
-                    arch_name = a.get_text().strip()
-                    if "t.me/linqiqi_backup" not in href:
-                        continue
-                    version = (
-                        win_ver
-                        if current_platform == "Windows"
-                        else mac_ver
-                        if current_platform == "macOS"
-                        else linux_ver
-                    )
-                    tasks.append(
-                        {
-                            "platform": current_platform,
-                            "arch": arch_name or "Package",
-                            "version": version or "Unknown",
-                            "date": date,
-                            "url": href,
-                            "is_beta": is_beta,
-                            "channel": "官方",
-                        }
-                    )
-        else:
-            soup = BeautifulSoup(backup_html, "html.parser")
-            for a in soup.find_all("a", href=True):
+    tasks = []
+
+    # 3. 区分桌面端与移动端进行超链接智能解析
+    has_desktop_platform = any(
+        p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"]
+    )
+
+    if has_desktop_platform:
+        current_platform = "Unknown"
+        lines = re.split(r"<br\s*/?>|\n", html)
+        for line in lines:
+            line_soup = BeautifulSoup(line, "html.parser")
+            line_text = line_soup.get_text()
+            if "Windows" in line_text:
+                current_platform = "Windows"
+            elif "MacOS" in line_text or "Mac" in line_text:
+                current_platform = "macOS"
+            elif "Linux" in line_text:
+                current_platform = "Linux"
+
+            version = (
+                win_ver
+                if current_platform == "Windows"
+                else mac_ver
+                if current_platform == "macOS"
+                else linux_ver
+            )
+
+            line_a_tags = line_soup.find_all("a", href=True)
+            if not line_a_tags:
+                continue
+
+            backup_links = []
+            official_links = []
+            for a in line_a_tags:
                 href = a["href"].strip()
-                if "t.me/linqiqi_backup" in href:
-                    tasks.append(
-                        {
-                            "platform": "Android",
-                            "arch": "Package",
-                            "version": android_ver or "Unknown",
-                            "date": date,
-                            "url": href,
-                            "is_beta": is_beta,
-                            "channel": "官方",
-                        }
-                    )
-    else:
-        soup = BeautifulSoup(html, "html.parser")
-        for a in soup.find_all("a", href=True):
-            href = a["href"].strip()
-            if ".apk" in href or "android_apk" in href:
+                a_text = a.get_text().strip()
+                if "t.me/linqiqi_backup" in href or "备份" in a_text:
+                    backup_links.append((href, a_text))
+                elif any(ext in href.lower() for ext in [".exe", ".dmg", ".deb", ".rpm", ".appimage"]) or "官网" in a_text:
+                    official_links.append((href, a_text))
+
+            chosen_links = backup_links if backup_links else official_links
+            for href, a_text in chosen_links:
+                arch = (
+                    a_text.replace("官网链接", "")
+                    .replace("频道备份", "")
+                    .replace("官网", "")
+                    .replace("备份", "")
+                    .strip()
+                )
+                if not arch:
+                    m_arch = re.search(r"\b(x64|x86|arm64|arm|loongarch|mips)\b", line_text, re.IGNORECASE)
+                    arch = m_arch.group(1).upper() if m_arch else "Package"
                 tasks.append(
                     {
-                        "platform": "Android",
-                        "arch": "Package",
-                        "version": android_ver or "Unknown",
+                        "platform": current_platform,
+                        "arch": arch or "Package",
+                        "version": version or "Unknown",
                         "date": date,
                         "url": href,
                         "is_beta": is_beta,
                         "channel": "官方",
                     }
                 )
+    else:
+        # Android 端解析（涵盖新版嵌入超链接：“官网链接 | 频道备份”）
+        soup = BeautifulSoup(html, "html.parser")
+        a_tags = soup.find_all("a", href=True)
+
+        backup_links = []
+        official_links = []
+
+        for a in a_tags:
+            href = a["href"].strip()
+            a_text = a.get_text().strip()
+
+            # 过滤非安装包下载类链接
+            if "t.me/s/" in href or "t.me/qq_updatelog" in href:
+                continue
+
+            if "t.me/linqiqi_backup" in href or "备份" in a_text:
+                backup_links.append(href)
+            elif (
+                ".apk" in href
+                or "android_apk" in href
+                or "downv6.qq.com" in href
+                or "官网" in a_text
+            ):
+                official_links.append(href)
+
+        # 优先选择备份链接，无备份则自动退守官网直链
+        target_urls = backup_links if backup_links else official_links
+        unique_urls = list(dict.fromkeys(target_urls))
+
+        for u in unique_urls:
+            tasks.append(
+                {
+                    "platform": "Android",
+                    "arch": "Package",
+                    "version": android_ver or "Unknown",
+                    "date": date,
+                    "url": u,
+                    "is_beta": is_beta,
+                    "channel": "官方",
+                }
+            )
 
     return tasks
 
@@ -470,6 +515,7 @@ def main():
     if msg:
         print(f"[TG 监控] 最新消息 ID: {msg['post_id']} | 日期: {msg['date']}")
         tg_tasks = parse_tasks_from_message(msg)
+        print(f"[TG 监控] 成功解析到任务数: {len(tg_tasks)}")
         pending_tasks.extend(tg_tasks)
     else:
         print("[TG 监控] 未获取到频道消息")
@@ -684,7 +730,7 @@ def main():
         print(f"[警告] 编译运行时字典异常: {e}")
 
     # -------------------------------------------------------------
-    # F. 满足要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
+    # F. 在所有 SubID 全部提取处理完成之后，最后保存版本文件
     # -------------------------------------------------------------
     if wdj_new_ver_to_record:
         WDJ_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
