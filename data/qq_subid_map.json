@@ -5653,5 +5653,25 @@
       "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/04f462173a5534179b5e2de3d2e59434397355bb1",
       "channel": "小米"
     }
+  ],
+  "537395442": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-15",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_7908d3a45c6e463fa2bb4d3645460559.apk",
+      "channel": "荣耀"
+    }
+  ],
+  "537395481": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-15",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_7908d3a45c6e463fa2bb4d3645460559.apk",
+      "channel": "荣耀"
+    }
   ]
 }
