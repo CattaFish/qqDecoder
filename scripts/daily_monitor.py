@@ -96,7 +96,7 @@ def validate_date_str(date_str):
 
 
 # =====================================================================
-# 1. 小米应用商店监控模块 (基于官方 APM 私有加密协议)
+# 1. 小米应用商店监控模块 (防刷量规避与纯净 Header 请求)
 # =====================================================================
 def xiaomi_base64(raw_bytes: bytes) -> str:
     out = []
@@ -223,9 +223,9 @@ def get_xiaomi_info():
     try:
         update_url = "https://updateinfo.market.xiaomi.com/apm/updateinfo/v2?lo=CN"
         now_ts = int(time.time() * 1000)
-        inst_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        inst_id = f"a1b2c3d4-e5f6-7890-abcd-{random.randint(100000000000, 999999999999)}"
 
-        # 1. 向 updateinfo 请求 64 位版本
+        # 1. 向 updateinfo 校验 64 位版本
         fields = {
             "co": "CN",
             "la": "zh",
@@ -255,11 +255,11 @@ def get_xiaomi_info():
             "ref": "update"
         }
         signed_fields = xiaomi_sign_form_fields(update_url, fields)
-        headers = {
+        post_headers = {
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; 2509FPN0BC Build/BP2A.250605.031.A3)",
             "Content-Type": "application/x-www-form-urlencoded"
         }
-        r = requests.post(update_url, data=signed_fields, headers=headers, timeout=15)
+        r = requests.post(update_url, data=signed_fields, headers=post_headers, timeout=15)
         if r.status_code != 200:
             print(f"[小米监控] 更新接口请求失败: HTTP {r.status_code}")
             return None
@@ -286,47 +286,58 @@ def get_xiaomi_info():
             print("[小米监控] 未能获取到有效版本号")
             return None
 
-        # 2. 用专属 appId (1359) 与 64 位标识请求下载接口换取 CDN 直链
-        dl_params = {
-            "appId": app_id,
-            "pName": "com.tencent.mobileqq",
-            "packageName": "com.tencent.mobileqq",
-            "clientId": "6f24320b1e9596bf",
-            "co": "CN",
-            "la": "zh",
-            "lo": "CN",
-            "marketVersion": "40007460",
-            "os": "OS3.0",
-            "sdk": "36",
-            "model": "2509FPN0BC",
-            "device": "popsicle",
-            "cpuArchitecture": "arm64-v8a",
-            "callerPackage": "com.xiaomi.market",
-            "callerSignature": "88daa889de21a80bca64464243c9ede6",
-            "ref": "detail",
-            "instance_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        }
-        dl_url = xiaomi_sign_url(f"https://app.market.xiaomi.com/apm/download/{app_id}?{urllib.parse.urlencode(dl_params)}")
-        r_dl = requests.get(dl_url, headers=headers, timeout=15)
-        if r_dl.status_code != 200:
-            print(f"[小米监控] 下载接口请求失败: HTTP {r_dl.status_code}")
-            return None
+        # 冷却 1 秒，模拟真机正常间隔，避免触发频控
+        time.sleep(1.0)
 
-        dl_json = r_dl.json()
-        hosts = dl_json.get("hosts") or [dl_json.get("host")]
-        host = hosts[0] if hosts and hosts[0] else ""
-        apks = dl_json.get("apks") or []
+        # 2. 纯净 GET Header 请求下载接口 (核心：绝不带 Content-Type，带上 Accept: application/json)
+        get_headers = {
+            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; 2509FPN0BC Build/BP2A.250605.031.A3)",
+            "Accept": "application/json"
+        }
 
         download_url = None
-        for apk in apks:
-            apk_path = apk.get("url")
-            if apk_path:
-                download_url = urllib.parse.urljoin(host, apk_path)
-                if apk.get("type") in ("standalone", "base"):
-                    break
+        for retry in range(2):
+            now_ts_dl = int(time.time() * 1000)
+            cur_inst = f"a1b2c3d4-e5f6-7890-abcd-{random.randint(100000000000, 999999999999)}"
+            dl_params = {
+                "appId": app_id,
+                "pName": "com.tencent.mobileqq",
+                "packageName": "com.tencent.mobileqq",
+                "clientId": "6f24320b1e9596bf",
+                "co": "CN",
+                "la": "zh",
+                "lo": "CN",
+                "marketVersion": "40007460",
+                "os": "OS3.0",
+                "sdk": "36",
+                "model": "2509FPN0BC",
+                "device": "popsicle",
+                "cpuArchitecture": "arm64-v8a",
+                "callerPackage": "com.xiaomi.market",
+                "callerSignature": "88daa889de21a80bca64464243c9ede6",
+                "ref": "detail",
+                "instance_id": cur_inst,
+            }
+            dl_url = xiaomi_sign_url(f"https://app.market.xiaomi.com/apm/download/{app_id}?{urllib.parse.urlencode(dl_params)}")
+            r_dl = requests.get(dl_url, headers=get_headers, timeout=15)
+            if r_dl.status_code == 200:
+                dl_json = r_dl.json()
+                if "asscMsg" not in dl_json:
+                    hosts = dl_json.get("hosts") or [dl_json.get("host")]
+                    host = hosts[0] if hosts and hosts[0] else ""
+                    apks = dl_json.get("apks") or []
+                    for apk in apks:
+                        apk_path = apk.get("url")
+                        if apk_path:
+                            download_url = urllib.parse.urljoin(host, apk_path)
+                            if apk.get("type") in ("standalone", "base"):
+                                break
+                    if download_url:
+                        break
+            time.sleep(1.5)
 
         if not download_url:
-            print(f"[小米监控] 未能从下载响应中解析到 APK 直链: {dl_json}")
+            print("[小米监控] 下载接口触发临时频控保护，本次暂缓")
             return None
 
         return {
@@ -901,7 +912,6 @@ def download_target_file(url, target_dir):
                 fname = "target_package.apk"
             out_file = target_dir / fname
 
-            # 智能匹配各应用商店防盗链 Referer
             referer = "https://wap.pp.cn/"
             if "vivo.com" in url:
                 referer = "https://appstore.vivo.com.cn/"
