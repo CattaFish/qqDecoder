@@ -1,1352 +1,101 @@
+# -*- coding: utf-8 -*-
+import json
+import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# 环境与路径准备
+ROOT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT_DIR))
+
+from extractor import (
+    download_target_file,
+    extract_subids_and_version,
+    extract_version_from_filename,
+)
 from subid_compiler import compile_subid_map_to_runtime_dict
-import hashlib
-import hmac
-import json
-import os
-import random
-import re
-import shutil
-import subprocess
-import time
-import urllib.parse
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-import requests
+
+# 导入解耦后的各大渠道监控模块
+from channels import (
+    get_huawei_info,
+    get_oppo_info,
+    get_telegram_tasks,
+    get_vivo_info,
+    get_wandoujia_info,
+    get_xiaomi_info,
+    get_yingyongbao_info,
+)
 
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
-# 渠道与数据源定义
-TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
-WANDOUJIA_URL = "https://wap.pp.cn/app_zYoOzyuL/"
-YYB_URL = "https://a.app.qq.com/o/simple.jsp?pkgname=com.tencent.mobileqq"
-VIVO_PACKAGE_URL = "https://main.appstore.vivo.com.cn/port/package/"
-VIVO_DOWNLOAD_URL = "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439"
-HUAWEI_API_URL = "https://store-drcn.hispace.dbankcloud.com/hwmarket/api/clientApi"
-
-# 小米核心静态常量与签名 Salt
-XIAOMI_SALT = "good luck!"
-XIAOMI_TABLE = "leDTKhmg4MafVFp73x6djvLiHn2G9XPruARBwS0q1OzNJt8WobZsQcYyEICk5U-_"
-XIAOMI_SIGNED_KEYS = {
-    "activedTimeInterval", "ad", "adExchangeFlag", "adFlag", "apkChannel", "appId",
-    "bottomTab", "carrier", "clientId", "co", "count", "cpuArchitecture", "device",
-    "deviceType", "digestParams", "downloadingAppInfo", "excludedAppIds", "ext_apkChannel",
-    "ext_marketType", "flag", "folderName", "get", "gpId", "h5", "id", "imei",
-    "installDay", "installError", "instance_id", "international", "keyword", "la",
-    "launchDay", "lo", "marketVersion", "miuiBigVersionCode", "miuiBigVersionName",
-    "model", "_n", "needLruCache", "network", "newUser", "oldApkHash", "oldVersionCode",
-    "os", "packageName", "packageNameList", "page", "pageConfigVersion", "pageRef",
-    "pageSize", "pageTag", "params", "pos", "posChain", "previousAppIds",
-    "proxyTimeout", "query", "reason", "recentInstallCompleteAppInfo", "ref",
-    "refPosition", "refresh", "refs", "resolution", "ro", "sco", "sdk", "searchScope",
-    "shouldNativeInterceptRequest", "sid", "sla", "sourcePackage", "stamp",
-    "targetVersionCode", "type", "update", "versionCode", "webResVersion", "zoneSuffix",
-}
-
-# OPPO 核心静态常量与 Salt
-OPPO_APP_ID = "30334"
-OPPO_SALT1 = b"cdb09c43063ea6bb08f4fe8a43775179bdc58acb383220be"
-OPPO_SALT2 = (
-    b"STORENEWMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBANYFY/UJGSzhIhpx6YM5KJ9yRHc7YeURxzb9tDvJvMfENHlnP3DtVkOIjERbpsSd76fjtZnMWY60TpGLGyrNkvuV40L15JQhHAo9yURpPQoI0eg3SLFmTEI/MUiPRCwfwYf2deqKKlsmMSysYYHX9JiGzQuWiYZaawxprSuiqDGvAgMBAAECgYEAtQ0QV00gGABISljNMy5aeDBBTSBWG2OjxJhxLRbndZM81OsMFysgC7dq+bUS6ke1YrDWgsoFhRxxTtx/2gDYciGp/c/h0Td5pGw7T9W6zo2xWI5oh1WyTnn0Xj17O9CmOk4fFDpJ6bapL+fyDy7gkEUChJ9+p66WSAlsfUhJ2TECQQD5sFWMGE2IiEuz4fIPaDrNSTHeFQQr/ZpZ7VzB2tcG7GyZRx5YORbZmX1jR7l3H4F98MgqCGs88w6FKnCpxDK3AkEA225CphAcfyiH0ShlZxEXBgIYt3V8nQuc/g2KJtiV6eeFkxmOMHbVTPGkARvt5VoPYEjwPTg43oqTDJVtlWagyQJBAOvEeJLno9aHNExvznyD4/pR4hec6qqLNgMyIYMfHCl6d3UodVvC1HO1/nMPl+4GvuRnxuoBtxj/PTe7AlUbYPMCQQDOkf4sVv58tqslO+I6JNyHy3F5RCELtuMUR6rG5x46FLqqwGQbO8ORq+m5IZHTV/Uhr4h6GXNwDQRh1EpVW0gBAkAp/v3tPI1riz6UuG0I6uf5er26yl5evPyPrjrD299L4Qy/1EIunayC7JYcSGlR01+EDYYgwUkec+QgrRC/NstV"
-)
-OPPO_OCS = "google%2FTrebleDroid+vanilla%2F33%2F13%2FUNKNOWN%2F2%2Flineage_arm64_bvN-userdebug+13+TQ3A.230901.001+eng.crossg.20231018.003713+test-keys%2F260700"
-OPPO_UA = "google%2FTrebleDroid+vanilla%2F33%2F13%2FUNKNOWN%2F2%2F2101%2F260700%2F26.7.0_CN"
-OPPO_ID_HEADER = "///"
-OPPO_OAK = "cdb09c43063ea6bb"
-
+# 统一数据库与缓存路径
 DATA_FILE = Path("data/qq_subid_map.json")
 BAK_FILE = Path("data/qq_subid_map.json.bak")
-WDJ_VER_FILE = Path("data/wandoujia_latest_version.txt")
-YYB_VER_FILE = Path("data/yingyongbao_latest_version.txt")
-VIVO_VER_FILE = Path("data/vivo_latest_version.txt")
-HUAWEI_VER_FILE = Path("data/huawei_latest_version.txt")
-OPPO_VER_FILE = Path("data/oppo_latest_version.txt")
-XIAOMI_VER_FILE = Path("data/xiaomi_latest_version.txt")
-
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
-SINGLE_DOWNLOAD_TIMEOUT = 600
 
-DEFAULT_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-    )
-}
+# 各市场独立通道注册表 (名称, 获取函数, 版本记录文件路径)
+MARKET_CHANNELS = [
+    ("豌豆荚", get_wandoujia_info, Path("data/wandoujia_latest_version.txt")),
+    ("应用宝", get_yingyongbao_info, Path("data/yingyongbao_latest_version.txt")),
+    ("vivo", get_vivo_info, Path("data/vivo_latest_version.txt")),
+    ("华为", get_huawei_info, Path("data/huawei_latest_version.txt")),
+    ("OPPO", get_oppo_info, Path("data/oppo_latest_version.txt")),
+    ("小米", get_xiaomi_info, Path("data/xiaomi_latest_version.txt")),
+]
 
 
-def validate_date_str(date_str):
-    """严格校验物理公历日期合法性 (彻底杜绝 97 月等伪日期)"""
-    if not date_str:
-        return None
-    try:
-        clean = re.sub(r"[年/.]", "-", str(date_str)).replace("月", "-").replace("日", "").strip()
-        parts = clean.split("-")
-        if len(parts) >= 3:
-            y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
-            if 2020 <= y <= 2035 and 1 <= m <= 12 and 1 <= d <= 31:
-                return f"{y:04d}-{m:02d}-{d:02d}"
-    except Exception:
-        pass
-    return None
-
-
-# =====================================================================
-# 1. 小米应用商店监控模块 (防刷量规避与纯净 Header 请求)
-# =====================================================================
-def xiaomi_base64(raw_bytes: bytes) -> str:
-    out = []
-    i = 0
-    length = len(raw_bytes)
-    while i + 2 < length:
-        b1, b2, b3 = raw_bytes[i], raw_bytes[i + 1], raw_bytes[i + 2]
-        out.append(XIAOMI_TABLE[(b1 >> 2) & 0x3F])
-        out.append(XIAOMI_TABLE[((b1 << 4) | (b2 >> 4)) & 0x3F])
-        out.append(XIAOMI_TABLE[((b2 << 2) | (b3 >> 6)) & 0x3F])
-        out.append(XIAOMI_TABLE[b3 & 0x3F])
-        i += 3
-    rem = length - i
-    if rem == 1:
-        b1 = raw_bytes[i]
-        out.append(XIAOMI_TABLE[(b1 >> 2) & 0x3F])
-        out.append(XIAOMI_TABLE[(b1 << 4) & 0x3F])
-    elif rem == 2:
-        b1, b2 = raw_bytes[i], raw_bytes[i + 1]
-        out.append(XIAOMI_TABLE[(b1 >> 2) & 0x3F])
-        out.append(XIAOMI_TABLE[((b1 << 4) | (b2 >> 4)) & 0x3F])
-        out.append(XIAOMI_TABLE[((b2 << 2) | (b3 >> 6)) & 0x3F])
-    return "".join(out)
-
-
-def xiaomi_arrange_exact(decoded_url: str, nonce: str) -> str:
-    query_start = decoded_url.find("?")
-    url_part = decoded_url[:query_start] if query_start >= 0 else decoded_url
-    query = decoded_url[query_start + 1:] if query_start >= 0 and query_start + 1 < len(decoded_url) else ""
-
-    slash_count = 0
-    reversing_host = True
-    builder = []
-    for ch in url_part:
-        if ch == "/" and reversing_host:
-            slash_count += 1
-            if slash_count == 3:
-                builder.append("\n")
-                builder.append(ch)
-                reversing_host = False
-            else:
-                builder.insert(0, ch)
-        elif reversing_host:
-            builder.insert(0, ch)
-        else:
-            builder.append(ch)
-    builder.append("\n")
-
-    params = [p for p in query.split("&") if p and not p.startswith(("_n=", "_s=", "_v="))]
-    params.append(f"_n={nonce}")
-
-    plist = []
-    for idx, p in enumerate(params):
-        k = p.split("=")[0]
-        if k in XIAOMI_SIGNED_KEYS:
-            plist.append(k)
-            if idx != len(params) - 1:
-                plist.append(";")
-    params.append(f"_p=" + "".join(plist))
-    params.sort(key=lambda a: a.lower())
-
-    for idx, param in enumerate(params):
-        k = param.split("=")[0]
-        signed = k in XIAOMI_SIGNED_KEYS if "=" in param else True
-        if not signed:
-            if idx == len(params) - 1 and builder and builder[-1] == "=":
-                builder.pop()
-            continue
-        segs = param.split("=")
-        builder.append(segs[0])
-        for s in segs[1:]:
-            builder.append("&")
-            builder.append(s[::-1])
-        if idx != len(params) - 1:
-            builder.append("=")
-
-    full_str = "".join(builder)
-    lf = full_str.find("\n")
-    return full_str[lf + 1:]
-
-
-def xiaomi_sign_url(base_url: str) -> str:
-    ts = int(time.time() * 1000)
-    nonce = f"{ts}_{random.randint(0, 999)}"
-    decoded = urllib.parse.unquote_plus(base_url)
-    arranged = xiaomi_arrange_exact(decoded, nonce)
-
-    algo_idx = ts % 4
-    algos = [hashlib.md5, hashlib.sha256, hashlib.sha1, hashlib.sha384]
-    algo = algos[algo_idx]
-
-    key = (XIAOMI_SALT + nonce).encode("utf-8")
-    digest = hmac.new(key, arranged.encode("utf-8"), algo).digest()
-    sig = xiaomi_base64(digest)
-    sep = "&" if "?" in base_url else "?"
-    return f"{base_url}{sep}_n={urllib.parse.quote(nonce)}&_s={urllib.parse.quote(sig)}&_v=1"
-
-
-def xiaomi_sign_form_fields(url: str, fields: dict) -> dict:
-    ts = int(time.time() * 1000)
-    nonce = f"{ts}_{random.randint(0, 999)}"
-    query_str = urllib.parse.urlencode(fields)
-    full_url = f"{url}?{query_str}" if query_str else url
-    arranged = xiaomi_arrange_exact(urllib.parse.unquote_plus(full_url), nonce)
-
-    algo_idx = ts % 4
-    algos = [hashlib.md5, hashlib.sha256, hashlib.sha1, hashlib.sha384]
-    algo = algos[algo_idx]
-
-    key = (XIAOMI_SALT + nonce).encode("utf-8")
-    digest = hmac.new(key, arranged.encode("utf-8"), algo).digest()
-    sig = xiaomi_base64(digest)
-
-    res = dict(fields)
-    res["_n"] = nonce
-    res["_s"] = sig
-    res["_v"] = "1"
-    return res
-
-
-def get_xiaomi_info():
-    """获取小米应用商店 QQ 的版本信息与下载直链 (APM 原生私有协议)"""
-    print("[小米监控] 正在向官方更新接口查询线上版本...")
-    try:
-        update_url = "https://updateinfo.market.xiaomi.com/apm/updateinfo/v2?lo=CN"
-        now_ts = int(time.time() * 1000)
-        inst_id = f"a1b2c3d4-e5f6-7890-abcd-{random.randint(100000000000, 999999999999)}"
-
-        # 1. 向 updateinfo 校验 64 位版本
-        fields = {
-            "co": "CN",
-            "la": "zh",
-            "lo": "CN",
-            "marketVersion": "40007460",
-            "os": "OS3.0",
-            "sdk": "36",
-            "model": "2509FPN0BC",
-            "device": "popsicle",
-            "cpuArchitecture": "arm64-v8a",
-            "androidVersion": "16",
-            "apkSource": "0",
-            "autoUpdateEnabled": "false",
-            "background": "false",
-            "downloadRestriction": "1",
-            "downloadRestrictionMode": "0",
-            "invalidSystemPackageHash": "null",
-            "privacyCompliance": "true",
-            "rankTypeV2": "true",
-            "session_id": f"{inst_id}{now_ts}",
-            "showUnfitnessApp": "true",
-            "splits": "0",
-            "packageName": "com.tencent.mobileqq",
-            "versionCode": "0",
-            "oldApkHash": "0",
-            "installedByMarket": "1",
-            "ref": "update"
-        }
-        signed_fields = xiaomi_sign_form_fields(update_url, fields)
-        post_headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; 2509FPN0BC Build/BP2A.250605.031.A3)",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        r = requests.post(update_url, data=signed_fields, headers=post_headers, timeout=15)
-        if r.status_code != 200:
-            print(f"[小米监控] 更新接口请求失败: HTTP {r.status_code}")
-            return None
-
-        res_json = r.json()
-        apps = res_json.get("listApp") or res_json.get("miuiApp") or []
-        if not apps:
-            print("[小米监控] 未能获取到匹配的应用列表")
-            return None
-
-        target = apps[0]
-        version_name = str(target.get("versionName", "")).strip()
-        app_id = str(target.get("appId") or target.get("id") or "1359")
-        raw_update_time = target.get("updateTime") or target.get("createTime") or 0
-
-        date_str = None
-        if raw_update_time > 0:
-            ts_clean = raw_update_time // 1000 if raw_update_time > 1e12 else raw_update_time
-            date_str = validate_date_str(time.strftime("%Y-%m-%d", time.localtime(ts_clean)))
-        if not date_str:
-            date_str = time.strftime("%Y-%m-%d")
-
-        if not version_name:
-            print("[小米监控] 未能获取到有效版本号")
-            return None
-
-        # 冷却 1 秒，模拟真机正常间隔，避免触发频控
-        time.sleep(1.0)
-
-        # 2. 纯净 GET Header 请求下载接口 (核心：绝不带 Content-Type，带上 Accept: application/json)
-        get_headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; 2509FPN0BC Build/BP2A.250605.031.A3)",
-            "Accept": "application/json"
-        }
-
-        download_url = None
-        for retry in range(2):
-            now_ts_dl = int(time.time() * 1000)
-            cur_inst = f"a1b2c3d4-e5f6-7890-abcd-{random.randint(100000000000, 999999999999)}"
-            dl_params = {
-                "appId": app_id,
-                "pName": "com.tencent.mobileqq",
-                "packageName": "com.tencent.mobileqq",
-                "clientId": "6f24320b1e9596bf",
-                "co": "CN",
-                "la": "zh",
-                "lo": "CN",
-                "marketVersion": "40007460",
-                "os": "OS3.0",
-                "sdk": "36",
-                "model": "2509FPN0BC",
-                "device": "popsicle",
-                "cpuArchitecture": "arm64-v8a",
-                "callerPackage": "com.xiaomi.market",
-                "callerSignature": "88daa889de21a80bca64464243c9ede6",
-                "ref": "detail",
-                "instance_id": cur_inst,
-            }
-            dl_url = xiaomi_sign_url(f"https://app.market.xiaomi.com/apm/download/{app_id}?{urllib.parse.urlencode(dl_params)}")
-            r_dl = requests.get(dl_url, headers=get_headers, timeout=15)
-            if r_dl.status_code == 200:
-                dl_json = r_dl.json()
-                if "asscMsg" not in dl_json:
-                    hosts = dl_json.get("hosts") or [dl_json.get("host")]
-                    host = hosts[0] if hosts and hosts[0] else ""
-                    apks = dl_json.get("apks") or []
-                    for apk in apks:
-                        apk_path = apk.get("url")
-                        if apk_path:
-                            download_url = urllib.parse.urljoin(host, apk_path)
-                            if apk.get("type") in ("standalone", "base"):
-                                break
-                    if download_url:
-                        break
-            time.sleep(1.5)
-
-        if not download_url:
-            print("[小米监控] 下载接口触发临时频控保护，本次暂缓")
-            return None
-
-        return {
-            "version": version_name,
-            "date": date_str,
-            "download_url": download_url,
-            "channel": "小米",
-        }
-    except Exception as e:
-        print(f"[小米监控] 查询异常: {e}")
-        return None
-
-
-# =====================================================================
-# 2. OPPO 软件商店监控模块 (逆向动态签名 + 302 调度穿透)
-# =====================================================================
-def generate_oppo_sign(path, query_str, t_str):
-    decoded_query = urllib.parse.unquote(query_str)
-    raw_str = f"{OPPO_OCS}{t_str}{OPPO_ID_HEADER}{path}{decoded_query}"
-    raw_bytes = raw_str.encode("utf-8")
-    len_bytes = str(len(raw_str) + 48).encode("utf-8")
-    m = hashlib.md5()
-    m.update(OPPO_SALT1)
-    m.update(raw_bytes)
-    m.update(len_bytes)
-    m.update(OPPO_SALT2)
-    return m.hexdigest().lower()
-
-
-def build_oppo_headers(path, query_str=""):
-    t_str = str(int(time.time() * 1000))
-    dynamic_sign = generate_oppo_sign(path, query_str, t_str)
-    return {
-        "User-Agent": OPPO_UA,
-        "Accept": "application/json; charset=UTF-8",
-        "id": OPPO_ID_HEADER,
-        "cpu-abilist": "arm64-v8a,armeabi-v7a,armeabi",
-        "ocs": OPPO_OCS,
-        "oak": OPPO_OAK,
-        "t": t_str,
-        "sign": dynamic_sign,
-        "Connection": "Keep-Alive",
-    }
-
-
-def get_oppo_info():
-    """获取 OPPO 软件商店 QQ 的版本信息与下载直链"""
-    print("[OPPO监控] 正在向官方接口查询线上版本...")
-    try:
-        detail_path = f"/detail/v5/{OPPO_APP_ID}"
-        params = {
-            "appId": OPPO_APP_ID,
-            "query": "1,2,3,4,5,6,7,8,9,10,12,15,16,17,19,20",
-        }
-        query_str = urllib.parse.urlencode(params)
-        detail_headers = build_oppo_headers(detail_path, query_str)
-        url = f"https://api-cn.store.heytapmobi.com{detail_path}"
-
-        resp = requests.get(url, headers=detail_headers, params=params, timeout=20)
-        if resp.status_code != 200:
-            print(f"[OPPO监控] 详情接口请求失败: HTTP {resp.status_code}")
-            return None
-
-        data = resp.json().get("base", {})
-        if not data:
-            print("[OPPO监控] 未能解析到应用详情数据")
-            return None
-
-        ver_name = str(data.get("verName", "")).strip()
-        ver_id = data.get("verId")
-
-        raw_date = data.get("publishTime") or data.get("updateTime") or data.get("createTime")
-        date_str = validate_date_str(raw_date) or time.strftime("%Y-%m-%d")
-
-        if not ver_name or not ver_id:
-            print(f"[OPPO监控] 未能提取到 verName 或 verId: verName={ver_name}, verId={ver_id}")
-            return None
-
-        download_path = f"/download/v1/{ver_id}"
-        download_api_url = f"https://api-cn.store.heytapmobi.com{download_path}"
-        download_headers = build_oppo_headers(download_path, query_str="")
-
-        r_dispatch = requests.get(download_api_url, headers=download_headers, allow_redirects=False, timeout=15)
-        real_cdn_url = None
-        if r_dispatch.status_code == 302:
-            real_cdn_url = r_dispatch.headers.get("Location")
-        elif r_dispatch.status_code == 200:
-            real_cdn_url = download_api_url
-
-        if not real_cdn_url:
-            print(f"[OPPO监控] 获取下载直链失败: HTTP {r_dispatch.status_code}")
-            return None
-
-        return {
-            "version": ver_name,
-            "date": date_str,
-            "download_url": real_cdn_url,
-            "channel": "OPPO",
-        }
-    except Exception as e:
-        print(f"[OPPO监控] 查询异常: {e}")
-        return None
-
-
-# =====================================================================
-# 3. 华为应用市场 (HiSpace) 监控模块
-# =====================================================================
-def get_huawei_info():
-    """获取华为应用市场 (HiSpace) 的版本信息与下载直链"""
-    print("[华为监控] 正在向官方接口查询线上版本...")
-    try:
-        headers = {
-            "User-Agent": "HiSpace##16.7.1.300##CatGril##MeeowPhone",
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/json",
-        }
-        data = {
-            "method": "client.appDetailById",
-            "serviceType": "0",
-            "ver": "1.1",
-            "sign": "CatGirl",
-            "id": "C9319",
-            "package": "com.tencent.mobileqq",
-            "source": "autoList",
-            "deviceSpecParams": json.dumps({"abis": "arm64-v8a,armeabi-v7a,armeabi"}),
-        }
-        resp = requests.post(HUAWEI_API_URL, headers=headers, data=data, timeout=20)
-        if resp.status_code != 200:
-            print(f"[华为监控] 请求接口失败: HTTP {resp.status_code}")
-            return None
-
-        res_json = resp.json()
-        detail_list = res_json.get("detailInfo")
-        if not detail_list or not isinstance(detail_list, list) or len(detail_list) == 0:
-            print(f"[华为监控] 响应无有效 detailInfo 数据: {res_json}")
-            return None
-
-        item = detail_list[0]
-        version_name = str(item.get("versionName", "")).strip()
-        release_date = str(item.get("releaseDate", "")).strip()
-        download_url = str(item.get("url", "")).strip()
-
-        date_str = validate_date_str(release_date) or time.strftime("%Y-%m-%d")
-
-        if not version_name or not download_url:
-            print(f"[华为监控] 未能提取到版本号或直链: ver={version_name}")
-            return None
-
-        return {
-            "version": version_name,
-            "date": date_str,
-            "download_url": download_url,
-            "channel": "华为",
-        }
-    except Exception as e:
-        print(f"[华为监控] 查询异常: {e}")
-        return None
-
-
-# =====================================================================
-# 4. vivo 应用商店监控模块 (基于官方开放 Package 接口)
-# =====================================================================
-def get_vivo_info():
-    """获取 vivo 应用商店 QQ 的版本信息与下载直链"""
-    print("[vivo监控] 正在向官方接口查询线上版本...")
-    try:
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "User-Agent": (
-                "AndroidAppStore/13 (Linux; U; Android 13; TrebleDroid vanilla Build/TQ3A.230901.001)"
-            )
-        }
-        body_data = "id=40439&app_version=55910&versioncode=16410&content_complete=1&opFlags=2147219326&opFlagV2=____f9__3wc"
-
-        resp = requests.post(VIVO_PACKAGE_URL, headers=headers, data=body_data, timeout=20)
-        if resp.status_code != 200:
-            print(f"[vivo监控] 请求接口失败: HTTP {resp.status_code}")
-            return None
-
-        res_json = resp.json()
-        val = res_json.get("value")
-        if not val or not isinstance(val, dict):
-            print(f"[vivo监控] 响应无有效 value 数据: {res_json}")
-            return None
-
-        version_name = str(val.get("version_name", "")).strip()
-        upload_time = str(val.get("upload_time", "")).strip()
-        dl_url = str(val.get("download_url", "")).strip() or VIVO_DOWNLOAD_URL
-
-        date_str = validate_date_str(upload_time.split(" ")[0]) if upload_time else None
-        if not date_str:
-            date_str = time.strftime("%Y-%m-%d")
-
-        if not version_name:
-            print("[vivo监控] 未能获取到 version_name")
-            return None
-
-        return {
-            "version": version_name,
-            "date": date_str,
-            "download_url": dl_url,
-            "channel": "vivo",
-        }
-    except Exception as e:
-        print(f"[vivo监控] 查询异常: {e}")
-        return None
-
-
-# =====================================================================
-# 5. 腾讯应用宝 (微下载) 监控与解析模块
-# =====================================================================
-def get_yingyongbao_info():
-    """获取腾讯应用宝页面的版本信息、更新日期及“通过第三方浏览器下载”直链"""
-    print("[应用宝监控] 正在检索微下载页面...")
-    try:
-        headers = dict(DEFAULT_HEADERS)
-        headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-
-        resp = requests.get(YYB_URL, headers=headers, timeout=20)
-        if resp.status_code != 200:
-            print(f"[应用宝监控] 请求网页失败: HTTP {resp.status_code}")
-            return None
-
-        html_text = resp.text
-        soup = BeautifulSoup(html_text, "html.parser")
-
-        version = None
-        m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
-        if m_ver:
-            version = m_ver.group(1).strip()
-
-        download_url = None
-        for tag in soup.find_all(["a", "div", "button", "span"]):
-            t_text = tag.get_text().strip()
-            if "通过第三方浏览器下载" in t_text or "第三方浏览器" in t_text:
-                url_cand = tag.get("href") or tag.get("data-apkurl") or tag.get("data-url") or tag.get("data-download")
-                if url_cand and ("http://" in url_cand or "https://" in url_cand or url_cand.startswith("//")):
-                    download_url = url_cand
-                    break
-
-        if not download_url:
-            m_apk = re.search(r'["\']?(?:apkUrl|downUrl|downloadUrl|apk_url)["\']?\s*[:=]\s*["\'](https?://[^"\']+\.apk[^"\']*)["\']', html_text)
-            if m_apk:
-                download_url = m_apk.group(1).strip()
-
-        if not download_url:
-            m_any_apk = re.search(r'https?://[a-zA-Z0-9_.-]+(?:myapp\.com|qq\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', html_text)
-            if m_any_apk:
-                download_url = m_any_apk.group(0).strip()
-
-        if not download_url:
-            try:
-                d_resp = requests.get("https://sj.qq.com/appdetail/com.tencent.mobileqq", headers=headers, timeout=10)
-                if d_resp.status_code == 200:
-                    m_d_apk = re.search(r'["\']?(?:apkUrl|url|download_url)["\']?\s*[:=]\s*["\'](https?://[^"\']+\.apk[^"\']*)["\']', d_resp.text)
-                    if m_d_apk:
-                        download_url = m_d_apk.group(1).strip()
-            except Exception:
-                pass
-
-        if download_url and download_url.startswith("//"):
-            download_url = "https:" + download_url
-
-        date_str = None
-        m_ctx = re.search(
-            r"(?:更新时间|发布时间|更新日期|时间)[：:\s]*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
-            html_text
-        )
-        if m_ctx:
-            date_str = validate_date_str(m_ctx.group(1))
-
-        if not date_str:
-            m_ts = re.search(r'["\']?(?:apkPublishTime|publishTime|updateTime)["\']?\s*[:=]\s*["\']?(\d{10,13})["\']?', html_text)
-            if m_ts:
-                raw_ts = int(m_ts.group(1))
-                if raw_ts > 10000000000:
-                    raw_ts = raw_ts // 1000
-                date_str = validate_date_str(time.strftime("%Y-%m-%d", time.localtime(raw_ts)))
-
-        if not date_str and download_url:
-            try:
-                head_resp = requests.head(download_url, headers=headers, timeout=5, allow_redirects=True)
-                last_mod = head_resp.headers.get("Last-Modified")
-                if last_mod:
-                    gmt_time = time.strptime(last_mod, "%a, %d %b %Y %H:%M:%S GMT")
-                    date_str = validate_date_str(time.strftime("%Y-%m-%d", gmt_time))
-            except Exception:
-                pass
-
-        if not date_str:
-            date_str = time.strftime("%Y-%m-%d")
-
-        if not version or not download_url:
-            print(f"[应用宝监控] 解析异常: 版本={version}, 下载URL={download_url}")
-            return None
-
-        return {
-            "version": version,
-            "date": date_str,
-            "download_url": download_url,
-            "channel": "应用宝",
-        }
-    except Exception as e:
-        print(f"[应用宝监控] 抓取失败: {e}")
-        return None
-
-
-# =====================================================================
-# 6. 豌豆荚 (PP助手) 监控与解析模块
-# =====================================================================
-def get_wandoujia_info():
-    """获取豌豆荚页面的版本信息、更新日期及普通下载直链"""
-    print("[豌豆荚监控] 正在抓取豌豆荚详情页...")
-    try:
-        resp = requests.get(WANDOUJIA_URL, headers=DEFAULT_HEADERS, timeout=20)
-        if resp.status_code != 200:
-            print(f"[豌豆荚监控] 请求网页失败: HTTP {resp.status_code}")
-            return None
-
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        version = None
-        text_content = soup.get_text()
-        m_ver = re.search(r"版本信息[：:\s]*\n*([0-9]+(?:\.[0-9]+)+)", text_content)
-        if m_ver:
-            version = m_ver.group(1).strip()
-
-        date_str = None
-        m_date = re.search(r"更新时间[：:\s]*\n*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2})", text_content)
-        if m_date:
-            date_str = validate_date_str(m_date.group(1))
-
-        if not date_str:
-            date_str = time.strftime("%Y-%m-%d")
-
-        download_url = None
-        for a in soup.find_all("a"):
-            a_text = a.get_text().strip()
-            if "普通下载" in a_text:
-                download_url = a.get("href") or a.get("data-download") or a.get("data-url")
-                break
-
-        if not download_url:
-            for a in soup.find_all("a", href=True):
-                if "普通下载" in a.get_text():
-                    download_url = a["href"]
-                    break
-
-        if not version or not download_url:
-            print(f"[豌豆荚监控] 解析异常: 版本={version}, 下载URL={download_url}")
-            return None
-
-        download_url = urljoin(WANDOUJIA_URL, download_url.strip())
-
-        return {
-            "version": version,
-            "date": date_str,
-            "download_url": download_url,
-            "channel": "豌豆荚",
-        }
-    except Exception as e:
-        print(f"[豌豆荚监控] 抓取失败: {e}")
-        return None
-
-
-# =====================================================================
-# 7. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
-# =====================================================================
-def get_latest_message():
-    """获取频道的最新一条有效更新消息"""
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        )
-    }
-    resp = requests.get(TG_CHANNEL_URL, headers=headers, timeout=30)
-    if resp.status_code != 200:
-        print(f"[TG 监控] 无法连接到 Telegram 频道: HTTP {resp.status_code}")
-        return None
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    msg_divs = [
-        div
-        for div in soup.find_all("div", class_="tgme_widget_message")
-        if div.get("data-post") and "/" in div.get("data-post")
-    ]
-    if not msg_divs:
-        print("[TG 监控] 未找到任何消息节点")
-        return None
-
-    latest_msg = msg_divs[-1]
-    time_elem = latest_msg.find("time")
-    raw_date = time_elem["datetime"][:10] if time_elem else None
-    date_str = validate_date_str(raw_date) or "Unknown"
-    text_elem = latest_msg.find("div", class_="tgme_widget_message_text")
-
-    return {
-        "post_id": latest_msg.get("data-post"),
-        "date": date_str,
-        "html": str(text_elem) if text_elem else "",
-        "text": text_elem.get_text() if text_elem else "",
-    }
-
-
-def parse_tasks_from_message(msg):
-    """解析 TG 消息包含的所有架构直链"""
-    text = msg["text"]
-    html = msg["html"]
-    date = msg["date"]
-
-    is_beta = bool(re.search(r"#Beta\b", text, re.IGNORECASE))
-
-    win_ver = ""
-    mac_ver = ""
-    linux_ver = ""
-    android_ver = ""
-
-    m_win = re.search(r"Windows QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
-    if m_win:
-        win_ver = m_win.group(1)
-    m_mac = re.search(r"Mac(?:OS)? QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
-    if m_mac:
-        mac_ver = m_mac.group(1)
-    m_linux = re.search(r"Linux QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
-    if m_linux:
-        linux_ver = m_linux.group(1)
-    m_android = re.search(
-        r"QQ(?:_NT)?\s*[:：]?\s*([0-9]+(?:\.[0-9]+)+(?:\([0-9]+\))?)", text
-    )
-    if m_android:
-        android_ver = m_android.group(1)
-
-    if not (win_ver or mac_ver or linux_ver or android_ver):
-        lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
-        if lines:
-            m_top = re.search(r"^([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\))?)", lines[0])
-            if m_top:
-                extracted_v = m_top.group(1).replace(" ", "")
-                if any(k in text for k in ["Windows QQ_NT", "Windows"]):
-                    win_ver = extracted_v
-                elif any(k in text for k in ["Mac QQ_NT", "MacOS", "Mac"]):
-                    mac_ver = extracted_v
-                elif any(k in text for k in ["Linux QQ_NT", "Linux"]):
-                    linux_ver = extracted_v
-                else:
-                    android_ver = extracted_v
-
-    tasks = []
-    has_desktop_platform = any(
-        p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"]
-    )
-
-    if has_desktop_platform:
-        current_platform = "Unknown"
-        lines = re.split(r"<br\s*/?>|\n", html)
-        for line in lines:
-            line_soup = BeautifulSoup(line, "html.parser")
-            line_text = line_soup.get_text()
-            if "Windows" in line_text:
-                current_platform = "Windows"
-            elif "MacOS" in line_text or "Mac" in line_text:
-                current_platform = "macOS"
-            elif "Linux" in line_text:
-                current_platform = "Linux"
-
-            version = (
-                win_ver
-                if current_platform == "Windows"
-                else mac_ver
-                if current_platform == "macOS"
-                else linux_ver
-            )
-
-            line_a_tags = line_soup.find_all("a", href=True)
-            if not line_a_tags:
-                continue
-
-            backup_links = []
-            official_links = []
-            for a in line_a_tags:
-                href = a["href"].strip()
-                a_text = a.get_text().strip()
-                if "t.me/linqiqi_backup" in href or "备份" in a_text:
-                    backup_links.append((href, a_text))
-                elif any(ext in href.lower() for ext in [".exe", ".dmg", ".deb", ".rpm", ".appimage"]) or "官网" in a_text:
-                    official_links.append((href, a_text))
-
-            chosen_links = backup_links if backup_links else official_links
-            for href, a_text in chosen_links:
-                arch = (
-                    a_text.replace("官网链接", "")
-                    .replace("频道备份", "")
-                    .replace("官网", "")
-                    .replace("备份", "")
-                    .strip()
-                )
-                if not arch:
-                    m_arch = re.search(r"\b(x64|x86|arm64|arm|loongarch|mips)\b", line_text, re.IGNORECASE)
-                    arch = m_arch.group(1).upper() if m_arch else "Package"
-                tasks.append(
-                    {
-                        "platform": current_platform,
-                        "arch": arch or "Package",
-                        "version": version or "Unknown",
-                        "date": date,
-                        "url": href,
-                        "is_beta": is_beta,
-                        "channel": "官方",
-                    }
-                )
-    else:
-        soup = BeautifulSoup(html, "html.parser")
-        a_tags = soup.find_all("a", href=True)
-
-        backup_links = []
-        official_links = []
-
-        for a in a_tags:
-            href = a["href"].strip()
-            a_text = a.get_text().strip()
-
-            if "t.me/s/" in href or "t.me/qq_updatelog" in href:
-                continue
-
-            if "t.me/linqiqi_backup" in href or "备份" in a_text:
-                backup_links.append(href)
-            elif (
-                ".apk" in href
-                or "android_apk" in href
-                or "downv6.qq.com" in href
-                or "官网" in a_text
-            ):
-                official_links.append(href)
-
-        target_urls = backup_links if backup_links else official_links
-        unique_urls = list(dict.fromkeys(target_urls))
-
-        for u in unique_urls:
-            tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": android_ver or "Unknown",
-                    "date": date,
-                    "url": u,
-                    "is_beta": is_beta,
-                    "channel": "官方",
-                }
-            )
-
-    return tasks
-
-
-# =====================================================================
-# 8. 跨市场通用静默下载与解包抽取
-# =====================================================================
-def download_target_file(url, target_dir):
-    try:
-        if "t.me/" in url:
-            cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
-            return subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,
-                timeout=SINGLE_DOWNLOAD_TIMEOUT,
-                text=True,
-            )
-        else:
-            fname = url.split("?")[0].split("/")[-1]
-            if not fname or not (fname.endswith(".apk") or "." in fname):
-                fname = "target_package.apk"
-            out_file = target_dir / fname
-
-            referer = "https://wap.pp.cn/"
-            if "vivo.com" in url:
-                referer = "https://appstore.vivo.com.cn/"
-            elif "qq.com" in url or "myapp.com" in url:
-                referer = "https://a.app.qq.com/"
-            elif "dbankcloud.com" in url or "huawei.com" in url:
-                referer = "https://appgallery.huawei.com/"
-            elif "heytap" in url or "oppo.com" in url:
-                referer = "https://store.oppomobile.com/"
-            elif "market.xiaomi.com" in url or "mi.com" in url:
-                referer = "https://app.mi.com/"
-
-            cmd = [
-                "curl",
-                "-fL",
-                "-s",
-                "-S",
-                "--no-progress-meter",
-                "-A",
-                (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-                    " AppleWebKit/537.36"
-                ),
-                "-e",
-                referer,
-                "--retry",
-                "2",
-                "--connect-timeout",
-                "20",
-                "--max-time",
-                str(SINGLE_DOWNLOAD_TIMEOUT),
-                "-o",
-                str(out_file),
-                url,
-            ]
-            return subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,
-                timeout=SINGLE_DOWNLOAD_TIMEOUT,
-                text=True,
-            )
-    except Exception as e:
-        print(f"[下载异常] {e}")
-        return None
-
-
-def get_aapt_cmd():
-    cmd = shutil.which("aapt")
-    if cmd:
-        return cmd
-    for env in ["ANDROID_HOME", "ANDROID_SDK_ROOT"]:
-        sdk = os.environ.get(env)
-        if sdk and os.path.isdir(sdk):
-            candidates = list(Path(sdk).glob("build-tools/*/aapt"))
-            if candidates:
-                return str(sorted(candidates)[-1])
-    return None
-
-
-def extract_subids_and_version(
-    extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown"
-):
-    fname_str = str(downloaded_file_path).lower()
-
-    if fname_str.endswith(".apk") or (extract_dir / "AndroidManifest.xml").exists():
-        subid_phone, subid_pad, base_vname, build_no = None, None, None, None
-        aapt_bin = get_aapt_cmd()
-        dump_text = ""
-        if aapt_bin and downloaded_file_path.exists():
-            try:
-                proc = subprocess.run(
-                    [
-                        aapt_bin,
-                        "dump",
-                        "xmltree",
-                        str(downloaded_file_path),
-                        "AndroidManifest.xml",
-                    ],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
-                dump_text = proc.stdout
-            except Exception:
-                dump_text = ""
-
-        if dump_text:
-            lines = dump_text.splitlines()
-            for idx, line in enumerate(lines):
-                if "versionName" in line and not base_vname:
-                    m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
-                    if m_vn:
-                        base_vname = m_vn.group(1).strip()
-                if "AppSetting_params" in line and not subid_phone:
-                    if "AppSetting_params_pad" not in line:
-                        ctx = "\n".join(
-                            lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                        )
-                        m_sub = re.search(r"([0-9]{9})#", ctx)
-                        if m_sub:
-                            subid_phone = m_sub.group(1)
-                if "AppSetting_params_pad" in line and not subid_pad:
-                    ctx = "\n".join(
-                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                    )
-                    m_sub = re.search(r"([0-9]{9})#", ctx)
-                    if m_sub:
-                        subid_pad = m_sub.group(1)
-                if "ANDROID_QQ_BUILD_NO" in line and not build_no:
-                    ctx = "\n".join(
-                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                    )
-                    m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
-                    if m_hex:
-                        build_no = str(int(m_hex.group(1), 16))
-                    if not build_no:
-                        m_dec = re.search(r"\(type 0x10\)([0-9]+)", ctx)
-                        if m_dec:
-                            build_no = m_dec.group(1)
-                    if not build_no:
-                        m_str = re.search(
-                            r'(?:Raw:\s*"|=")([0-9]+)"', ctx
-                        ) or re.search(r'"([0-9]+)"', ctx)
-                        if m_str:
-                            build_no = m_str.group(1)
-
-        raw_v = base_vname or fallback_ver
-        m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
-        base_3parts = m_v3.group(1) if m_v3 else raw_v
-
-        clean_ver = f"{base_3parts}.{build_no}" if build_no else base_3parts
-        pairs = []
-        if subid_phone:
-            pairs.append((subid_phone, "Phone"))
-        if subid_pad:
-            pairs.append((subid_pad, "Pad"))
-        return pairs, "Android", clean_ver
-
-    # 桌面端
-    nodes = list(extract_dir.glob("**/major.node")) or list(
-        extract_dir.glob("**/*.node")
-    )
-    pattern_new = re.compile(rb"QQAppId/([0-9]+)")
-    m_cur_build = re.search(r"\d{4,6}$", fallback_ver)
-    cur_build_bytes = (
-        m_cur_build.group(0).encode("ascii") if m_cur_build else None
-    )
-
-    for node in nodes:
-        try:
-            data = node.read_bytes()
-            subid = None
-            m_id = pattern_new.findall(data)
-            if m_id:
-                subid = m_id[0].decode("ascii")
-            else:
-                pattern_cand = re.compile(rb"(?<![0-9])(537[0-9]{6})(?![0-9])")
-                candidates = []
-                for match in pattern_cand.finditer(data):
-                    cand_subid = match.group(1).decode("ascii")
-                    context = data[
-                        max(0, match.start() - 500) : min(
-                            len(data), match.end() + 500
-                        )
-                    ]
-                    if b"fabu" not in context:
-                        continue
-                    score = 1
-                    if cur_build_bytes and cur_build_bytes in context:
-                        score += 2
-                    candidates.append((score, cand_subid))
-                if candidates:
-                    candidates.sort(key=lambda x: x[0], reverse=True)
-                    subid = candidates[0][1]
-
-            if subid:
-                path_str = str(node).lower()
-                plat = (
-                    "macOS"
-                    if (".app" in path_str or "macos" in path_str)
-                    else "Linux"
-                    if ("opt" in path_str or "linux" in path_str)
-                    else "Windows"
-                )
-                m_already_4parts = re.search(
-                    r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver
-                )
-                clean_ver = (
-                    m_already_4parts.group(1)
-                    if m_already_4parts
-                    else fallback_ver
-                )
-                return [(subid, default_arch)], plat, clean_ver
-        except Exception:
-            pass
-    return [], "Unknown", fallback_ver
-
-
-def extract_version_from_filename(filename):
-    m4 = re.search(r"(\d+\.\d+\.\d+)[-._](\d{4,6})", filename)
-    if m4:
-        return f"{m4.group(1)}.{m4.group(2)}"
-    m3 = re.search(r"(\d+\.\d+\.\d+(?:\(\d+\))?)", filename)
-    if m3:
-        return m3.group(1)
-    return None
-
-
-# =====================================================================
-# 9. 主控流程 (七源联合全量轮询：TG官方 + 豌豆荚 + 腾讯应用宝 + vivo + 华为 + OPPO + 小米)
-# =====================================================================
 def main():
     pending_tasks = []
+    versions_to_record = {}
 
-    # -------------------------------------------------------------
-    # A. 检查 Telegram 频道常规更新
-    # -------------------------------------------------------------
-    msg = get_latest_message()
-    if msg:
-        print(f"[TG 监控] 最新消息 ID: {msg['post_id']} | 日期: {msg['date']}")
-        tg_tasks = parse_tasks_from_message(msg)
-        print(f"[TG 监控] 成功解析到任务数: {len(tg_tasks)}")
-        pending_tasks.extend(tg_tasks)
-    else:
-        print("[TG 监控] 未获取到频道消息")
+    # 1. 采集 Telegram 官方更新
+    tg_tasks = get_telegram_tasks()
+    pending_tasks.extend(tg_tasks)
 
-    # -------------------------------------------------------------
-    # B. 检查 豌豆荚 (PP助手) 渠道更新
-    # -------------------------------------------------------------
-    wdj_recorded_ver = ""
-    if WDJ_VER_FILE.exists():
-        wdj_recorded_ver = WDJ_VER_FILE.read_text(encoding="utf-8").strip()
-
-    wdj_info = get_wandoujia_info()
-    wdj_new_ver_to_record = None
-
-    if wdj_info:
-        cur_wdj_ver = wdj_info["version"]
-        print(f"[豌豆荚监控] 线上版本: {cur_wdj_ver} | 本地记录版本: {wdj_recorded_ver or '无'}")
-
-        if not wdj_recorded_ver or wdj_recorded_ver != cur_wdj_ver:
-            print(f"[豌豆荚监控] 检测到新版本/首发收录: {cur_wdj_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
+    # 2. 依次遍历轮询各大手机应用市场渠道
+    for name, fetch_func, ver_file in MARKET_CHANNELS:
+        recorded_ver = ver_file.read_text(encoding="utf-8").strip() if ver_file.exists() else ""
+        info = fetch_func()
+        if info:
+            cur_ver = info["version"]
+            print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
+            if not recorded_ver or recorded_ver != cur_ver:
+                print(f"[{name}监控] 检测到新版本/首发收录: {cur_ver}，加入待处理任务！")
+                pending_tasks.append({
                     "platform": "Android",
                     "arch": "Package",
-                    "version": cur_wdj_ver,
-                    "date": wdj_info["date"],
-                    "url": wdj_info["download_url"],
+                    "version": cur_ver,
+                    "date": info["date"],
+                    "url": info["download_url"],
                     "is_beta": False,
-                    "channel": "豌豆荚",
-                    "mark_wdj_version": cur_wdj_ver,
-                }
-            )
-        else:
-            print("[豌豆荚监控] 线上版本与记录一致，无需下载。")
-
-    # -------------------------------------------------------------
-    # C. 检查 腾讯应用宝 (微下载) 渠道更新
-    # -------------------------------------------------------------
-    yyb_recorded_ver = ""
-    if YYB_VER_FILE.exists():
-        yyb_recorded_ver = YYB_VER_FILE.read_text(encoding="utf-8").strip()
-
-    yyb_info = get_yingyongbao_info()
-    yyb_new_ver_to_record = None
-
-    if yyb_info:
-        cur_yyb_ver = yyb_info["version"]
-        print(f"[应用宝监控] 线上版本: {cur_yyb_ver} | 本地记录版本: {yyb_recorded_ver or '无'}")
-
-        if not yyb_recorded_ver or yyb_recorded_ver != cur_yyb_ver:
-            print(f"[应用宝监控] 检测到新版本/首发收录: {cur_yyb_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_yyb_ver,
-                    "date": yyb_info["date"],
-                    "url": yyb_info["download_url"],
-                    "is_beta": False,
-                    "channel": "应用宝",
-                    "mark_yyb_version": cur_yyb_ver,
-                }
-            )
-        else:
-            print("[应用宝监控] 线上版本与记录一致，无需下载。")
-
-    # -------------------------------------------------------------
-    # D. 检查 vivo 应用商店 渠道更新
-    # -------------------------------------------------------------
-    vivo_recorded_ver = ""
-    if VIVO_VER_FILE.exists():
-        vivo_recorded_ver = VIVO_VER_FILE.read_text(encoding="utf-8").strip()
-
-    vivo_info = get_vivo_info()
-    vivo_new_ver_to_record = None
-
-    if vivo_info:
-        cur_vivo_ver = vivo_info["version"]
-        print(f"[vivo监控] 线上版本: {cur_vivo_ver} | 本地记录版本: {vivo_recorded_ver or '无'}")
-
-        if not vivo_recorded_ver or vivo_recorded_ver != cur_vivo_ver:
-            print(f"[vivo监控] 检测到新版本/首发收录: {cur_vivo_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_vivo_ver,
-                    "date": vivo_info["date"],
-                    "url": vivo_info["download_url"],
-                    "is_beta": False,
-                    "channel": "vivo",
-                    "mark_vivo_version": cur_vivo_ver,
-                }
-            )
-        else:
-            print("[vivo监控] 线上版本与记录一致，无需下载。")
-
-    # -------------------------------------------------------------
-    # E. 检查 华为应用市场 渠道更新
-    # -------------------------------------------------------------
-    huawei_recorded_ver = ""
-    if HUAWEI_VER_FILE.exists():
-        huawei_recorded_ver = HUAWEI_VER_FILE.read_text(encoding="utf-8").strip()
-
-    huawei_info = get_huawei_info()
-    huawei_new_ver_to_record = None
-
-    if huawei_info:
-        cur_huawei_ver = huawei_info["version"]
-        print(f"[华为监控] 线上版本: {cur_huawei_ver} | 本地记录版本: {huawei_recorded_ver or '无'}")
-
-        if not huawei_recorded_ver or huawei_recorded_ver != cur_huawei_ver:
-            print(f"[华为监控] 检测到新版本/首发收录: {cur_huawei_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_huawei_ver,
-                    "date": huawei_info["date"],
-                    "url": huawei_info["download_url"],
-                    "is_beta": False,
-                    "channel": "华为",
-                    "mark_huawei_version": cur_huawei_ver,
-                }
-            )
-        else:
-            print("[华为监控] 线上版本与记录一致，无需下载。")
-
-    # -------------------------------------------------------------
-    # F. 检查 OPPO 软件商店 渠道更新
-    # -------------------------------------------------------------
-    oppo_recorded_ver = ""
-    if OPPO_VER_FILE.exists():
-        oppo_recorded_ver = OPPO_VER_FILE.read_text(encoding="utf-8").strip()
-
-    oppo_info = get_oppo_info()
-    oppo_new_ver_to_record = None
-
-    if oppo_info:
-        cur_oppo_ver = oppo_info["version"]
-        print(f"[OPPO监控] 线上版本: {cur_oppo_ver} | 本地记录版本: {oppo_recorded_ver or '无'}")
-
-        if not oppo_recorded_ver or oppo_recorded_ver != cur_oppo_ver:
-            print(f"[OPPO监控] 检测到新版本/首发收录: {cur_oppo_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_oppo_ver,
-                    "date": oppo_info["date"],
-                    "url": oppo_info["download_url"],
-                    "is_beta": False,
-                    "channel": "OPPO",
-                    "mark_oppo_version": cur_oppo_ver,
-                }
-            )
-        else:
-            print("[OPPO监控] 线上版本与记录一致，无需下载。")
-
-    # -------------------------------------------------------------
-    # G. 检查 小米应用商店 渠道更新 (APM 官方私有协议)
-    # -------------------------------------------------------------
-    xiaomi_recorded_ver = ""
-    if XIAOMI_VER_FILE.exists():
-        xiaomi_recorded_ver = XIAOMI_VER_FILE.read_text(encoding="utf-8").strip()
-
-    xiaomi_info = get_xiaomi_info()
-    xiaomi_new_ver_to_record = None
-
-    if xiaomi_info:
-        cur_xiaomi_ver = xiaomi_info["version"]
-        print(f"[小米监控] 线上版本: {cur_xiaomi_ver} | 本地记录版本: {xiaomi_recorded_ver or '无'}")
-
-        if not xiaomi_recorded_ver or xiaomi_recorded_ver != cur_xiaomi_ver:
-            print(f"[小米监控] 检测到新版本/首发收录: {cur_xiaomi_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_xiaomi_ver,
-                    "date": xiaomi_info["date"],
-                    "url": xiaomi_info["download_url"],
-                    "is_beta": False,
-                    "channel": "小米",
-                    "mark_xiaomi_version": cur_xiaomi_ver,
-                }
-            )
-        else:
-            print("[小米监控] 线上版本与记录一致，无需下载。")
+                    "channel": name,
+                    "mark_channel_name": name,
+                    "mark_version_val": cur_ver,
+                    "ver_file_path": ver_file,
+                })
+            else:
+                print(f"[{name}监控] 线上版本与记录一致，无需下载。")
 
     if not pending_tasks:
         print("[状态] 遍历完毕，所有渠道均无新版本。")
         sys.exit(0)
 
-    # -------------------------------------------------------------
-    # H. 读取已有数据库并做 URL 去重排队
-    # -------------------------------------------------------------
+    # 3. 读主数据库并做 URL 去重排队
     subid_map = {}
     if DATA_FILE.exists():
-        try:
-            subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        try: subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        except Exception: subid_map = {}
 
-    processed_urls = set()
-    for val in subid_map.values():
-        items = val if isinstance(val, list) else [val]
-        for it in items:
-            u = it.get("source_url")
-            if u:
-                processed_urls.add(u)
+    processed_urls = {
+        item.get("source_url")
+        for val in subid_map.values()
+        for item in (val if isinstance(val, list) else [val])
+        if item.get("source_url")
+    }
 
     tasks_to_run = [t for t in pending_tasks if t["url"] not in processed_urls]
     github_output = os.environ.get("GITHUB_OUTPUT")
@@ -1355,22 +104,18 @@ def main():
         print("[状态] 所有目标任务的直链均已录入，无需重复处理。")
         if github_output:
             with open(github_output, "a", encoding="utf-8") as f:
-                f.write("has_new_version=false\n")
-                f.write("trigger_decompile=false\n")
+                f.write("has_new_version=false\ntrigger_decompile=false\n")
         return
 
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个任务待处理！")
+    has_android, android_info, has_subid_extracted = False, {}, False
 
-    has_android = False
-    android_info = {}
-    has_subid_extracted = False
-
+    # 4. 执行批量下载、解包与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
 
-        if TEMP_DL.exists():
-            shutil.rmtree(TEMP_DL)
+        if TEMP_DL.exists(): shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
         proc = download_target_file(t["url"], TEMP_DL)
@@ -1378,106 +123,52 @@ def main():
             print("[跳过] 下载失败")
             continue
 
-        dl_files = [
-            f
-            for f in TEMP_DL.rglob("*")
-            if f.is_file() and not f.name.endswith(".tdl")
-        ]
-        if not dl_files:
-            continue
+        dl_files = [f for f in TEMP_DL.rglob("*") if f.is_file() and not f.name.endswith(".tdl")]
+        if not dl_files: continue
 
         downloaded_file = dl_files[0]
         fname = downloaded_file.name
         base_ver = extract_version_from_filename(fname) or t["version"]
 
-        if TEMP_EXTRACT.exists():
-            shutil.rmtree(TEMP_EXTRACT)
+        if TEMP_EXTRACT.exists(): shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
 
         try:
             lf = fname.lower()
             if lf.endswith(".deb"):
-                subprocess.run(
-                    ["dpkg-deb", "-x", str(downloaded_file), str(TEMP_EXTRACT)],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                subprocess.run(["dpkg-deb", "-x", str(downloaded_file), str(TEMP_EXTRACT)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             elif lf.endswith(".rpm"):
-                cmd = f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv"
-                subprocess.run(
-                    cmd,
-                    shell=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                subprocess.run(f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
-                subprocess.run(
-                    ["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                subprocess.run(["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 hfs = list(TEMP_EXTRACT.glob("**/*.hfs"))
                 if hfs:
-                    subprocess.run(
-                        [
-                            "7z",
-                            "x",
-                            str(hfs[0]),
-                            f"-o{TEMP_EXTRACT}/hfs_out",
-                            "-y",
-                        ],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
+                    subprocess.run(["7z", "x", str(hfs[0]), f"-o{TEMP_EXTRACT}/hfs_out", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            subid_pairs, plat, clean_ver = extract_subids_and_version(
-                TEMP_EXTRACT, downloaded_file, t["arch"], base_ver
-            )
+            subid_pairs, plat, clean_ver = extract_subids_and_version(TEMP_EXTRACT, downloaded_file, t["arch"], base_ver)
             if subid_pairs:
                 has_subid_extracted = True
                 if t.get("is_beta") and not clean_ver.endswith("-Beta"):
                     clean_ver = f"{clean_ver}-Beta"
 
                 for s_id, a_val in subid_pairs:
-                    channel_label = t.get("channel", "官方")
-                    print(
-                        f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {channel_label} | SubID: {s_id}"
-                    )
-                    item = {
-                        "version": clean_ver,
-                        "platform": plat,
-                        "arch": a_val,
-                        "date": t["date"],
-                        "source_url": t["url"],
-                        "channel": channel_label,
+                    ch_label = t.get("channel", "官方")
+                    print(f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {ch_label} | SubID: {s_id}")
+                    new_item = {
+                        "version": clean_ver, "platform": plat, "arch": a_val,
+                        "date": t["date"], "source_url": t["url"], "channel": ch_label,
                     }
-                    if s_id not in subid_map:
-                        subid_map[s_id] = [item]
+                    if s_id not in subid_map: subid_map[s_id] = [new_item]
                     else:
-                        if isinstance(subid_map[s_id], dict):
-                            subid_map[s_id] = [subid_map[s_id]]
-                        subid_map[s_id].append(item)
+                        if isinstance(subid_map[s_id], dict): subid_map[s_id] = [subid_map[s_id]]
+                        subid_map[s_id].append(new_item)
 
-                if t.get("mark_wdj_version"):
-                    wdj_new_ver_to_record = t["mark_wdj_version"]
-                if t.get("mark_yyb_version"):
-                    yyb_new_ver_to_record = t["mark_yyb_version"]
-                if t.get("mark_vivo_version"):
-                    vivo_new_ver_to_record = t["mark_vivo_version"]
-                if t.get("mark_huawei_version"):
-                    huawei_new_ver_to_record = t["mark_huawei_version"]
-                if t.get("mark_oppo_version"):
-                    oppo_new_ver_to_record = t["mark_oppo_version"]
-                if t.get("mark_xiaomi_version"):
-                    xiaomi_new_ver_to_record = t["mark_xiaomi_version"]
+                if t.get("mark_channel_name"):
+                    versions_to_record[t["ver_file_path"]] = (t["mark_channel_name"], t["mark_version_val"])
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
-                    android_info = {
-                        "url": t["url"],
-                        "version": clean_ver,
-                        "is_beta": "true" if t.get("is_beta") else "false",
-                    }
+                    android_info = {"url": t["url"], "version": clean_ver, "is_beta": "true" if t.get("is_beta") else "false"}
         finally:
             shutil.rmtree(TEMP_DL, ignore_errors=True)
             shutil.rmtree(TEMP_EXTRACT, ignore_errors=True)
@@ -1486,70 +177,33 @@ def main():
         print("[状态] 本批次下载解析未能提取到有效 SubID，取消落盘。")
         return
 
-    # -------------------------------------------------------------
-    # I. 原子落盘主数据库 data/qq_subid_map.json
-    # -------------------------------------------------------------
+    # 5. 原子落盘保存主数据库 data/qq_subid_map.json
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
-    temp_file.write_text(
-        json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    if DATA_FILE.exists():
-        shutil.copy2(DATA_FILE, BAK_FILE)
+    temp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
+    if DATA_FILE.exists(): shutil.copy2(DATA_FILE, BAK_FILE)
     temp_file.replace(DATA_FILE)
 
-    # -------------------------------------------------------------
-    # J. 同步派生编译出运行时字典 data/subid.json
-    # -------------------------------------------------------------
+    # 6. 同步派生编译出运行时字典 data/subid.json
     try:
         compiled_data = compile_subid_map_to_runtime_dict(subid_map)
         runtime_file = DATA_FILE.parent / "subid.json"
         temp_rt = runtime_file.with_suffix(".tmp")
-        temp_rt.write_text(
-            json.dumps(compiled_data, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        temp_rt.write_text(json.dumps(compiled_data, indent=2, ensure_ascii=False), encoding="utf-8")
         temp_rt.replace(runtime_file)
         print(f"[运行时同步] 已派生编译 data/subid.json (收录 {len(compiled_data)} 条)")
     except Exception as e:
         print(f"[警告] 编译运行时字典异常: {e}")
 
-    # -------------------------------------------------------------
-    # K. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
-    # -------------------------------------------------------------
-    if wdj_new_ver_to_record:
-        WDJ_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        WDJ_VER_FILE.write_text(wdj_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 豌豆荚最新版本 {wdj_new_ver_to_record} 已成功写入 {WDJ_VER_FILE}")
-
-    if yyb_new_ver_to_record:
-        YYB_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        YYB_VER_FILE.write_text(yyb_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 应用宝最新版本 {yyb_new_ver_to_record} 已成功写入 {YYB_VER_FILE}")
-
-    if vivo_new_ver_to_record:
-        VIVO_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        VIVO_VER_FILE.write_text(vivo_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] vivo最新版本 {vivo_new_ver_to_record} 已成功写入 {VIVO_VER_FILE}")
-
-    if huawei_new_ver_to_record:
-        HUAWEI_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        HUAWEI_VER_FILE.write_text(huawei_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 华为最新版本 {huawei_new_ver_to_record} 已成功写入 {HUAWEI_VER_FILE}")
-
-    if oppo_new_ver_to_record:
-        OPPO_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        OPPO_VER_FILE.write_text(oppo_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] OPPO最新版本 {oppo_new_ver_to_record} 已成功写入 {OPPO_VER_FILE}")
-
-    if xiaomi_new_ver_to_record:
-        XIAOMI_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        XIAOMI_VER_FILE.write_text(xiaomi_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 小米最新版本 {xiaomi_new_ver_to_record} 已成功写入 {XIAOMI_VER_FILE}")
+    # 7. 满足要求：在所有 SubID 全部成功入库落盘后，最后批量写入版本记录文件
+    for ver_path, (ch_name, ver_val) in versions_to_record.items():
+        ver_path.parent.mkdir(parents=True, exist_ok=True)
+        ver_path.write_text(ver_val.strip(), encoding="utf-8")
+        print(f"[版本记录] {ch_name}最新版本 {ver_val} 已成功写入 {ver_path}")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
-    # 联动输出：告知 GitHub Actions
+    # 8. GitHub Actions 联动输出
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write("has_new_version=true\n")
