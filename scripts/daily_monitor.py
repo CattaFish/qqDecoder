@@ -18,10 +18,12 @@ sys.stderr.reconfigure(line_buffering=True)
 
 TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 WANDOUJIA_URL = "https://wap.pp.cn/app_zYoOzyuL/"
+YYB_URL = "https://a.app.qq.com/o/simple.jsp?pkgname=com.tencent.mobileqq"
 
 DATA_FILE = Path("data/qq_subid_map.json")
 BAK_FILE = Path("data/qq_subid_map.json.bak")
 WDJ_VER_FILE = Path("data/wandoujia_latest_version.txt")
+YYB_VER_FILE = Path("data/yingyongbao_latest_version.txt")
 
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
@@ -36,7 +38,89 @@ DEFAULT_HEADERS = {
 
 
 # =====================================================================
-# 1. 豌豆荚 (PP助手) 监控与解析模块
+# 1. 腾讯应用宝 (微下载) 监控与解析模块
+# =====================================================================
+def get_yingyongbao_info():
+    """获取腾讯应用宝页面的版本信息、更新日期及“通过第三方浏览器下载”直链"""
+    try:
+        headers = dict(DEFAULT_HEADERS)
+        headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+
+        resp = requests.get(YYB_URL, headers=headers, timeout=20)
+        if resp.status_code != 200:
+            print(f"[应用宝] 请求网页失败: HTTP {resp.status_code}")
+            return None
+
+        html_text = resp.text
+        soup = BeautifulSoup(html_text, "html.parser")
+
+        # 1. 提取版本号 (优先匹配第一处主应用版本，避免匹配底部应用宝自身服务版本)
+        version = None
+        m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
+        if m_ver:
+            version = m_ver.group(1).strip()
+
+        # 2. 提取更新日期 (若页面未标注，默认当天)
+        date_str = time.strftime("%Y-%m-%d")
+        m_date = re.search(r"(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})", html_text)
+        if m_date:
+            date_str = m_date.group(1).replace("/", "-").replace(".", "-").strip()
+
+        # 3. 提取“通过第三方浏览器下载”的 APK 直链
+        download_url = None
+
+        # 策略 A: 遍历所有包含“通过第三方浏览器下载”的元素属性
+        for tag in soup.find_all(["a", "div", "button", "span"]):
+            t_text = tag.get_text().strip()
+            if "通过第三方浏览器下载" in t_text or "第三方浏览器" in t_text:
+                url_cand = tag.get("href") or tag.get("data-apkurl") or tag.get("data-url") or tag.get("data-download")
+                if url_cand and ("http://" in url_cand or "https://" in url_cand or url_cand.startswith("//")):
+                    download_url = url_cand
+                    break
+
+        # 策略 B: 扫描脚本中的变量 (apkUrl / downUrl)
+        if not download_url:
+            m_apk = re.search(r'["\']?(?:apkUrl|downUrl|downloadUrl|apk_url)["\']?\s*[:=]\s*["\'](https?://[^"\']+\.apk[^"\']*)["\']', html_text)
+            if m_apk:
+                download_url = m_apk.group(1).strip()
+
+        # 策略 C: 扫描页面内所有腾讯官方 APK 下载直链 (myapp.com / qq.com)
+        if not download_url:
+            m_any_apk = re.search(r'https?://[a-zA-Z0-9_.-]+(?:myapp\.com|qq\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', html_text)
+            if m_any_apk:
+                download_url = m_any_apk.group(0).strip()
+
+        # 策略 D: 官网详情接口兜底
+        if not download_url:
+            try:
+                d_resp = requests.get("https://sj.qq.com/appdetail/com.tencent.mobileqq", headers=headers, timeout=10)
+                if d_resp.status_code == 200:
+                    m_d_apk = re.search(r'["\']?(?:apkUrl|url|download_url)["\']?\s*[:=]\s*["\'](https?://[^"\']+\.apk[^"\']*)["\']', d_resp.text)
+                    if m_d_apk:
+                        download_url = m_d_apk.group(1).strip()
+            except Exception:
+                pass
+
+        if download_url and download_url.startswith("//"):
+            download_url = "https:" + download_url
+
+        if not version or not download_url:
+            print(f"[应用宝] 解析异常: 版本={version}, 下载URL={download_url}")
+            return None
+
+        return {
+            "version": version,
+            "date": date_str,
+            "download_url": download_url,
+            "channel": "应用宝",
+        }
+    except Exception as e:
+        print(f"[应用宝] 抓取失败: {e}")
+        return None
+
+
+# =====================================================================
+# 2. 豌豆荚 (PP助手) 监控与解析模块
 # =====================================================================
 def get_wandoujia_info():
     """获取豌豆荚页面的版本信息、更新日期及普通下载直链"""
@@ -91,7 +175,7 @@ def get_wandoujia_info():
 
 
 # =====================================================================
-# 2. Telegram 频道解析模块 (全面兼容 Markdown 超链接与新格式)
+# 3. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
 # =====================================================================
 def get_latest_message():
     """获取频道的最新一条有效更新消息"""
@@ -129,7 +213,7 @@ def get_latest_message():
 
 
 def parse_tasks_from_message(msg):
-    """解析该消息包含的所有架构直链，兼容 Markdown 超链接与新版排版"""
+    """解析 TG 消息包含的所有架构直链，兼容 Markdown 超链接与新版排版"""
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
@@ -141,7 +225,6 @@ def parse_tasks_from_message(msg):
     linux_ver = ""
     android_ver = ""
 
-    # 1. 尝试常规带前缀的版本号提取
     m_win = re.search(r"Windows QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
     if m_win:
         win_ver = m_win.group(1)
@@ -157,7 +240,6 @@ def parse_tasks_from_message(msg):
     if m_android:
         android_ver = m_android.group(1)
 
-    # 2. 兼容新格式：首行无前缀直接是版本号（例如 "9.3.75.42350 (16580)"）
     if not (win_ver or mac_ver or linux_ver or android_ver):
         lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
         if lines:
@@ -174,8 +256,6 @@ def parse_tasks_from_message(msg):
                     android_ver = extracted_v
 
     tasks = []
-
-    # 3. 区分桌面端与移动端进行超链接智能解析
     has_desktop_platform = any(
         p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"]
     )
@@ -239,7 +319,6 @@ def parse_tasks_from_message(msg):
                     }
                 )
     else:
-        # Android 端解析（涵盖新版嵌入超链接：“官网链接 | 频道备份”）
         soup = BeautifulSoup(html, "html.parser")
         a_tags = soup.find_all("a", href=True)
 
@@ -250,7 +329,6 @@ def parse_tasks_from_message(msg):
             href = a["href"].strip()
             a_text = a.get_text().strip()
 
-            # 过滤非安装包下载类链接
             if "t.me/s/" in href or "t.me/qq_updatelog" in href:
                 continue
 
@@ -264,7 +342,6 @@ def parse_tasks_from_message(msg):
             ):
                 official_links.append(href)
 
-        # 优先选择备份链接，无备份则自动退守官网直链
         target_urls = backup_links if backup_links else official_links
         unique_urls = list(dict.fromkeys(target_urls))
 
@@ -285,7 +362,7 @@ def parse_tasks_from_message(msg):
 
 
 # =====================================================================
-# 3. 底层下载与反编译抽取工具
+# 4. 底层下载与反编译抽取工具
 # =====================================================================
 def download_target_file(url, target_dir):
     try:
@@ -503,7 +580,7 @@ def extract_version_from_filename(filename):
 
 
 # =====================================================================
-# 4. 主控流程
+# 5. 主控流程 (三源轮询：TG 官方 + 豌豆荚 + 腾讯应用宝)
 # =====================================================================
 def main():
     pending_tasks = []
@@ -551,12 +628,43 @@ def main():
         else:
             print("[豌豆荚监控] 线上版本与记录一致，无需下载。")
 
+    # -------------------------------------------------------------
+    # C. 检查 腾讯应用宝 (微下载) 渠道更新
+    # -------------------------------------------------------------
+    yyb_recorded_ver = ""
+    if YYB_VER_FILE.exists():
+        yyb_recorded_ver = YYB_VER_FILE.read_text(encoding="utf-8").strip()
+
+    yyb_info = get_yingyongbao_info()
+    yyb_new_ver_to_record = None
+
+    if yyb_info:
+        cur_yyb_ver = yyb_info["version"]
+        print(f"[应用宝监控] 当前线上版本: {cur_yyb_ver} | 本地记录版本: {yyb_recorded_ver or '无'}")
+
+        if not yyb_recorded_ver or yyb_recorded_ver != cur_yyb_ver:
+            print(f"[应用宝监控] 检测到新版本/首发收录: {cur_yyb_ver}，加入待处理任务！")
+            pending_tasks.append(
+                {
+                    "platform": "Android",
+                    "arch": "Package",
+                    "version": cur_yyb_ver,
+                    "date": yyb_info["date"],
+                    "url": yyb_info["download_url"],
+                    "is_beta": False,
+                    "channel": "应用宝",
+                    "mark_yyb_version": cur_yyb_ver,
+                }
+            )
+        else:
+            print("[应用宝监控] 线上版本与记录一致，无需下载。")
+
     if not pending_tasks:
         print("[状态] 未检索到任何新任务。")
         sys.exit(0)
 
     # -------------------------------------------------------------
-    # C. 读取已有数据库并做 URL 去重排队
+    # D. 读取已有数据库并做 URL 去重排队
     # -------------------------------------------------------------
     subid_map = {}
     if DATA_FILE.exists():
@@ -685,8 +793,11 @@ def main():
 
                 if t.get("mark_wdj_version"):
                     wdj_new_ver_to_record = t["mark_wdj_version"]
+                if t.get("mark_yyb_version"):
+                    yyb_new_ver_to_record = t["mark_yyb_version"]
 
-                if plat == "Android" and t.get("channel") != "豌豆荚":
+                # 仅对官方 Android 触发后续 JADX 反编译和 Diff，避免第三方二次打包造成干扰
+                if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
                     android_info = {
                         "url": t["url"],
@@ -702,7 +813,7 @@ def main():
         return
 
     # -------------------------------------------------------------
-    # D. 原子落盘主数据库 data/qq_subid_map.json
+    # E. 原子落盘主数据库 data/qq_subid_map.json
     # -------------------------------------------------------------
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
@@ -714,7 +825,7 @@ def main():
     temp_file.replace(DATA_FILE)
 
     # -------------------------------------------------------------
-    # E. 同步派生编译出运行时字典 data/subid.json
+    # F. 同步派生编译出运行时字典 data/subid.json
     # -------------------------------------------------------------
     try:
         compiled_data = compile_subid_map_to_runtime_dict(subid_map)
@@ -730,12 +841,17 @@ def main():
         print(f"[警告] 编译运行时字典异常: {e}")
 
     # -------------------------------------------------------------
-    # F. 在所有 SubID 全部提取处理完成之后，最后保存版本文件
+    # G. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
     # -------------------------------------------------------------
     if wdj_new_ver_to_record:
         WDJ_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
         WDJ_VER_FILE.write_text(wdj_new_ver_to_record.strip(), encoding="utf-8")
         print(f"[版本记录] 豌豆荚最新版本 {wdj_new_ver_to_record} 已成功写入 {WDJ_VER_FILE}")
+
+    if yyb_new_ver_to_record:
+        YYB_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
+        YYB_VER_FILE.write_text(yyb_new_ver_to_record.strip(), encoding="utf-8")
+        print(f"[版本记录] 应用宝最新版本 {yyb_new_ver_to_record} 已成功写入 {YYB_VER_FILE}")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
