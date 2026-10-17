@@ -1,4 +1,12 @@
 {
+  "537397816": {
+    "summary": "QQ(Pad) 9.3.75.42350",
+    "platform": "Android",
+    "version": "9.3.75.42350",
+    "arch": "Pad",
+    "date": "2011-97-12",
+    "channel": "应用宝"
+  },
   "537397815": {
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
@@ -6,6 +14,13 @@
     "arch": "Pad",
     "date": "2026-10-13",
     "channel": "官方"
+  },
+  "537397777": {
+    "summary": "QQ 9.3.75.42350",
+    "platform": "Android",
+    "version": "9.3.75.42350",
+    "date": "2011-97-12",
+    "channel": "应用宝"
   },
   "537397776": {
     "summary": "QQ 9.3.75.42350",

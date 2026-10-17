@@ -5553,5 +5553,25 @@
       "source_url": "https://t.me/linqiqi_backup/2929",
       "channel": "官方"
     }
+  ],
+  "537397777": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2011-97-12",
+      "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "应用宝"
+    }
+  ],
+  "537397816": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2011-97-12",
+      "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "应用宝"
+    }
   ]
 }

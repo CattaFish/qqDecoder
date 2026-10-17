@@ -5533,5 +5533,25 @@
       "source_url": "https://wap.pp.cn/app/dl/fs08/2026/09/29/8/110_7f1c36fc2af6b3dd952c277aa39739ef.apk",
       "channel": "豌豆荚"
     }
+  ],
+  "537397776": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-13",
+      "source_url": "https://t.me/linqiqi_backup/2929",
+      "channel": "官方"
+    }
+  ],
+  "537397815": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-13",
+      "source_url": "https://t.me/linqiqi_backup/2929",
+      "channel": "官方"
+    }
   ]
 }
