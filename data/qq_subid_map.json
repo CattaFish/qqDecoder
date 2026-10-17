@@ -5593,5 +5593,25 @@
       "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
       "channel": "vivo"
     }
+  ],
+  "537395441": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-24",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/2e/2e96dfefcc8d4471876814e786eaa146/com.tencent.mobileqq.2609232243.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537395480": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-24",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/2e/2e96dfefcc8d4471876814e786eaa146/com.tencent.mobileqq.2609232243.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
   ]
 }
