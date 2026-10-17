@@ -7,6 +7,9 @@ from pathlib import Path
 
 SINGLE_DOWNLOAD_TIMEOUT = 600
 
+# 采用标准安卓系统下载器 UA，彻底杜绝各大厂商对 PC 浏览器的异常重定向
+ANDROID_DOWNLOAD_UA = "AndroidDownloadManager/13 (Linux; U; Android 13; Build/TQ3A.230901.001)"
+
 
 def validate_date_str(date_str):
     """严格校验物理公历日期合法性 (彻底杜绝 97 月等伪日期)"""
@@ -25,7 +28,7 @@ def validate_date_str(date_str):
 
 
 def download_target_file(url, target_dir):
-    """跨市场通用静默下载，自动根据域名匹配防盗链 Referer"""
+    """跨市场通用静默下载，自动根据域名匹配防盗链 Referer 并使用安卓下载器 UA"""
     try:
         if "t.me/" in url:
             cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
@@ -66,7 +69,7 @@ def download_target_file(url, target_dir):
                 "-S",
                 "--no-progress-meter",
                 "-A",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                ANDROID_DOWNLOAD_UA,
                 "-e",
                 referer,
                 "--retry",
