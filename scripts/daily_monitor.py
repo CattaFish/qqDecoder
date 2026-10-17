@@ -76,77 +76,119 @@ def validate_date_str(date_str):
 
 
 # =====================================================================
-# 1. 小米应用商店监控模块
+# 1. 小米应用商店监控模块 (多策略鲁棒提取)
 # =====================================================================
 def get_xiaomi_info():
     """获取小米应用商店 QQ 的版本信息与下载直链"""
     print("[小米监控] 正在抓取小米应用商店网页端...")
-    try:
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "zh-CN,zh;q=0.9"
-        }
-        resp = requests.get(XIAOMI_DETAIL_URL, headers=headers, timeout=20)
-        if resp.status_code != 200:
-            print(f"[小米监控] 请求网页失败: HTTP {resp.status_code}")
-            return None
+    endpoints = [
+        "https://app.mi.com/details?id=com.tencent.mobileqq",
+        "https://m.app.mi.com/details?id=com.tencent.mobileqq"
+    ]
 
-        html_text = resp.text
-        soup = BeautifulSoup(html_text, "html.parser")
+    for target_url in endpoints:
+        try:
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+            }
+            resp = requests.get(target_url, headers=headers, timeout=15)
+            if resp.status_code != 200:
+                continue
 
-        version = None
-        m_ver = re.search(r"版本号[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
-        if not m_ver:
-            m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
-        if m_ver:
-            version = m_ver.group(1).strip()
+            html_text = resp.text
+            soup = BeautifulSoup(html_text, "html.parser")
+            text_content = soup.get_text()
 
-        date_str = None
-        m_date = re.search(
-            r"(?:更新日期|更新时间|发布时间)[：:\s]*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
-            html_text
-        )
-        if m_date:
-            date_str = validate_date_str(m_date.group(1))
+            # 1. 提取版本号
+            version = None
+            # 策略 A: 遍历 DOM 兄弟节点 (<li class="weight-font">版本号：</li><li>9.3.70</li>)
+            for li in soup.find_all(["li", "p", "div", "span"]):
+                txt = li.get_text().strip()
+                if txt in ("版本号：", "版本号:", "版本：", "版本:"):
+                    nxt = li.find_next_sibling()
+                    if nxt:
+                        m = re.search(r"([0-9]+(?:\.[0-9]+)+)", nxt.get_text())
+                        if m:
+                            version = m.group(1).strip()
+                            break
 
-        if not date_str:
-            date_str = time.strftime("%Y-%m-%d")
+            # 策略 B: 剥离 HTML 标签后的纯文本正则匹配
+            if not version:
+                m_ver = re.search(r"版本号[：:\s]*\n*\s*([0-9]+(?:\.[0-9]+)+)", text_content)
+                if not m_ver:
+                    m_ver = re.search(r"版本[：:\s]*\n*\s*([0-9]+(?:\.[0-9]+)+)", text_content)
+                if m_ver:
+                    version = m_ver.group(1).strip()
 
-        download_url = None
-        for a in soup.find_all("a", href=True):
-            cls = " ".join(a.get("class", []))
-            txt = a.get_text().strip()
-            href = a["href"].strip()
-            if "download" in cls or "下载" in txt or "/download/" in href:
-                if "/download/" in href or "market.xiaomi.com" in href or ".apk" in href:
-                    download_url = href
-                    break
+            # 2. 提取更新日期
+            date_str = None
+            for li in soup.find_all(["li", "p", "div", "span"]):
+                txt = li.get_text().strip()
+                if any(k in txt for k in ["更新时间", "更新日期", "发布时间"]):
+                    nxt = li.find_next_sibling()
+                    if nxt:
+                        val = validate_date_str(nxt.get_text())
+                        if val:
+                            date_str = val
+                            break
 
-        if not download_url:
-            m_dl = re.search(r'href=["\'](/download/[^"\']+)["\']', html_text)
-            if m_dl:
-                download_url = m_dl.group(1).strip()
+            if not date_str:
+                m_date = re.search(
+                    r"(?:更新日期|更新时间|发布时间)[：:\s]*\n*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
+                    text_content
+                )
+                if m_date:
+                    date_str = validate_date_str(m_date.group(1))
 
-        if download_url:
-            download_url = urljoin("https://app.mi.com", download_url)
+            if not date_str:
+                date_str = time.strftime("%Y-%m-%d")
 
-        if not version or not download_url:
-            print(f"[小米监控] 解析异常: 版本={version}, 下载URL={download_url}")
-            return None
+            # 3. 提取下载链接
+            download_url = None
+            # 策略 A: 查找 a 标签中的 download 类或路径
+            for a in soup.find_all("a", href=True):
+                cls = " ".join(a.get("class", [])) if isinstance(a.get("class"), list) else str(a.get("class", ""))
+                href = a["href"].strip()
+                txt = a.get_text().strip()
+                if "download" in cls or "下载" in txt or "/download/" in href:
+                    if "/download/" in href or "market.xiaomi.com" in href or ".apk" in href:
+                        download_url = href
+                        break
 
-        return {
-            "version": version,
-            "date": date_str,
-            "download_url": download_url,
-            "channel": "小米",
-        }
-    except Exception as e:
-        print(f"[小米监控] 抓取失败: {e}")
-        return None
+            # 策略 B: 扫描原始 html 中的 /download/ 路径
+            if not download_url:
+                m_dl = re.search(r'href=["\'](/download/[^"\']+)["\']', html_text)
+                if m_dl:
+                    download_url = m_dl.group(1).strip()
+
+            # 策略 C: 扫描 data-download-url / data-url
+            if not download_url:
+                for elem in soup.find_all(True):
+                    d_url = elem.get("data-download-url") or elem.get("data-url") or elem.get("data-href")
+                    if d_url and ("/download/" in d_url or ".apk" in d_url):
+                        download_url = d_url
+                        break
+
+            if download_url:
+                download_url = urljoin("https://app.mi.com", download_url)
+
+            if version and download_url:
+                return {
+                    "version": version,
+                    "date": date_str,
+                    "download_url": download_url,
+                    "channel": "小米",
+                }
+        except Exception as e:
+            print(f"[小米监控] 尝试访问 {target_url} 异常: {e}")
+
+    print("[小米监控] 解析异常: 版本=None, 下载URL=None")
+    return None
 
 
 # =====================================================================
