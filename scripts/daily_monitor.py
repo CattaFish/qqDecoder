@@ -42,46 +42,30 @@ DEFAULT_HEADERS = {
 
 
 # =====================================================================
-# 1. vivo 应用商店监控模块 (基于官方开放 Package 接口)
+# 1. vivo 应用商店监控模块 (采用验证通过的极简精准请求体)
 # =====================================================================
 def get_vivo_info():
     """获取 vivo 应用商店 QQ 的版本信息与下载直链"""
     print("[vivo监控] 正在向官方接口查询线上版本...")
     try:
         headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "User-Agent": (
                 "AndroidAppStore/13 (Linux; U; Android 13; TrebleDroid vanilla Build/TQ3A.230901.001)"
-            ),
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "*/*"
+            )
         }
-        now_ts = int(time.time() * 1000)
-        payload = {
-            "id": "40439",
-            "app_version": "55910",
-            "not_sys": "1",
-            "language": "zh",
-            "trace_ts": str(now_ts),
-            "trace_type": "4-0",
-            "model": "TrebleDroid vanilla",
-            "deviceType": "phone",
-            "an": "13",
-            "av": "33",
-            "nt": "WIFI",
-            "cpuInfo": "64_arm64-v8a,armeabi-v7a,armeabi",
-            "session_id": str(now_ts),
-            "keyword": "qq",
-            "sourword": "qq"
-        }
-        resp = requests.post(VIVO_PACKAGE_URL, headers=headers, data=payload, timeout=20)
+        # 采用抓包验证通过的核心必填参数串
+        body_data = "id=40439&app_version=55910&versioncode=16410&content_complete=1&opFlags=2147219326&opFlagV2=____f9__3wc"
+
+        resp = requests.post(VIVO_PACKAGE_URL, headers=headers, data=body_data, timeout=20)
         if resp.status_code != 200:
             print(f"[vivo监控] 请求接口失败: HTTP {resp.status_code}")
             return None
 
         res_json = resp.json()
         val = res_json.get("value")
-        if not val:
-            print(f"[vivo监控] 响应无 value 数据")
+        if not val or not isinstance(val, dict):
+            print(f"[vivo监控] 响应无有效 value 数据: {res_json}")
             return None
 
         version_name = str(val.get("version_name", "")).strip()
@@ -95,7 +79,7 @@ def get_vivo_info():
                 date_str = m_d.group(1).replace("/", "-").replace(".", "-").strip()
 
         if not version_name:
-            print("[vivo监控] 未获取到有效版本号")
+            print("[vivo监控] 未能获取到 version_name")
             return None
 
         return {
@@ -448,7 +432,6 @@ def download_target_file(url, target_dir):
                 fname = "target_package.apk"
             out_file = target_dir / fname
 
-            # 针对不同应用市场动态选择合法 Referer
             referer = "https://wap.pp.cn/"
             if "vivo.com" in url:
                 referer = "https://appstore.vivo.com.cn/"
