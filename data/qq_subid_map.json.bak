@@ -5613,5 +5613,25 @@
       "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
       "channel": "应用宝"
     }
+  ],
+  "537395444": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-17",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202609/23/2b9d503b14496add9a5285f3d39a94cf.apk?sign=8169cebc278468c2ff55e972d92a7c4d&t=6AD3403F&m=1f184f2e893929ff261fa3452458ea42&hm=8cfca7a4c77e9b8f5220bdc945fa3535",
+      "channel": "OPPO"
+    }
+  ],
+  "537395483": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-17",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202609/23/2b9d503b14496add9a5285f3d39a94cf.apk?sign=8169cebc278468c2ff55e972d92a7c4d&t=6AD3403F&m=1f184f2e893929ff261fa3452458ea42&hm=8cfca7a4c77e9b8f5220bdc945fa3535",
+      "channel": "OPPO"
+    }
   ]
 }

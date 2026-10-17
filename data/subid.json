@@ -45,6 +45,14 @@
     "date": "2026-10-17",
     "channel": "OPPO"
   },
+  "537395482": {
+    "summary": "QQ(Pad) 9.3.70.41925",
+    "platform": "Android",
+    "version": "9.3.70.41925",
+    "arch": "Pad",
+    "date": "2026-10-14",
+    "channel": "小米"
+  },
   "537395480": {
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
@@ -81,6 +89,13 @@
     "version": "9.3.70.41925",
     "date": "2026-10-17",
     "channel": "OPPO"
+  },
+  "537395443": {
+    "summary": "QQ 9.3.70.41925",
+    "platform": "Android",
+    "version": "9.3.70.41925",
+    "date": "2026-10-14",
+    "channel": "小米"
   },
   "537395441": {
     "summary": "QQ 9.3.70.41925",

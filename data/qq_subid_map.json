@@ -5633,5 +5633,25 @@
       "source_url": "https://storedl3.heytapdownload.com/apk/202609/23/2b9d503b14496add9a5285f3d39a94cf.apk?sign=8169cebc278468c2ff55e972d92a7c4d&t=6AD3403F&m=1f184f2e893929ff261fa3452458ea42&hm=8cfca7a4c77e9b8f5220bdc945fa3535",
       "channel": "OPPO"
     }
+  ],
+  "537395443": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-14",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/04f462173a5534179b5e2de3d2e59434397355bb1",
+      "channel": "小米"
+    }
+  ],
+  "537395482": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-14",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/04f462173a5534179b5e2de3d2e59434397355bb1",
+      "channel": "小米"
+    }
   ]
 }
