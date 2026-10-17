@@ -9,7 +9,8 @@ import re
 import shutil
 import subprocess
 import time
-from urllib.parse import urljoin
+import hashlib
+import urllib.parse
 from bs4 import BeautifulSoup
 import requests
 
@@ -30,6 +31,7 @@ WDJ_VER_FILE = Path("data/wandoujia_latest_version.txt")
 YYB_VER_FILE = Path("data/yingyongbao_latest_version.txt")
 VIVO_VER_FILE = Path("data/vivo_latest_version.txt")
 HUAWEI_VER_FILE = Path("data/huawei_latest_version.txt")
+OPPO_VER_FILE = Path("data/oppo_latest_version.txt")
 
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
@@ -52,7 +54,6 @@ def validate_date_str(date_str):
         parts = clean.split("-")
         if len(parts) >= 3:
             y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
-            # 年份在 2020~2035 之间，月份在 1~12 之间，日在 1~31 之间
             if 2020 <= y <= 2035 and 1 <= m <= 12 and 1 <= d <= 31:
                 return f"{y:04d}-{m:02d}-{d:02d}"
     except Exception:
@@ -61,7 +62,105 @@ def validate_date_str(date_str):
 
 
 # =====================================================================
-# 1. 华为应用市场 (HiSpace) 监控模块
+# 1. OPPO 软件商店监控模块 (逆向动态签名 + 302 截获防伪)
+# =====================================================================
+def get_oppo_info():
+    """获取 OPPO 软件商店的 QQ 版本信息及真实 CDN 下载直链"""
+    print("[OPPO监控] 正在通过动态签名鉴权获取线上版本...")
+    try:
+        APP_ID = "30334"
+        SALT1 = b"cdb09c43063ea6bb08f4fe8a43775179bdc58acb383220be"
+        SALT2 = b"STORENEWMIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBANYFY/UJGSzhIhpx6YM5KJ9yRHc7YeURxzb9tDvJvMfENHlnP3DtVkOIjERbpsSd76fjtZnMWY60TpGLGyrNkvuV40L15JQhHAo9yURpPQoI0eg3SLFmTEI/MUiPRCwfwYf2deqKKlsmMSysYYHX9JiGzQuWiYZaawxprSuiqDGvAgMBAAECgYEAtQ0QV00gGABISljNMy5aeDBBTSBWG2OjxJhxLRbndZM81OsMFysgC7dq+bUS6ke1YrDWgsoFhRxxTtx/2gDYciGp/c/h0Td5pGw7T9W6zo2xWI5oh1WyTnn0Xj17O9CmOk4fFDpJ6bapL+fyDy7gkEUChJ9+p66WSAlsfUhJ2TECQQD5sFWMGE2IiEuz4fIPaDrNSTHeFQQr/ZpZ7VzB2tcG7GyZRx5YORbZmX1jR7l3H4F98MgqCGs88w6FKnCpxDK3AkEA225CphAcfyiH0ShlZxEXBgIYt3V8nQuc/g2KJtiV6eeFkxmOMHbVTPGkARvt5VoPYEjwPTg43oqTDJVtlWagyQJBAOvEeJLno9aHNExvznyD4/pR4hec6qqLNgMyIYMfHCl6d3UodVvC1HO1/nMPl+4GvuRnxuoBtxj/PTe7AlUbYPMCQQDOkf4sVv58tqslO+I6JNyHy3F5RCELtuMUR6rG5x46FLqqwGQbO8ORq+m5IZHTV/Uhr4h6GXNwDQRh1EpVW0gBAkAp/v3tPI1riz6UuG0I6uf5er26yl5evPyPrjrD299L4Qy/1EIunayC7JYcSGlR01+EDYYgwUkec+QgrRC/NstV"
+        OCS = "google%2FTrebleDroid+vanilla%2F33%2F13%2FUNKNOWN%2F2%2Flineage_arm64_bvN-userdebug+13+TQ3A.230901.001+eng.crossg.20231018.003713+test-keys%2F260700"
+        USER_AGENT = "google%2FTrebleDroid+vanilla%2F33%2F13%2FUNKNOWN%2F2%2F2101%2F260700%2F26.7.0_CN"
+        ID_HEADER = "///"
+        OAK = "cdb09c43063ea6bb"
+
+        def build_oppo_headers(path, query_str=""):
+            t_str = str(int(time.time() * 1000))
+            decoded_query = urllib.parse.unquote(query_str)
+            raw_str = f"{OCS}{t_str}{ID_HEADER}{path}{decoded_query}"
+            raw_bytes = raw_str.encode("utf-8")
+            len_bytes = str(len(raw_str) + 48).encode("utf-8")
+            
+            m = hashlib.md5()
+            m.update(SALT1)
+            m.update(raw_bytes)
+            m.update(len_bytes)
+            m.update(SALT2)
+            dynamic_sign = m.hexdigest().lower()
+
+            return {
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json; charset=UTF-8",
+                "id": ID_HEADER,
+                "cpu-abilist": "arm64-v8a,armeabi-v7a,armeabi",
+                "ocs": OCS,
+                "oak": OAK,
+                "t": t_str,
+                "sign": dynamic_sign,
+                "Connection": "Keep-Alive",
+            }
+
+        # 1. 抓取应用详情
+        detail_path = f"/detail/v5/{APP_ID}"
+        params = {"appId": APP_ID, "query": "1,2,3,4,5,6,7,8,9,10,12,15,16,17,19,20"}
+        query_str = urllib.parse.urlencode(params)
+        detail_headers = build_oppo_headers(detail_path, query_str)
+
+        url = f"https://api-cn.store.heytapmobi.com{detail_path}"
+        resp = requests.get(url, headers=detail_headers, params=params, timeout=20)
+        
+        if resp.status_code != 200:
+            print(f"[OPPO监控] 详情接口请求失败: HTTP {resp.status_code}")
+            return None
+
+        data = resp.json().get("base", {})
+        if not data:
+            print("[OPPO监控] 未能解析到应用详情数据")
+            return None
+
+        version_name = data.get("verName", "").strip()
+        ver_id = data.get("verId")
+        date_str = time.strftime("%Y-%m-%d")
+
+        if not version_name or not ver_id:
+            print("[OPPO监控] 未获取到有效版本号或 verId")
+            return None
+
+        # 2. 生成下载调度请求并拦截真实 CDN URL
+        download_path = f"/download/v1/{ver_id}"
+        download_api_url = f"https://api-cn.store.heytapmobi.com{download_path}"
+        download_headers = build_oppo_headers(download_path, query_str="")
+
+        r_dispatch = requests.get(download_api_url, headers=download_headers, allow_redirects=False, timeout=20)
+        real_cdn_url = None
+        
+        if r_dispatch.status_code == 302:
+            real_cdn_url = r_dispatch.headers.get("Location")
+        elif r_dispatch.status_code == 200:
+            real_cdn_url = download_api_url
+        else:
+            print(f"[OPPO监控] 下载调度接口报错: HTTP {r_dispatch.status_code}")
+            return None
+
+        if not real_cdn_url:
+            print("[OPPO监控] 未能解析到真实的 CDN 下载地址")
+            return None
+
+        return {
+            "version": version_name,
+            "date": date_str,
+            "download_url": real_cdn_url,
+            "channel": "OPPO",
+        }
+    except Exception as e:
+        print(f"[OPPO监控] 抓取失败: {e}")
+        return None
+
+
+# =====================================================================
+# 2. 华为应用市场 (HiSpace) 监控模块
 # =====================================================================
 def get_huawei_info():
     """获取华为应用市场 (HiSpace) 的版本信息与下载直链"""
@@ -116,7 +215,7 @@ def get_huawei_info():
 
 
 # =====================================================================
-# 2. vivo 应用商店监控模块 (基于官方开放 Package 接口)
+# 3. vivo 应用商店监控模块
 # =====================================================================
 def get_vivo_info():
     """获取 vivo 应用商店 QQ 的版本信息与下载直链"""
@@ -165,7 +264,7 @@ def get_vivo_info():
 
 
 # =====================================================================
-# 3. 腾讯应用宝 (微下载) 监控与解析模块
+# 4. 腾讯应用宝 (微下载) 监控与解析模块
 # =====================================================================
 def get_yingyongbao_info():
     """获取腾讯应用宝页面的版本信息、更新日期及“通过第三方浏览器下载”直链"""
@@ -182,13 +281,26 @@ def get_yingyongbao_info():
         html_text = resp.text
         soup = BeautifulSoup(html_text, "html.parser")
 
-        # 1. 提取版本号
         version = None
         m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
         if m_ver:
             version = m_ver.group(1).strip()
 
-        # 2. 提取“通过第三方浏览器下载”的 APK 直链
+        date_str = None
+        m_ctx = re.search(
+            r"(?:更新时间|发布时间|更新日期|时间)[：:\s]*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
+            html_text
+        )
+        if m_ctx:
+            date_str = validate_date_str(m_ctx.group(1))
+
+        if not date_str:
+            m_ts = re.search(r'["\']?(?:apkPublishTime|publishTime|updateTime)["\']?\s*[:=]\s*["\']?(\d{10,13})["\']?', html_text)
+            if m_ts:
+                raw_ts = int(m_ts.group(1))
+                if raw_ts > 10000000000: raw_ts = raw_ts // 1000
+                date_str = validate_date_str(time.strftime("%Y-%m-%d", time.localtime(raw_ts)))
+
         download_url = None
         for tag in soup.find_all(["a", "div", "button", "span"]):
             t_text = tag.get_text().strip()
@@ -221,27 +333,6 @@ def get_yingyongbao_info():
         if download_url and download_url.startswith("//"):
             download_url = "https:" + download_url
 
-        # 3. 严格提取合规公历日期 (4重校验，彻底根除 2011-97-12 假日期)
-        date_str = None
-
-        # 策略 A: 必须伴随“更新/发布时间”关键词，并进行物理日历校验
-        m_ctx = re.search(
-            r"(?:更新时间|发布时间|更新日期|时间)[：:\s]*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
-            html_text
-        )
-        if m_ctx:
-            date_str = validate_date_str(m_ctx.group(1))
-
-        # 策略 B: 嗅探页面时间戳变量 (10位或13位)
-        if not date_str:
-            m_ts = re.search(r'["\']?(?:apkPublishTime|publishTime|updateTime)["\']?\s*[:=]\s*["\']?(\d{10,13})["\']?', html_text)
-            if m_ts:
-                raw_ts = int(m_ts.group(1))
-                if raw_ts > 10000000000:
-                    raw_ts = raw_ts // 1000
-                date_str = validate_date_str(time.strftime("%Y-%m-%d", time.localtime(raw_ts)))
-
-        # 策略 C: 直接向安装包直链发 HEAD 请求，读取腾讯 CDN 的实际构建上传时间 (Last-Modified)
         if not date_str and download_url:
             try:
                 head_resp = requests.head(download_url, headers=headers, timeout=5, allow_redirects=True)
@@ -252,7 +343,6 @@ def get_yingyongbao_info():
             except Exception:
                 pass
 
-        # 策略 D: 兜底为当前系统日期
         if not date_str:
             date_str = time.strftime("%Y-%m-%d")
 
@@ -272,7 +362,7 @@ def get_yingyongbao_info():
 
 
 # =====================================================================
-# 4. 豌豆荚 (PP助手) 监控与解析模块
+# 5. 豌豆荚 (PP助手) 监控与解析模块
 # =====================================================================
 def get_wandoujia_info():
     """获取豌豆荚页面的版本信息、更新日期及普通下载直链"""
@@ -330,7 +420,7 @@ def get_wandoujia_info():
 
 
 # =====================================================================
-# 5. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
+# 6. Telegram 频道解析模块
 # =====================================================================
 def get_latest_message():
     """获取频道的最新一条有效更新消息"""
@@ -369,7 +459,6 @@ def get_latest_message():
 
 
 def parse_tasks_from_message(msg):
-    """解析 TG 消息包含的所有架构直链"""
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
@@ -382,19 +471,13 @@ def parse_tasks_from_message(msg):
     android_ver = ""
 
     m_win = re.search(r"Windows QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
-    if m_win:
-        win_ver = m_win.group(1)
+    if m_win: win_ver = m_win.group(1)
     m_mac = re.search(r"Mac(?:OS)? QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
-    if m_mac:
-        mac_ver = m_mac.group(1)
+    if m_mac: mac_ver = m_mac.group(1)
     m_linux = re.search(r"Linux QQ_NT\s+([0-9]+(?:\.[0-9]+)+)", text)
-    if m_linux:
-        linux_ver = m_linux.group(1)
-    m_android = re.search(
-        r"QQ(?:_NT)?\s*[:：]?\s*([0-9]+(?:\.[0-9]+)+(?:\([0-9]+\))?)", text
-    )
-    if m_android:
-        android_ver = m_android.group(1)
+    if m_linux: linux_ver = m_linux.group(1)
+    m_android = re.search(r"QQ(?:_NT)?\s*[:：]?\s*([0-9]+(?:\.[0-9]+)+(?:\([0-9]+\))?)", text)
+    if m_android: android_ver = m_android.group(1)
 
     if not (win_ver or mac_ver or linux_ver or android_ver):
         lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
@@ -402,19 +485,13 @@ def parse_tasks_from_message(msg):
             m_top = re.search(r"^([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\))?)", lines[0])
             if m_top:
                 extracted_v = m_top.group(1).replace(" ", "")
-                if any(k in text for k in ["Windows QQ_NT", "Windows"]):
-                    win_ver = extracted_v
-                elif any(k in text for k in ["Mac QQ_NT", "MacOS", "Mac"]):
-                    mac_ver = extracted_v
-                elif any(k in text for k in ["Linux QQ_NT", "Linux"]):
-                    linux_ver = extracted_v
-                else:
-                    android_ver = extracted_v
+                if any(k in text for k in ["Windows QQ_NT", "Windows"]): win_ver = extracted_v
+                elif any(k in text for k in ["Mac QQ_NT", "MacOS", "Mac"]): mac_ver = extracted_v
+                elif any(k in text for k in ["Linux QQ_NT", "Linux"]): linux_ver = extracted_v
+                else: android_ver = extracted_v
 
     tasks = []
-    has_desktop_platform = any(
-        p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"]
-    )
+    has_desktop_platform = any(p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"])
 
     if has_desktop_platform:
         current_platform = "Unknown"
@@ -422,24 +499,14 @@ def parse_tasks_from_message(msg):
         for line in lines:
             line_soup = BeautifulSoup(line, "html.parser")
             line_text = line_soup.get_text()
-            if "Windows" in line_text:
-                current_platform = "Windows"
-            elif "MacOS" in line_text or "Mac" in line_text:
-                current_platform = "macOS"
-            elif "Linux" in line_text:
-                current_platform = "Linux"
+            if "Windows" in line_text: current_platform = "Windows"
+            elif "MacOS" in line_text or "Mac" in line_text: current_platform = "macOS"
+            elif "Linux" in line_text: current_platform = "Linux"
 
-            version = (
-                win_ver
-                if current_platform == "Windows"
-                else mac_ver
-                if current_platform == "macOS"
-                else linux_ver
-            )
+            version = win_ver if current_platform == "Windows" else mac_ver if current_platform == "macOS" else linux_ver
 
             line_a_tags = line_soup.find_all("a", href=True)
-            if not line_a_tags:
-                continue
+            if not line_a_tags: continue
 
             backup_links = []
             official_links = []
@@ -453,27 +520,19 @@ def parse_tasks_from_message(msg):
 
             chosen_links = backup_links if backup_links else official_links
             for href, a_text in chosen_links:
-                arch = (
-                    a_text.replace("官网链接", "")
-                    .replace("频道备份", "")
-                    .replace("官网", "")
-                    .replace("备份", "")
-                    .strip()
-                )
+                arch = a_text.replace("官网链接", "").replace("频道备份", "").replace("官网", "").replace("备份", "").strip()
                 if not arch:
                     m_arch = re.search(r"\b(x64|x86|arm64|arm|loongarch|mips)\b", line_text, re.IGNORECASE)
                     arch = m_arch.group(1).upper() if m_arch else "Package"
-                tasks.append(
-                    {
-                        "platform": current_platform,
-                        "arch": arch or "Package",
-                        "version": version or "Unknown",
-                        "date": date,
-                        "url": href,
-                        "is_beta": is_beta,
-                        "channel": "官方",
-                    }
-                )
+                tasks.append({
+                    "platform": current_platform,
+                    "arch": arch or "Package",
+                    "version": version or "Unknown",
+                    "date": date,
+                    "url": href,
+                    "is_beta": is_beta,
+                    "channel": "官方",
+                })
     else:
         soup = BeautifulSoup(html, "html.parser")
         a_tags = soup.find_all("a", href=True)
@@ -485,40 +544,32 @@ def parse_tasks_from_message(msg):
             href = a["href"].strip()
             a_text = a.get_text().strip()
 
-            if "t.me/s/" in href or "t.me/qq_updatelog" in href:
-                continue
+            if "t.me/s/" in href or "t.me/qq_updatelog" in href: continue
 
             if "t.me/linqiqi_backup" in href or "备份" in a_text:
                 backup_links.append(href)
-            elif (
-                ".apk" in href
-                or "android_apk" in href
-                or "downv6.qq.com" in href
-                or "官网" in a_text
-            ):
+            elif ".apk" in href or "android_apk" in href or "downv6.qq.com" in href or "官网" in a_text:
                 official_links.append(href)
 
         target_urls = backup_links if backup_links else official_links
         unique_urls = list(dict.fromkeys(target_urls))
 
         for u in unique_urls:
-            tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": android_ver or "Unknown",
-                    "date": date,
-                    "url": u,
-                    "is_beta": is_beta,
-                    "channel": "官方",
-                }
-            )
+            tasks.append({
+                "platform": "Android",
+                "arch": "Package",
+                "version": android_ver or "Unknown",
+                "date": date,
+                "url": u,
+                "is_beta": is_beta,
+                "channel": "官方",
+            })
 
     return tasks
 
 
 # =====================================================================
-# 6. 跨市场通用静默下载与解包抽取
+# 7. 跨市场通用静默下载与解包抽取
 # =====================================================================
 def download_target_file(url, target_dir):
     try:
@@ -539,7 +590,9 @@ def download_target_file(url, target_dir):
             out_file = target_dir / fname
 
             referer = "https://wap.pp.cn/"
-            if "vivo.com" in url:
+            if "heytapmobi.com" in url or "oppomobile.com" in url:
+                referer = "https://store.oppomobile.com/"
+            elif "vivo.com" in url:
                 referer = "https://appstore.vivo.com.cn/"
             elif "qq.com" in url or "myapp.com" in url:
                 referer = "https://a.app.qq.com/"
@@ -584,14 +637,12 @@ def download_target_file(url, target_dir):
 
 def get_aapt_cmd():
     cmd = shutil.which("aapt")
-    if cmd:
-        return cmd
+    if cmd: return cmd
     for env in ["ANDROID_HOME", "ANDROID_SDK_ROOT"]:
         sdk = os.environ.get(env)
         if sdk and os.path.isdir(sdk):
             candidates = list(Path(sdk).glob("build-tools/*/aapt"))
-            if candidates:
-                return str(sorted(candidates)[-1])
+            if candidates: return str(sorted(candidates)[-1])
     return None
 
 
@@ -607,16 +658,8 @@ def extract_subids_and_version(
         if aapt_bin and downloaded_file_path.exists():
             try:
                 proc = subprocess.run(
-                    [
-                        aapt_bin,
-                        "dump",
-                        "xmltree",
-                        str(downloaded_file_path),
-                        "AndroidManifest.xml",
-                    ],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
+                    [aapt_bin, "dump", "xmltree", str(downloaded_file_path), "AndroidManifest.xml"],
+                    capture_output=True, text=True, timeout=30,
                 )
                 dump_text = proc.stdout
             except Exception:
@@ -627,40 +670,26 @@ def extract_subids_and_version(
             for idx, line in enumerate(lines):
                 if "versionName" in line and not base_vname:
                     m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
-                    if m_vn:
-                        base_vname = m_vn.group(1).strip()
+                    if m_vn: base_vname = m_vn.group(1).strip()
                 if "AppSetting_params" in line and not subid_phone:
                     if "AppSetting_params_pad" not in line:
-                        ctx = "\n".join(
-                            lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                        )
+                        ctx = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
                         m_sub = re.search(r"([0-9]{9})#", ctx)
-                        if m_sub:
-                            subid_phone = m_sub.group(1)
+                        if m_sub: subid_phone = m_sub.group(1)
                 if "AppSetting_params_pad" in line and not subid_pad:
-                    ctx = "\n".join(
-                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                    )
+                    ctx = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
                     m_sub = re.search(r"([0-9]{9})#", ctx)
-                    if m_sub:
-                        subid_pad = m_sub.group(1)
+                    if m_sub: subid_pad = m_sub.group(1)
                 if "ANDROID_QQ_BUILD_NO" in line and not build_no:
-                    ctx = "\n".join(
-                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                    )
+                    ctx = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
-                    if m_hex:
-                        build_no = str(int(m_hex.group(1), 16))
+                    if m_hex: build_no = str(int(m_hex.group(1), 16))
                     if not build_no:
                         m_dec = re.search(r"\(type 0x10\)([0-9]+)", ctx)
-                        if m_dec:
-                            build_no = m_dec.group(1)
+                        if m_dec: build_no = m_dec.group(1)
                     if not build_no:
-                        m_str = re.search(
-                            r'(?:Raw:\s*"|=")([0-9]+)"', ctx
-                        ) or re.search(r'"([0-9]+)"', ctx)
-                        if m_str:
-                            build_no = m_str.group(1)
+                        m_str = re.search(r'(?:Raw:\s*"|=")([0-9]+)"', ctx) or re.search(r'"([0-9]+)"', ctx)
+                        if m_str: build_no = m_str.group(1)
 
         raw_v = base_vname or fallback_ver
         m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
@@ -668,21 +697,14 @@ def extract_subids_and_version(
 
         clean_ver = f"{base_3parts}.{build_no}" if build_no else base_3parts
         pairs = []
-        if subid_phone:
-            pairs.append((subid_phone, "Phone"))
-        if subid_pad:
-            pairs.append((subid_pad, "Pad"))
+        if subid_phone: pairs.append((subid_phone, "Phone"))
+        if subid_pad: pairs.append((subid_pad, "Pad"))
         return pairs, "Android", clean_ver
 
-    # 桌面端
-    nodes = list(extract_dir.glob("**/major.node")) or list(
-        extract_dir.glob("**/*.node")
-    )
+    nodes = list(extract_dir.glob("**/major.node")) or list(extract_dir.glob("**/*.node"))
     pattern_new = re.compile(rb"QQAppId/([0-9]+)")
     m_cur_build = re.search(r"\d{4,6}$", fallback_ver)
-    cur_build_bytes = (
-        m_cur_build.group(0).encode("ascii") if m_cur_build else None
-    )
+    cur_build_bytes = m_cur_build.group(0).encode("ascii") if m_cur_build else None
 
     for node in nodes:
         try:
@@ -696,16 +718,10 @@ def extract_subids_and_version(
                 candidates = []
                 for match in pattern_cand.finditer(data):
                     cand_subid = match.group(1).decode("ascii")
-                    context = data[
-                        max(0, match.start() - 500) : min(
-                            len(data), match.end() + 500
-                        )
-                    ]
-                    if b"fabu" not in context:
-                        continue
+                    context = data[max(0, match.start() - 500) : min(len(data), match.end() + 500)]
+                    if b"fabu" not in context: continue
                     score = 1
-                    if cur_build_bytes and cur_build_bytes in context:
-                        score += 2
+                    if cur_build_bytes and cur_build_bytes in context: score += 2
                     candidates.append((score, cand_subid))
                 if candidates:
                     candidates.sort(key=lambda x: x[0], reverse=True)
@@ -713,21 +729,9 @@ def extract_subids_and_version(
 
             if subid:
                 path_str = str(node).lower()
-                plat = (
-                    "macOS"
-                    if (".app" in path_str or "macos" in path_str)
-                    else "Linux"
-                    if ("opt" in path_str or "linux" in path_str)
-                    else "Windows"
-                )
-                m_already_4parts = re.search(
-                    r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver
-                )
-                clean_ver = (
-                    m_already_4parts.group(1)
-                    if m_already_4parts
-                    else fallback_ver
-                )
+                plat = "macOS" if (".app" in path_str or "macos" in path_str) else "Linux" if ("opt" in path_str or "linux" in path_str) else "Windows"
+                m_already_4parts = re.search(r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver)
+                clean_ver = m_already_4parts.group(1) if m_already_4parts else fallback_ver
                 return [(subid, default_arch)], plat, clean_ver
         except Exception:
             pass
@@ -736,23 +740,19 @@ def extract_subids_and_version(
 
 def extract_version_from_filename(filename):
     m4 = re.search(r"(\d+\.\d+\.\d+)[-._](\d{4,6})", filename)
-    if m4:
-        return f"{m4.group(1)}.{m4.group(2)}"
+    if m4: return f"{m4.group(1)}.{m4.group(2)}"
     m3 = re.search(r"(\d+\.\d+\.\d+(?:\(\d+\))?)", filename)
-    if m3:
-        return m3.group(1)
+    if m3: return m3.group(1)
     return None
 
 
 # =====================================================================
-# 7. 主控流程 (五源联合全量轮询：TG官方 + 豌豆荚 + 腾讯应用宝 + vivo + 华为)
+# 8. 主控流程 (六源联合轮询：TG + 豌豆荚 + 腾讯应用宝 + vivo + 华为 + OPPO)
 # =====================================================================
 def main():
     pending_tasks = []
 
-    # -------------------------------------------------------------
-    # A. 检查 Telegram 频道常规更新
-    # -------------------------------------------------------------
+    # A. 检查 Telegram
     msg = get_latest_message()
     if msg:
         print(f"[TG 监控] 最新消息 ID: {msg['post_id']} | 日期: {msg['date']}")
@@ -762,136 +762,82 @@ def main():
     else:
         print("[TG 监控] 未获取到频道消息")
 
-    # -------------------------------------------------------------
-    # B. 检查 豌豆荚 (PP助手) 渠道更新
-    # -------------------------------------------------------------
-    wdj_recorded_ver = ""
-    if WDJ_VER_FILE.exists():
-        wdj_recorded_ver = WDJ_VER_FILE.read_text(encoding="utf-8").strip()
-
+    # B. 检查 豌豆荚
+    wdj_recorded_ver = WDJ_VER_FILE.read_text(encoding="utf-8").strip() if WDJ_VER_FILE.exists() else ""
     wdj_info = get_wandoujia_info()
     wdj_new_ver_to_record = None
 
     if wdj_info:
         cur_wdj_ver = wdj_info["version"]
-        print(f"[豌豆荚监控] 线上版本: {cur_wdj_ver} | 本地记录版本: {wdj_recorded_ver or '无'}")
-
+        print(f"[豌豆荚监控] 线上版本: {cur_wdj_ver} | 本地记录: {wdj_recorded_ver or '无'}")
         if not wdj_recorded_ver or wdj_recorded_ver != cur_wdj_ver:
-            print(f"[豌豆荚监控] 检测到新版本/首发收录: {cur_wdj_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_wdj_ver,
-                    "date": wdj_info["date"],
-                    "url": wdj_info["download_url"],
-                    "is_beta": False,
-                    "channel": "豌豆荚",
-                    "mark_wdj_version": cur_wdj_ver,
-                }
-            )
+            print(f"[豌豆荚监控] 检测到新版本: {cur_wdj_ver}，加入待处理！")
+            pending_tasks.append({**wdj_info, "platform": "Android", "arch": "Package", "is_beta": False, "mark_wdj_version": cur_wdj_ver})
         else:
-            print("[豌豆荚监控] 线上版本与记录一致，无需下载。")
+            print("[豌豆荚监控] 版本一致，无需下载。")
 
-    # -------------------------------------------------------------
-    # C. 检查 腾讯应用宝 (微下载) 渠道更新
-    # -------------------------------------------------------------
-    yyb_recorded_ver = ""
-    if YYB_VER_FILE.exists():
-        yyb_recorded_ver = YYB_VER_FILE.read_text(encoding="utf-8").strip()
-
+    # C. 检查 应用宝
+    yyb_recorded_ver = YYB_VER_FILE.read_text(encoding="utf-8").strip() if YYB_VER_FILE.exists() else ""
     yyb_info = get_yingyongbao_info()
     yyb_new_ver_to_record = None
 
     if yyb_info:
         cur_yyb_ver = yyb_info["version"]
-        print(f"[应用宝监控] 线上版本: {cur_yyb_ver} | 本地记录版本: {yyb_recorded_ver or '无'}")
-
+        print(f"[应用宝监控] 线上版本: {cur_yyb_ver} | 本地记录: {yyb_recorded_ver or '无'}")
         if not yyb_recorded_ver or yyb_recorded_ver != cur_yyb_ver:
-            print(f"[应用宝监控] 检测到新版本/首发收录: {cur_yyb_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_yyb_ver,
-                    "date": yyb_info["date"],
-                    "url": yyb_info["download_url"],
-                    "is_beta": False,
-                    "channel": "应用宝",
-                    "mark_yyb_version": cur_yyb_ver,
-                }
-            )
+            print(f"[应用宝监控] 检测到新版本: {cur_yyb_ver}，加入待处理！")
+            pending_tasks.append({**yyb_info, "platform": "Android", "arch": "Package", "is_beta": False, "mark_yyb_version": cur_yyb_ver})
         else:
-            print("[应用宝监控] 线上版本与记录一致，无需下载。")
+            print("[应用宝监控] 版本一致，无需下载。")
 
-    # -------------------------------------------------------------
-    # D. 检查 vivo 应用商店 渠道更新
-    # -------------------------------------------------------------
-    vivo_recorded_ver = ""
-    if VIVO_VER_FILE.exists():
-        vivo_recorded_ver = VIVO_VER_FILE.read_text(encoding="utf-8").strip()
-
+    # D. 检查 vivo
+    vivo_recorded_ver = VIVO_VER_FILE.read_text(encoding="utf-8").strip() if VIVO_VER_FILE.exists() else ""
     vivo_info = get_vivo_info()
     vivo_new_ver_to_record = None
 
     if vivo_info:
         cur_vivo_ver = vivo_info["version"]
-        print(f"[vivo监控] 线上版本: {cur_vivo_ver} | 本地记录版本: {vivo_recorded_ver or '无'}")
-
+        print(f"[vivo监控] 线上版本: {cur_vivo_ver} | 本地记录: {vivo_recorded_ver or '无'}")
         if not vivo_recorded_ver or vivo_recorded_ver != cur_vivo_ver:
-            print(f"[vivo监控] 检测到新版本/首发收录: {cur_vivo_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_vivo_ver,
-                    "date": vivo_info["date"],
-                    "url": vivo_info["download_url"],
-                    "is_beta": False,
-                    "channel": "vivo",
-                    "mark_vivo_version": cur_vivo_ver,
-                }
-            )
+            print(f"[vivo监控] 检测到新版本: {cur_vivo_ver}，加入待处理！")
+            pending_tasks.append({**vivo_info, "platform": "Android", "arch": "Package", "is_beta": False, "mark_vivo_version": cur_vivo_ver})
         else:
-            print("[vivo监控] 线上版本与记录一致，无需下载。")
+            print("[vivo监控] 版本一致，无需下载。")
 
-    # -------------------------------------------------------------
-    # E. 检查 华为应用市场 渠道更新
-    # -------------------------------------------------------------
-    huawei_recorded_ver = ""
-    if HUAWEI_VER_FILE.exists():
-        huawei_recorded_ver = HUAWEI_VER_FILE.read_text(encoding="utf-8").strip()
-
+    # E. 检查 华为
+    huawei_recorded_ver = HUAWEI_VER_FILE.read_text(encoding="utf-8").strip() if HUAWEI_VER_FILE.exists() else ""
     huawei_info = get_huawei_info()
     huawei_new_ver_to_record = None
 
     if huawei_info:
         cur_huawei_ver = huawei_info["version"]
-        print(f"[华为监控] 线上版本: {cur_huawei_ver} | 本地记录版本: {huawei_recorded_ver or '无'}")
-
+        print(f"[华为监控] 线上版本: {cur_huawei_ver} | 本地记录: {huawei_recorded_ver or '无'}")
         if not huawei_recorded_ver or huawei_recorded_ver != cur_huawei_ver:
-            print(f"[华为监控] 检测到新版本/首发收录: {cur_huawei_ver}，加入待处理任务！")
-            pending_tasks.append(
-                {
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_huawei_ver,
-                    "date": huawei_info["date"],
-                    "url": huawei_info["download_url"],
-                    "is_beta": False,
-                    "channel": "华为",
-                    "mark_huawei_version": cur_huawei_ver,
-                }
-            )
+            print(f"[华为监控] 检测到新版本: {cur_huawei_ver}，加入待处理！")
+            pending_tasks.append({**huawei_info, "platform": "Android", "arch": "Package", "is_beta": False, "mark_huawei_version": cur_huawei_ver})
         else:
-            print("[华为监控] 线上版本与记录一致，无需下载。")
+            print("[华为监控] 版本一致，无需下载。")
+
+    # F. 检查 OPPO
+    oppo_recorded_ver = OPPO_VER_FILE.read_text(encoding="utf-8").strip() if OPPO_VER_FILE.exists() else ""
+    oppo_info = get_oppo_info()
+    oppo_new_ver_to_record = None
+
+    if oppo_info:
+        cur_oppo_ver = oppo_info["version"]
+        print(f"[OPPO监控] 线上版本: {cur_oppo_ver} | 本地记录: {oppo_recorded_ver or '无'}")
+        if not oppo_recorded_ver or oppo_recorded_ver != cur_oppo_ver:
+            print(f"[OPPO监控] 检测到新版本: {cur_oppo_ver}，加入待处理！")
+            pending_tasks.append({**oppo_info, "platform": "Android", "arch": "Package", "is_beta": False, "mark_oppo_version": cur_oppo_ver})
+        else:
+            print("[OPPO监控] 版本一致，无需下载。")
 
     if not pending_tasks:
         print("[状态] 遍历完毕，所有渠道均无新版本。")
         sys.exit(0)
 
     # -------------------------------------------------------------
-    # F. 读取已有数据库并做 URL 去重排队
+    # 解析排队与持久化
     # -------------------------------------------------------------
     subid_map = {}
     if DATA_FILE.exists():
@@ -900,13 +846,7 @@ def main():
         except Exception:
             pass
 
-    processed_urls = set()
-    for val in subid_map.values():
-        items = val if isinstance(val, list) else [val]
-        for it in items:
-            u = it.get("source_url")
-            if u:
-                processed_urls.add(u)
+    processed_urls = {u.get("source_url") for items in subid_map.values() for u in (items if isinstance(items, list) else [items]) if u.get("source_url")}
 
     tasks_to_run = [t for t in pending_tasks if t["url"] not in processed_urls]
     github_output = os.environ.get("GITHUB_OUTPUT")
@@ -929,8 +869,7 @@ def main():
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
 
-        if TEMP_DL.exists():
-            shutil.rmtree(TEMP_DL)
+        if TEMP_DL.exists(): shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
         proc = download_target_file(t["url"], TEMP_DL)
@@ -938,164 +877,84 @@ def main():
             print("[跳过] 下载失败")
             continue
 
-        dl_files = [
-            f
-            for f in TEMP_DL.rglob("*")
-            if f.is_file() and not f.name.endswith(".tdl")
-        ]
-        if not dl_files:
-            continue
+        dl_files = [f for f in TEMP_DL.rglob("*") if f.is_file() and not f.name.endswith(".tdl")]
+        if not dl_files: continue
 
         downloaded_file = dl_files[0]
-        fname = downloaded_file.name
-        base_ver = extract_version_from_filename(fname) or t["version"]
+        base_ver = extract_version_from_filename(downloaded_file.name) or t["version"]
 
-        if TEMP_EXTRACT.exists():
-            shutil.rmtree(TEMP_EXTRACT)
+        if TEMP_EXTRACT.exists(): shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
 
         try:
-            lf = fname.lower()
+            lf = downloaded_file.name.lower()
             if lf.endswith(".deb"):
-                subprocess.run(
-                    ["dpkg-deb", "-x", str(downloaded_file), str(TEMP_EXTRACT)],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                subprocess.run(["dpkg-deb", "-x", str(downloaded_file), str(TEMP_EXTRACT)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             elif lf.endswith(".rpm"):
-                cmd = f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv"
-                subprocess.run(
-                    cmd,
-                    shell=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                subprocess.run(f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
-                subprocess.run(
-                    ["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                subprocess.run(["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 hfs = list(TEMP_EXTRACT.glob("**/*.hfs"))
-                if hfs:
-                    subprocess.run(
-                        [
-                            "7z",
-                            "x",
-                            str(hfs[0]),
-                            f"-o{TEMP_EXTRACT}/hfs_out",
-                            "-y",
-                        ],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
+                if hfs: subprocess.run(["7z", "x", str(hfs[0]), f"-o{TEMP_EXTRACT}/hfs_out", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            subid_pairs, plat, clean_ver = extract_subids_and_version(
-                TEMP_EXTRACT, downloaded_file, t["arch"], base_ver
-            )
+            subid_pairs, plat, clean_ver = extract_subids_and_version(TEMP_EXTRACT, downloaded_file, t["arch"], base_ver)
             if subid_pairs:
                 has_subid_extracted = True
-                if t.get("is_beta") and not clean_ver.endswith("-Beta"):
-                    clean_ver = f"{clean_ver}-Beta"
+                if t.get("is_beta") and not clean_ver.endswith("-Beta"): clean_ver += "-Beta"
 
                 for s_id, a_val in subid_pairs:
-                    channel_label = t.get("channel", "官方")
-                    print(
-                        f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {channel_label} | SubID: {s_id}"
-                    )
-                    item = {
-                        "version": clean_ver,
-                        "platform": plat,
-                        "arch": a_val,
-                        "date": t["date"],
-                        "source_url": t["url"],
-                        "channel": channel_label,
-                    }
+                    ch_label = t.get("channel", "官方")
+                    print(f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {ch_label} | SubID: {s_id}")
+                    item = {"version": clean_ver, "platform": plat, "arch": a_val, "date": t["date"], "source_url": t["url"], "channel": ch_label}
                     if s_id not in subid_map:
                         subid_map[s_id] = [item]
                     else:
-                        if isinstance(subid_map[s_id], dict):
-                            subid_map[s_id] = [subid_map[s_id]]
+                        if isinstance(subid_map[s_id], dict): subid_map[s_id] = [subid_map[s_id]]
                         subid_map[s_id].append(item)
 
-                if t.get("mark_wdj_version"):
-                    wdj_new_ver_to_record = t["mark_wdj_version"]
-                if t.get("mark_yyb_version"):
-                    yyb_new_ver_to_record = t["mark_yyb_version"]
-                if t.get("mark_vivo_version"):
-                    vivo_new_ver_to_record = t["mark_vivo_version"]
-                if t.get("mark_huawei_version"):
-                    huawei_new_ver_to_record = t["mark_huawei_version"]
+                if t.get("mark_wdj_version"): wdj_new_ver_to_record = t["mark_wdj_version"]
+                if t.get("mark_yyb_version"): yyb_new_ver_to_record = t["mark_yyb_version"]
+                if t.get("mark_vivo_version"): vivo_new_ver_to_record = t["mark_vivo_version"]
+                if t.get("mark_huawei_version"): huawei_new_ver_to_record = t["mark_huawei_version"]
+                if t.get("mark_oppo_version"): oppo_new_ver_to_record = t["mark_oppo_version"]
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
-                    android_info = {
-                        "url": t["url"],
-                        "version": clean_ver,
-                        "is_beta": "true" if t.get("is_beta") else "false",
-                    }
+                    android_info = {"url": t["url"], "version": clean_ver, "is_beta": "true" if t.get("is_beta") else "false"}
         finally:
             shutil.rmtree(TEMP_DL, ignore_errors=True)
             shutil.rmtree(TEMP_EXTRACT, ignore_errors=True)
 
     if not has_subid_extracted:
-        print("[状态] 本批次下载解析未能提取到有效 SubID，取消落盘。")
+        print("[状态] 本批次下载未能提取有效 SubID，取消落盘。")
         return
 
-    # -------------------------------------------------------------
-    # G. 原子落盘主数据库 data/qq_subid_map.json
-    # -------------------------------------------------------------
+    # 落盘并编译字典
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temp_file = DATA_FILE.with_suffix(".tmp")
-    temp_file.write_text(
-        json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
-    if DATA_FILE.exists():
-        shutil.copy2(DATA_FILE, BAK_FILE)
-    temp_file.replace(DATA_FILE)
+    tmp_map = DATA_FILE.with_suffix(".tmp")
+    tmp_map.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
+    if DATA_FILE.exists(): shutil.copy2(DATA_FILE, BAK_FILE)
+    tmp_map.replace(DATA_FILE)
 
-    # -------------------------------------------------------------
-    # H. 同步派生编译出运行时字典 data/subid.json
-    # -------------------------------------------------------------
     try:
-        compiled_data = compile_subid_map_to_runtime_dict(subid_map)
-        runtime_file = DATA_FILE.parent / "subid.json"
-        temp_rt = runtime_file.with_suffix(".tmp")
-        temp_rt.write_text(
-            json.dumps(compiled_data, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
-        temp_rt.replace(runtime_file)
-        print(f"[运行时同步] 已派生编译 data/subid.json (收录 {len(compiled_data)} 条)")
+        compiled = compile_subid_map_to_runtime_dict(subid_map)
+        rt_file = DATA_FILE.parent / "subid.json"
+        tmp_rt = rt_file.with_suffix(".tmp")
+        tmp_rt.write_text(json.dumps(compiled, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_rt.replace(rt_file)
+        print(f"[运行时同步] 已派生 subid.json ({len(compiled)} 条)")
     except Exception as e:
         print(f"[警告] 编译运行时字典异常: {e}")
 
-    # -------------------------------------------------------------
-    # I. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
-    # -------------------------------------------------------------
-    if wdj_new_ver_to_record:
-        WDJ_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        WDJ_VER_FILE.write_text(wdj_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 豌豆荚最新版本 {wdj_new_ver_to_record} 已成功写入 {WDJ_VER_FILE}")
-
-    if yyb_new_ver_to_record:
-        YYB_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        YYB_VER_FILE.write_text(yyb_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 应用宝最新版本 {yyb_new_ver_to_record} 已成功写入 {YYB_VER_FILE}")
-
-    if vivo_new_ver_to_record:
-        VIVO_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        VIVO_VER_FILE.write_text(vivo_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] vivo最新版本 {vivo_new_ver_to_record} 已成功写入 {VIVO_VER_FILE}")
-
-    if huawei_new_ver_to_record:
-        HUAWEI_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        HUAWEI_VER_FILE.write_text(huawei_new_ver_to_record.strip(), encoding="utf-8")
-        print(f"[版本记录] 华为最新版本 {huawei_new_ver_to_record} 已成功写入 {HUAWEI_VER_FILE}")
+    # 版本持久化更新
+    if wdj_new_ver_to_record: WDJ_VER_FILE.write_text(wdj_new_ver_to_record.strip(), encoding="utf-8"); print(f"[更新] 豌豆荚 -> {wdj_new_ver_to_record}")
+    if yyb_new_ver_to_record: YYB_VER_FILE.write_text(yyb_new_ver_to_record.strip(), encoding="utf-8"); print(f"[更新] 应用宝 -> {yyb_new_ver_to_record}")
+    if vivo_new_ver_to_record: VIVO_VER_FILE.write_text(vivo_new_ver_to_record.strip(), encoding="utf-8"); print(f"[更新] vivo -> {vivo_new_ver_to_record}")
+    if huawei_new_ver_to_record: HUAWEI_VER_FILE.write_text(huawei_new_ver_to_record.strip(), encoding="utf-8"); print(f"[更新] 华为 -> {huawei_new_ver_to_record}")
+    if oppo_new_ver_to_record: OPPO_VER_FILE.write_text(oppo_new_ver_to_record.strip(), encoding="utf-8"); print(f"[更新] OPPO -> {oppo_new_ver_to_record}")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
-    # 联动输出：告知 GitHub Actions
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write("has_new_version=true\n")
