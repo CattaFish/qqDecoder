@@ -25,6 +25,7 @@ YYB_URL = "https://a.app.qq.com/o/simple.jsp?pkgname=com.tencent.mobileqq"
 VIVO_PACKAGE_URL = "https://main.appstore.vivo.com.cn/port/package/"
 VIVO_DOWNLOAD_URL = "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439"
 HUAWEI_API_URL = "https://store-drcn.hispace.dbankcloud.com/hwmarket/api/clientApi"
+XIAOMI_DETAIL_URL = "https://app.mi.com/details?id=com.tencent.mobileqq"
 
 # OPPO 核心静态常量与 Salt
 OPPO_APP_ID = "30334"
@@ -44,6 +45,7 @@ YYB_VER_FILE = Path("data/yingyongbao_latest_version.txt")
 VIVO_VER_FILE = Path("data/vivo_latest_version.txt")
 HUAWEI_VER_FILE = Path("data/huawei_latest_version.txt")
 OPPO_VER_FILE = Path("data/oppo_latest_version.txt")
+XIAOMI_VER_FILE = Path("data/xiaomi_latest_version.txt")
 
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
@@ -74,7 +76,81 @@ def validate_date_str(date_str):
 
 
 # =====================================================================
-# 1. OPPO 软件商店监控模块 (逆向动态签名 + 302 调度穿透)
+# 1. 小米应用商店监控模块
+# =====================================================================
+def get_xiaomi_info():
+    """获取小米应用商店 QQ 的版本信息与下载直链"""
+    print("[小米监控] 正在抓取小米应用商店网页端...")
+    try:
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.9"
+        }
+        resp = requests.get(XIAOMI_DETAIL_URL, headers=headers, timeout=20)
+        if resp.status_code != 200:
+            print(f"[小米监控] 请求网页失败: HTTP {resp.status_code}")
+            return None
+
+        html_text = resp.text
+        soup = BeautifulSoup(html_text, "html.parser")
+
+        version = None
+        m_ver = re.search(r"版本号[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
+        if not m_ver:
+            m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
+        if m_ver:
+            version = m_ver.group(1).strip()
+
+        date_str = None
+        m_date = re.search(
+            r"(?:更新日期|更新时间|发布时间)[：:\s]*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
+            html_text
+        )
+        if m_date:
+            date_str = validate_date_str(m_date.group(1))
+
+        if not date_str:
+            date_str = time.strftime("%Y-%m-%d")
+
+        download_url = None
+        for a in soup.find_all("a", href=True):
+            cls = " ".join(a.get("class", []))
+            txt = a.get_text().strip()
+            href = a["href"].strip()
+            if "download" in cls or "下载" in txt or "/download/" in href:
+                if "/download/" in href or "market.xiaomi.com" in href or ".apk" in href:
+                    download_url = href
+                    break
+
+        if not download_url:
+            m_dl = re.search(r'href=["\'](/download/[^"\']+)["\']', html_text)
+            if m_dl:
+                download_url = m_dl.group(1).strip()
+
+        if download_url:
+            download_url = urljoin("https://app.mi.com", download_url)
+
+        if not version or not download_url:
+            print(f"[小米监控] 解析异常: 版本={version}, 下载URL={download_url}")
+            return None
+
+        return {
+            "version": version,
+            "date": date_str,
+            "download_url": download_url,
+            "channel": "小米",
+        }
+    except Exception as e:
+        print(f"[小米监控] 抓取失败: {e}")
+        return None
+
+
+# =====================================================================
+# 2. OPPO 软件商店监控模块 (逆向动态签名 + 302 调度穿透)
 # =====================================================================
 def generate_oppo_sign(path, query_str, t_str):
     decoded_query = urllib.parse.unquote(query_str)
@@ -138,7 +214,6 @@ def get_oppo_info():
             print(f"[OPPO监控] 未能提取到 verName 或 verId: verName={ver_name}, verId={ver_id}")
             return None
 
-        # 换取真实 302 CDN 下载地址
         download_path = f"/download/v1/{ver_id}"
         download_api_url = f"https://api-cn.store.heytapmobi.com{download_path}"
         download_headers = build_oppo_headers(download_path, query_str="")
@@ -166,7 +241,7 @@ def get_oppo_info():
 
 
 # =====================================================================
-# 2. 华为应用市场 (HiSpace) 监控模块
+# 3. 华为应用市场 (HiSpace) 监控模块
 # =====================================================================
 def get_huawei_info():
     """获取华为应用市场 (HiSpace) 的版本信息与下载直链"""
@@ -221,7 +296,7 @@ def get_huawei_info():
 
 
 # =====================================================================
-# 3. vivo 应用商店监控模块 (基于官方开放 Package 接口)
+# 4. vivo 应用商店监控模块 (基于官方开放 Package 接口)
 # =====================================================================
 def get_vivo_info():
     """获取 vivo 应用商店 QQ 的版本信息与下载直链"""
@@ -270,7 +345,7 @@ def get_vivo_info():
 
 
 # =====================================================================
-# 4. 腾讯应用宝 (微下载) 监控与解析模块
+# 5. 腾讯应用宝 (微下载) 监控与解析模块
 # =====================================================================
 def get_yingyongbao_info():
     """获取腾讯应用宝页面的版本信息、更新日期及“通过第三方浏览器下载”直链"""
@@ -369,7 +444,7 @@ def get_yingyongbao_info():
 
 
 # =====================================================================
-# 5. 豌豆荚 (PP助手) 监控与解析模块
+# 6. 豌豆荚 (PP助手) 监控与解析模块
 # =====================================================================
 def get_wandoujia_info():
     """获取豌豆荚页面的版本信息、更新日期及普通下载直链"""
@@ -427,7 +502,7 @@ def get_wandoujia_info():
 
 
 # =====================================================================
-# 6. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
+# 7. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
 # =====================================================================
 def get_latest_message():
     """获取频道的最新一条有效更新消息"""
@@ -615,7 +690,7 @@ def parse_tasks_from_message(msg):
 
 
 # =====================================================================
-# 7. 跨市场通用静默下载与解包抽取
+# 8. 跨市场通用静默下载与解包抽取
 # =====================================================================
 def download_target_file(url, target_dir):
     try:
@@ -645,6 +720,8 @@ def download_target_file(url, target_dir):
                 referer = "https://appgallery.huawei.com/"
             elif "heytap" in url or "oppo.com" in url:
                 referer = "https://store.oppomobile.com/"
+            elif "mi.com" in url or "xiaomi.com" in url:
+                referer = "https://app.mi.com/"
 
             cmd = [
                 "curl",
@@ -845,7 +922,7 @@ def extract_version_from_filename(filename):
 
 
 # =====================================================================
-# 8. 主控流程 (六源联合全量轮询：TG官方 + 豌豆荚 + 腾讯应用宝 + vivo + 华为 + OPPO)
+# 9. 主控流程 (七源联合全量轮询：TG官方 + 豌豆荚 + 腾讯应用宝 + vivo + 华为 + OPPO + 小米)
 # =====================================================================
 def main():
     pending_tasks = []
@@ -1017,12 +1094,43 @@ def main():
         else:
             print("[OPPO监控] 线上版本与记录一致，无需下载。")
 
+    # -------------------------------------------------------------
+    # G. 检查 小米应用商店 渠道更新
+    # -------------------------------------------------------------
+    xiaomi_recorded_ver = ""
+    if XIAOMI_VER_FILE.exists():
+        xiaomi_recorded_ver = XIAOMI_VER_FILE.read_text(encoding="utf-8").strip()
+
+    xiaomi_info = get_xiaomi_info()
+    xiaomi_new_ver_to_record = None
+
+    if xiaomi_info:
+        cur_xiaomi_ver = xiaomi_info["version"]
+        print(f"[小米监控] 线上版本: {cur_xiaomi_ver} | 本地记录版本: {xiaomi_recorded_ver or '无'}")
+
+        if not xiaomi_recorded_ver or xiaomi_recorded_ver != cur_xiaomi_ver:
+            print(f"[小米监控] 检测到新版本/首发收录: {cur_xiaomi_ver}，加入待处理任务！")
+            pending_tasks.append(
+                {
+                    "platform": "Android",
+                    "arch": "Package",
+                    "version": cur_xiaomi_ver,
+                    "date": xiaomi_info["date"],
+                    "url": xiaomi_info["download_url"],
+                    "is_beta": False,
+                    "channel": "小米",
+                    "mark_xiaomi_version": cur_xiaomi_ver,
+                }
+            )
+        else:
+            print("[小米监控] 线上版本与记录一致，无需下载。")
+
     if not pending_tasks:
         print("[状态] 遍历完毕，所有渠道均无新版本。")
         sys.exit(0)
 
     # -------------------------------------------------------------
-    # G. 读取已有数据库并做 URL 去重排队
+    # H. 读取已有数据库并做 URL 去重排队
     # -------------------------------------------------------------
     subid_map = {}
     if DATA_FILE.exists():
@@ -1159,6 +1267,8 @@ def main():
                     huawei_new_ver_to_record = t["mark_huawei_version"]
                 if t.get("mark_oppo_version"):
                     oppo_new_ver_to_record = t["mark_oppo_version"]
+                if t.get("mark_xiaomi_version"):
+                    xiaomi_new_ver_to_record = t["mark_xiaomi_version"]
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
@@ -1176,7 +1286,7 @@ def main():
         return
 
     # -------------------------------------------------------------
-    # H. 原子落盘主数据库 data/qq_subid_map.json
+    # I. 原子落盘主数据库 data/qq_subid_map.json
     # -------------------------------------------------------------
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
@@ -1188,7 +1298,7 @@ def main():
     temp_file.replace(DATA_FILE)
 
     # -------------------------------------------------------------
-    # I. 同步派生编译出运行时字典 data/subid.json
+    # J. 同步派生编译出运行时字典 data/subid.json
     # -------------------------------------------------------------
     try:
         compiled_data = compile_subid_map_to_runtime_dict(subid_map)
@@ -1204,7 +1314,7 @@ def main():
         print(f"[警告] 编译运行时字典异常: {e}")
 
     # -------------------------------------------------------------
-    # J. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
+    # K. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
     # -------------------------------------------------------------
     if wdj_new_ver_to_record:
         WDJ_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -1230,6 +1340,11 @@ def main():
         OPPO_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
         OPPO_VER_FILE.write_text(oppo_new_ver_to_record.strip(), encoding="utf-8")
         print(f"[版本记录] OPPO最新版本 {oppo_new_ver_to_record} 已成功写入 {OPPO_VER_FILE}")
+
+    if xiaomi_new_ver_to_record:
+        XIAOMI_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
+        XIAOMI_VER_FILE.write_text(xiaomi_new_ver_to_record.strip(), encoding="utf-8")
+        print(f"[版本记录] 小米最新版本 {xiaomi_new_ver_to_record} 已成功写入 {XIAOMI_VER_FILE}")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
