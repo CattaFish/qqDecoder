@@ -43,6 +43,23 @@ DEFAULT_HEADERS = {
 }
 
 
+def validate_date_str(date_str):
+    """严格校验物理公历日期合法性 (彻底杜绝 97 月等伪日期)"""
+    if not date_str:
+        return None
+    try:
+        clean = re.sub(r"[年/.]", "-", str(date_str)).replace("月", "-").replace("日", "").strip()
+        parts = clean.split("-")
+        if len(parts) >= 3:
+            y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
+            # 年份在 2020~2035 之间，月份在 1~12 之间，日在 1~31 之间
+            if 2020 <= y <= 2035 and 1 <= m <= 12 and 1 <= d <= 31:
+                return f"{y:04d}-{m:02d}-{d:02d}"
+    except Exception:
+        pass
+    return None
+
+
 # =====================================================================
 # 1. 华为应用市场 (HiSpace) 监控模块
 # =====================================================================
@@ -81,7 +98,7 @@ def get_huawei_info():
         release_date = str(item.get("releaseDate", "")).strip()
         download_url = str(item.get("url", "")).strip()
 
-        date_str = release_date if release_date else time.strftime("%Y-%m-%d")
+        date_str = validate_date_str(release_date) or time.strftime("%Y-%m-%d")
 
         if not version_name or not download_url:
             print(f"[华为监控] 未能提取到版本号或直链: ver={version_name}")
@@ -128,11 +145,9 @@ def get_vivo_info():
         upload_time = str(val.get("upload_time", "")).strip()
         dl_url = str(val.get("download_url", "")).strip() or VIVO_DOWNLOAD_URL
 
-        date_str = time.strftime("%Y-%m-%d")
-        if upload_time:
-            m_d = re.search(r"(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})", upload_time)
-            if m_d:
-                date_str = m_d.group(1).replace("/", "-").replace(".", "-").strip()
+        date_str = validate_date_str(upload_time.split(" ")[0]) if upload_time else None
+        if not date_str:
+            date_str = time.strftime("%Y-%m-%d")
 
         if not version_name:
             print("[vivo监控] 未能获取到 version_name")
@@ -167,16 +182,13 @@ def get_yingyongbao_info():
         html_text = resp.text
         soup = BeautifulSoup(html_text, "html.parser")
 
+        # 1. 提取版本号
         version = None
         m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
         if m_ver:
             version = m_ver.group(1).strip()
 
-        date_str = time.strftime("%Y-%m-%d")
-        m_date = re.search(r"(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})", html_text)
-        if m_date:
-            date_str = m_date.group(1).replace("/", "-").replace(".", "-").strip()
-
+        # 2. 提取“通过第三方浏览器下载”的 APK 直链
         download_url = None
         for tag in soup.find_all(["a", "div", "button", "span"]):
             t_text = tag.get_text().strip()
@@ -209,6 +221,41 @@ def get_yingyongbao_info():
         if download_url and download_url.startswith("//"):
             download_url = "https:" + download_url
 
+        # 3. 严格提取合规公历日期 (4重校验，彻底根除 2011-97-12 假日期)
+        date_str = None
+
+        # 策略 A: 必须伴随“更新/发布时间”关键词，并进行物理日历校验
+        m_ctx = re.search(
+            r"(?:更新时间|发布时间|更新日期|时间)[：:\s]*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
+            html_text
+        )
+        if m_ctx:
+            date_str = validate_date_str(m_ctx.group(1))
+
+        # 策略 B: 嗅探页面时间戳变量 (10位或13位)
+        if not date_str:
+            m_ts = re.search(r'["\']?(?:apkPublishTime|publishTime|updateTime)["\']?\s*[:=]\s*["\']?(\d{10,13})["\']?', html_text)
+            if m_ts:
+                raw_ts = int(m_ts.group(1))
+                if raw_ts > 10000000000:
+                    raw_ts = raw_ts // 1000
+                date_str = validate_date_str(time.strftime("%Y-%m-%d", time.localtime(raw_ts)))
+
+        # 策略 C: 直接向安装包直链发 HEAD 请求，读取腾讯 CDN 的实际构建上传时间 (Last-Modified)
+        if not date_str and download_url:
+            try:
+                head_resp = requests.head(download_url, headers=headers, timeout=5, allow_redirects=True)
+                last_mod = head_resp.headers.get("Last-Modified")
+                if last_mod:
+                    gmt_time = time.strptime(last_mod, "%a, %d %b %Y %H:%M:%S GMT")
+                    date_str = validate_date_str(time.strftime("%Y-%m-%d", gmt_time))
+            except Exception:
+                pass
+
+        # 策略 D: 兜底为当前系统日期
+        if not date_str:
+            date_str = time.strftime("%Y-%m-%d")
+
         if not version or not download_url:
             print(f"[应用宝监控] 解析异常: 版本={version}, 下载URL={download_url}")
             return None
@@ -239,16 +286,18 @@ def get_wandoujia_info():
         soup = BeautifulSoup(resp.text, "html.parser")
 
         version = None
-        date_str = time.strftime("%Y-%m-%d")
-
         text_content = soup.get_text()
         m_ver = re.search(r"版本信息[：:\s]*\n*([0-9]+(?:\.[0-9]+)+)", text_content)
         if m_ver:
             version = m_ver.group(1).strip()
 
-        m_date = re.search(r"更新时间[：:\s]*\n*([0-9]{4}[-/][0-9]{2}[-/][0-9]{2})", text_content)
+        date_str = None
+        m_date = re.search(r"更新时间[：:\s]*\n*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2})", text_content)
         if m_date:
-            date_str = m_date.group(1).replace("/", "-").strip()
+            date_str = validate_date_str(m_date.group(1))
+
+        if not date_str:
+            date_str = time.strftime("%Y-%m-%d")
 
         download_url = None
         for a in soup.find_all("a"):
@@ -307,7 +356,8 @@ def get_latest_message():
 
     latest_msg = msg_divs[-1]
     time_elem = latest_msg.find("time")
-    date_str = time_elem["datetime"][:10] if time_elem else "Unknown"
+    raw_date = time_elem["datetime"][:10] if time_elem else None
+    date_str = validate_date_str(raw_date) or "Unknown"
     text_elem = latest_msg.find("div", class_="tgme_widget_message_text")
 
     return {
@@ -488,7 +538,6 @@ def download_target_file(url, target_dir):
                 fname = "target_package.apk"
             out_file = target_dir / fname
 
-            # 智能匹配各应用商店防盗链 Referer
             referer = "https://wap.pp.cn/"
             if "vivo.com" in url:
                 referer = "https://appstore.vivo.com.cn/"
