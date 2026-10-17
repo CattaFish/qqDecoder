@@ -26,6 +26,7 @@ from channels import (
     get_wandoujia_info,
     get_xiaomi_info,
     get_yingyongbao_info,
+    get_honor_info,
 )
 
 sys.stdout.reconfigure(line_buffering=True)
@@ -45,6 +46,7 @@ MARKET_CHANNELS = [
     ("华为", get_huawei_info, Path("data/huawei_latest_version.txt")),
     ("OPPO", get_oppo_info, Path("data/oppo_latest_version.txt")),
     ("小米", get_xiaomi_info, Path("data/xiaomi_latest_version.txt")),
+    ("荣耀", get_honor_info, Path("data/honor_latest_version.txt")),
 ]
 
 
