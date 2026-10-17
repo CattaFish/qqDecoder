@@ -16,14 +16,18 @@ import requests
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
+# 渠道与数据源定义
 TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 WANDOUJIA_URL = "https://wap.pp.cn/app_zYoOzyuL/"
 YYB_URL = "https://a.app.qq.com/o/simple.jsp?pkgname=com.tencent.mobileqq"
+VIVO_PACKAGE_URL = "https://main.appstore.vivo.com.cn/port/package/"
+VIVO_DOWNLOAD_URL = "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439"
 
 DATA_FILE = Path("data/qq_subid_map.json")
 BAK_FILE = Path("data/qq_subid_map.json.bak")
 WDJ_VER_FILE = Path("data/wandoujia_latest_version.txt")
 YYB_VER_FILE = Path("data/yingyongbao_latest_version.txt")
+VIVO_VER_FILE = Path("data/vivo_latest_version.txt")
 
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
@@ -38,38 +42,102 @@ DEFAULT_HEADERS = {
 
 
 # =====================================================================
-# 1. 腾讯应用宝 (微下载) 监控与解析模块
+# 1. vivo 应用商店监控模块 (基于官方开放 Package 接口)
+# =====================================================================
+def get_vivo_info():
+    """获取 vivo 应用商店 QQ 的版本信息与下载直链"""
+    print("[vivo监控] 正在向官方接口查询线上版本...")
+    try:
+        headers = {
+            "User-Agent": (
+                "AndroidAppStore/13 (Linux; U; Android 13; TrebleDroid vanilla Build/TQ3A.230901.001)"
+            ),
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept": "*/*"
+        }
+        now_ts = int(time.time() * 1000)
+        payload = {
+            "id": "40439",
+            "app_version": "55910",
+            "not_sys": "1",
+            "language": "zh",
+            "trace_ts": str(now_ts),
+            "trace_type": "4-0",
+            "model": "TrebleDroid vanilla",
+            "deviceType": "phone",
+            "an": "13",
+            "av": "33",
+            "nt": "WIFI",
+            "cpuInfo": "64_arm64-v8a,armeabi-v7a,armeabi",
+            "session_id": str(now_ts),
+            "keyword": "qq",
+            "sourword": "qq"
+        }
+        resp = requests.post(VIVO_PACKAGE_URL, headers=headers, data=payload, timeout=20)
+        if resp.status_code != 200:
+            print(f"[vivo监控] 请求接口失败: HTTP {resp.status_code}")
+            return None
+
+        res_json = resp.json()
+        val = res_json.get("value")
+        if not val:
+            print(f"[vivo监控] 响应无 value 数据")
+            return None
+
+        version_name = str(val.get("version_name", "")).strip()
+        upload_time = str(val.get("upload_time", "")).strip()
+        dl_url = str(val.get("download_url", "")).strip() or VIVO_DOWNLOAD_URL
+
+        date_str = time.strftime("%Y-%m-%d")
+        if upload_time:
+            m_d = re.search(r"(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})", upload_time)
+            if m_d:
+                date_str = m_d.group(1).replace("/", "-").replace(".", "-").strip()
+
+        if not version_name:
+            print("[vivo监控] 未获取到有效版本号")
+            return None
+
+        return {
+            "version": version_name,
+            "date": date_str,
+            "download_url": dl_url,
+            "channel": "vivo",
+        }
+    except Exception as e:
+        print(f"[vivo监控] 查询异常: {e}")
+        return None
+
+
+# =====================================================================
+# 2. 腾讯应用宝 (微下载) 监控与解析模块
 # =====================================================================
 def get_yingyongbao_info():
     """获取腾讯应用宝页面的版本信息、更新日期及“通过第三方浏览器下载”直链"""
+    print("[应用宝监控] 正在检索微下载页面...")
     try:
         headers = dict(DEFAULT_HEADERS)
         headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 
         resp = requests.get(YYB_URL, headers=headers, timeout=20)
         if resp.status_code != 200:
-            print(f"[应用宝] 请求网页失败: HTTP {resp.status_code}")
+            print(f"[应用宝监控] 请求网页失败: HTTP {resp.status_code}")
             return None
 
         html_text = resp.text
         soup = BeautifulSoup(html_text, "html.parser")
 
-        # 1. 提取版本号 (优先匹配第一处主应用版本，避免匹配底部应用宝自身服务版本)
         version = None
         m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", html_text)
         if m_ver:
             version = m_ver.group(1).strip()
 
-        # 2. 提取更新日期 (若页面未标注，默认当天)
         date_str = time.strftime("%Y-%m-%d")
         m_date = re.search(r"(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})", html_text)
         if m_date:
             date_str = m_date.group(1).replace("/", "-").replace(".", "-").strip()
 
-        # 3. 提取“通过第三方浏览器下载”的 APK 直链
         download_url = None
-
-        # 策略 A: 遍历所有包含“通过第三方浏览器下载”的元素属性
         for tag in soup.find_all(["a", "div", "button", "span"]):
             t_text = tag.get_text().strip()
             if "通过第三方浏览器下载" in t_text or "第三方浏览器" in t_text:
@@ -78,19 +146,16 @@ def get_yingyongbao_info():
                     download_url = url_cand
                     break
 
-        # 策略 B: 扫描脚本中的变量 (apkUrl / downUrl)
         if not download_url:
             m_apk = re.search(r'["\']?(?:apkUrl|downUrl|downloadUrl|apk_url)["\']?\s*[:=]\s*["\'](https?://[^"\']+\.apk[^"\']*)["\']', html_text)
             if m_apk:
                 download_url = m_apk.group(1).strip()
 
-        # 策略 C: 扫描页面内所有腾讯官方 APK 下载直链 (myapp.com / qq.com)
         if not download_url:
             m_any_apk = re.search(r'https?://[a-zA-Z0-9_.-]+(?:myapp\.com|qq\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', html_text)
             if m_any_apk:
                 download_url = m_any_apk.group(0).strip()
 
-        # 策略 D: 官网详情接口兜底
         if not download_url:
             try:
                 d_resp = requests.get("https://sj.qq.com/appdetail/com.tencent.mobileqq", headers=headers, timeout=10)
@@ -105,7 +170,7 @@ def get_yingyongbao_info():
             download_url = "https:" + download_url
 
         if not version or not download_url:
-            print(f"[应用宝] 解析异常: 版本={version}, 下载URL={download_url}")
+            print(f"[应用宝监控] 解析异常: 版本={version}, 下载URL={download_url}")
             return None
 
         return {
@@ -115,19 +180,20 @@ def get_yingyongbao_info():
             "channel": "应用宝",
         }
     except Exception as e:
-        print(f"[应用宝] 抓取失败: {e}")
+        print(f"[应用宝监控] 抓取失败: {e}")
         return None
 
 
 # =====================================================================
-# 2. 豌豆荚 (PP助手) 监控与解析模块
+# 3. 豌豆荚 (PP助手) 监控与解析模块
 # =====================================================================
 def get_wandoujia_info():
     """获取豌豆荚页面的版本信息、更新日期及普通下载直链"""
+    print("[豌豆荚监控] 正在抓取豌豆荚详情页...")
     try:
         resp = requests.get(WANDOUJIA_URL, headers=DEFAULT_HEADERS, timeout=20)
         if resp.status_code != 200:
-            print(f"[豌豆荚] 请求网页失败: HTTP {resp.status_code}")
+            print(f"[豌豆荚监控] 请求网页失败: HTTP {resp.status_code}")
             return None
 
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -158,7 +224,7 @@ def get_wandoujia_info():
                     break
 
         if not version or not download_url:
-            print(f"[豌豆荚] 解析异常: 版本={version}, 下载URL={download_url}")
+            print(f"[豌豆荚监控] 解析异常: 版本={version}, 下载URL={download_url}")
             return None
 
         download_url = urljoin(WANDOUJIA_URL, download_url.strip())
@@ -170,12 +236,12 @@ def get_wandoujia_info():
             "channel": "豌豆荚",
         }
     except Exception as e:
-        print(f"[豌豆荚] 抓取失败: {e}")
+        print(f"[豌豆荚监控] 抓取失败: {e}")
         return None
 
 
 # =====================================================================
-# 3. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
+# 4. Telegram 频道解析模块 (兼容 Markdown 超链接与新格式)
 # =====================================================================
 def get_latest_message():
     """获取频道的最新一条有效更新消息"""
@@ -186,7 +252,7 @@ def get_latest_message():
     }
     resp = requests.get(TG_CHANNEL_URL, headers=headers, timeout=30)
     if resp.status_code != 200:
-        print(f"[错误] 无法连接到 Telegram 频道: {resp.status_code}")
+        print(f"[TG 监控] 无法连接到 Telegram 频道: HTTP {resp.status_code}")
         return None
 
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -196,7 +262,7 @@ def get_latest_message():
         if div.get("data-post") and "/" in div.get("data-post")
     ]
     if not msg_divs:
-        print("[错误] 未找到任何消息节点")
+        print("[TG 监控] 未找到任何消息节点")
         return None
 
     latest_msg = msg_divs[-1]
@@ -213,7 +279,7 @@ def get_latest_message():
 
 
 def parse_tasks_from_message(msg):
-    """解析 TG 消息包含的所有架构直链，兼容 Markdown 超链接与新版排版"""
+    """解析 TG 消息包含的所有架构直链"""
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
@@ -362,7 +428,7 @@ def parse_tasks_from_message(msg):
 
 
 # =====================================================================
-# 4. 底层下载与反编译抽取工具
+# 5. 跨市场通用静默下载与解包抽取
 # =====================================================================
 def download_target_file(url, target_dir):
     try:
@@ -381,6 +447,14 @@ def download_target_file(url, target_dir):
             if not fname or not (fname.endswith(".apk") or "." in fname):
                 fname = "target_package.apk"
             out_file = target_dir / fname
+
+            # 针对不同应用市场动态选择合法 Referer
+            referer = "https://wap.pp.cn/"
+            if "vivo.com" in url:
+                referer = "https://appstore.vivo.com.cn/"
+            elif "qq.com" in url or "myapp.com" in url:
+                referer = "https://a.app.qq.com/"
+
             cmd = [
                 "curl",
                 "-fL",
@@ -393,7 +467,7 @@ def download_target_file(url, target_dir):
                     " AppleWebKit/537.36"
                 ),
                 "-e",
-                "https://wap.pp.cn/",
+                referer,
                 "--retry",
                 "2",
                 "--connect-timeout",
@@ -580,7 +654,7 @@ def extract_version_from_filename(filename):
 
 
 # =====================================================================
-# 5. 主控流程 (三源轮询：TG 官方 + 豌豆荚 + 腾讯应用宝)
+# 6. 主控流程 (四源联合全量轮询：TG官方 + 豌豆荚 + 腾讯应用宝 + vivo商店)
 # =====================================================================
 def main():
     pending_tasks = []
@@ -609,7 +683,7 @@ def main():
 
     if wdj_info:
         cur_wdj_ver = wdj_info["version"]
-        print(f"[豌豆荚监控] 当前线上版本: {cur_wdj_ver} | 本地记录版本: {wdj_recorded_ver or '无'}")
+        print(f"[豌豆荚监控] 线上版本: {cur_wdj_ver} | 本地记录版本: {wdj_recorded_ver or '无'}")
 
         if not wdj_recorded_ver or wdj_recorded_ver != cur_wdj_ver:
             print(f"[豌豆荚监控] 检测到新版本/首发收录: {cur_wdj_ver}，加入待处理任务！")
@@ -640,7 +714,7 @@ def main():
 
     if yyb_info:
         cur_yyb_ver = yyb_info["version"]
-        print(f"[应用宝监控] 当前线上版本: {cur_yyb_ver} | 本地记录版本: {yyb_recorded_ver or '无'}")
+        print(f"[应用宝监控] 线上版本: {cur_yyb_ver} | 本地记录版本: {yyb_recorded_ver or '无'}")
 
         if not yyb_recorded_ver or yyb_recorded_ver != cur_yyb_ver:
             print(f"[应用宝监控] 检测到新版本/首发收录: {cur_yyb_ver}，加入待处理任务！")
@@ -659,12 +733,43 @@ def main():
         else:
             print("[应用宝监控] 线上版本与记录一致，无需下载。")
 
+    # -------------------------------------------------------------
+    # D. 检查 vivo 应用商店 渠道更新
+    # -------------------------------------------------------------
+    vivo_recorded_ver = ""
+    if VIVO_VER_FILE.exists():
+        vivo_recorded_ver = VIVO_VER_FILE.read_text(encoding="utf-8").strip()
+
+    vivo_info = get_vivo_info()
+    vivo_new_ver_to_record = None
+
+    if vivo_info:
+        cur_vivo_ver = vivo_info["version"]
+        print(f"[vivo监控] 线上版本: {cur_vivo_ver} | 本地记录版本: {vivo_recorded_ver or '无'}")
+
+        if not vivo_recorded_ver or vivo_recorded_ver != cur_vivo_ver:
+            print(f"[vivo监控] 检测到新版本/首发收录: {cur_vivo_ver}，加入待处理任务！")
+            pending_tasks.append(
+                {
+                    "platform": "Android",
+                    "arch": "Package",
+                    "version": cur_vivo_ver,
+                    "date": vivo_info["date"],
+                    "url": vivo_info["download_url"],
+                    "is_beta": False,
+                    "channel": "vivo",
+                    "mark_vivo_version": cur_vivo_ver,
+                }
+            )
+        else:
+            print("[vivo监控] 线上版本与记录一致，无需下载。")
+
     if not pending_tasks:
-        print("[状态] 未检索到任何新任务。")
+        print("[状态] 遍历完毕，所有渠道均无新版本。")
         sys.exit(0)
 
     # -------------------------------------------------------------
-    # D. 读取已有数据库并做 URL 去重排队
+    # E. 读取已有数据库并做 URL 去重排队
     # -------------------------------------------------------------
     subid_map = {}
     if DATA_FILE.exists():
@@ -795,8 +900,9 @@ def main():
                     wdj_new_ver_to_record = t["mark_wdj_version"]
                 if t.get("mark_yyb_version"):
                     yyb_new_ver_to_record = t["mark_yyb_version"]
+                if t.get("mark_vivo_version"):
+                    vivo_new_ver_to_record = t["mark_vivo_version"]
 
-                # 仅对官方 Android 触发后续 JADX 反编译和 Diff，避免第三方二次打包造成干扰
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
                     android_info = {
@@ -813,7 +919,7 @@ def main():
         return
 
     # -------------------------------------------------------------
-    # E. 原子落盘主数据库 data/qq_subid_map.json
+    # F. 原子落盘主数据库 data/qq_subid_map.json
     # -------------------------------------------------------------
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
@@ -825,7 +931,7 @@ def main():
     temp_file.replace(DATA_FILE)
 
     # -------------------------------------------------------------
-    # F. 同步派生编译出运行时字典 data/subid.json
+    # G. 同步派生编译出运行时字典 data/subid.json
     # -------------------------------------------------------------
     try:
         compiled_data = compile_subid_map_to_runtime_dict(subid_map)
@@ -841,7 +947,7 @@ def main():
         print(f"[警告] 编译运行时字典异常: {e}")
 
     # -------------------------------------------------------------
-    # G. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
+    # H. 核心要求：在所有 SubID 全部提取处理完成之后，最后保存版本文件
     # -------------------------------------------------------------
     if wdj_new_ver_to_record:
         WDJ_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -852,6 +958,11 @@ def main():
         YYB_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
         YYB_VER_FILE.write_text(yyb_new_ver_to_record.strip(), encoding="utf-8")
         print(f"[版本记录] 应用宝最新版本 {yyb_new_ver_to_record} 已成功写入 {YYB_VER_FILE}")
+
+    if vivo_new_ver_to_record:
+        VIVO_VER_FILE.parent.mkdir(parents=True, exist_ok=True)
+        VIVO_VER_FILE.write_text(vivo_new_ver_to_record.strip(), encoding="utf-8")
+        print(f"[版本记录] vivo最新版本 {vivo_new_ver_to_record} 已成功写入 {VIVO_VER_FILE}")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
