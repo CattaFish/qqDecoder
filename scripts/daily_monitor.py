@@ -4,8 +4,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from subid_compiler import compile_subid_map_to_runtime_dict
 import hashlib
+import hmac
 import json
 import os
+import random
 import re
 import shutil
 import subprocess
@@ -25,7 +27,25 @@ YYB_URL = "https://a.app.qq.com/o/simple.jsp?pkgname=com.tencent.mobileqq"
 VIVO_PACKAGE_URL = "https://main.appstore.vivo.com.cn/port/package/"
 VIVO_DOWNLOAD_URL = "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439"
 HUAWEI_API_URL = "https://store-drcn.hispace.dbankcloud.com/hwmarket/api/clientApi"
-XIAOMI_DETAIL_URL = "https://app.mi.com/details?id=com.tencent.mobileqq"
+
+# 小米核心静态常量与签名 Salt
+XIAOMI_SALT = "good luck!"
+XIAOMI_TABLE = "leDTKhmg4MafVFp73x6djvLiHn2G9XPruARBwS0q1OzNJt8WobZsQcYyEICk5U-_"
+XIAOMI_SIGNED_KEYS = {
+    "activedTimeInterval", "ad", "adExchangeFlag", "adFlag", "apkChannel", "appId",
+    "bottomTab", "carrier", "clientId", "co", "count", "cpuArchitecture", "device",
+    "deviceType", "digestParams", "downloadingAppInfo", "excludedAppIds", "ext_apkChannel",
+    "ext_marketType", "flag", "folderName", "get", "gpId", "h5", "id", "imei",
+    "installDay", "installError", "instance_id", "international", "keyword", "la",
+    "launchDay", "lo", "marketVersion", "miuiBigVersionCode", "miuiBigVersionName",
+    "model", "_n", "needLruCache", "network", "newUser", "oldApkHash", "oldVersionCode",
+    "os", "packageName", "packageNameList", "page", "pageConfigVersion", "pageRef",
+    "pageSize", "pageTag", "params", "pos", "posChain", "previousAppIds",
+    "proxyTimeout", "query", "reason", "recentInstallCompleteAppInfo", "ref",
+    "refPosition", "refresh", "refs", "resolution", "ro", "sco", "sdk", "searchScope",
+    "shouldNativeInterceptRequest", "sid", "sla", "sourcePackage", "stamp",
+    "targetVersionCode", "type", "update", "versionCode", "webResVersion", "zoneSuffix",
+}
 
 # OPPO 核心静态常量与 Salt
 OPPO_APP_ID = "30334"
@@ -76,119 +96,248 @@ def validate_date_str(date_str):
 
 
 # =====================================================================
-# 1. 小米应用商店监控模块 (多策略鲁棒提取)
+# 1. 小米应用商店监控模块 (基于官方 APM 私有加密协议)
 # =====================================================================
+def xiaomi_base64(raw_bytes: bytes) -> str:
+    out = []
+    i = 0
+    length = len(raw_bytes)
+    while i + 2 < length:
+        b1, b2, b3 = raw_bytes[i], raw_bytes[i + 1], raw_bytes[i + 2]
+        out.append(XIAOMI_TABLE[(b1 >> 2) & 0x3F])
+        out.append(XIAOMI_TABLE[((b1 << 4) | (b2 >> 4)) & 0x3F])
+        out.append(XIAOMI_TABLE[((b2 << 2) | (b3 >> 6)) & 0x3F])
+        out.append(XIAOMI_TABLE[b3 & 0x3F])
+        i += 3
+    rem = length - i
+    if rem == 1:
+        b1 = raw_bytes[i]
+        out.append(XIAOMI_TABLE[(b1 >> 2) & 0x3F])
+        out.append(XIAOMI_TABLE[(b1 << 4) & 0x3F])
+    elif rem == 2:
+        b1, b2 = raw_bytes[i], raw_bytes[i + 1]
+        out.append(XIAOMI_TABLE[(b1 >> 2) & 0x3F])
+        out.append(XIAOMI_TABLE[((b1 << 4) | (b2 >> 4)) & 0x3F])
+        out.append(XIAOMI_TABLE[((b2 << 2) | (b3 >> 6)) & 0x3F])
+    return "".join(out)
+
+
+def xiaomi_arrange_exact(decoded_url: str, nonce: str) -> str:
+    query_start = decoded_url.find("?")
+    url_part = decoded_url[:query_start] if query_start >= 0 else decoded_url
+    query = decoded_url[query_start + 1:] if query_start >= 0 and query_start + 1 < len(decoded_url) else ""
+
+    slash_count = 0
+    reversing_host = True
+    builder = []
+    for ch in url_part:
+        if ch == "/" and reversing_host:
+            slash_count += 1
+            if slash_count == 3:
+                builder.append("\n")
+                builder.append(ch)
+                reversing_host = False
+            else:
+                builder.insert(0, ch)
+        elif reversing_host:
+            builder.insert(0, ch)
+        else:
+            builder.append(ch)
+    builder.append("\n")
+
+    params = [p for p in query.split("&") if p and not p.startswith(("_n=", "_s=", "_v="))]
+    params.append(f"_n={nonce}")
+
+    plist = []
+    for idx, p in enumerate(params):
+        k = p.split("=")[0]
+        if k in XIAOMI_SIGNED_KEYS:
+            plist.append(k)
+            if idx != len(params) - 1:
+                plist.append(";")
+    params.append(f"_p=" + "".join(plist))
+    params.sort(key=lambda a: a.lower())
+
+    for idx, param in enumerate(params):
+        k = param.split("=")[0]
+        signed = k in XIAOMI_SIGNED_KEYS if "=" in param else True
+        if not signed:
+            if idx == len(params) - 1 and builder and builder[-1] == "=":
+                builder.pop()
+            continue
+        segs = param.split("=")
+        builder.append(segs[0])
+        for s in segs[1:]:
+            builder.append("&")
+            builder.append(s[::-1])
+        if idx != len(params) - 1:
+            builder.append("=")
+
+    full_str = "".join(builder)
+    lf = full_str.find("\n")
+    return full_str[lf + 1:]
+
+
+def xiaomi_sign_url(base_url: str) -> str:
+    ts = int(time.time() * 1000)
+    nonce = f"{ts}_{random.randint(0, 999)}"
+    decoded = urllib.parse.unquote_plus(base_url)
+    arranged = xiaomi_arrange_exact(decoded, nonce)
+
+    algo_idx = ts % 4
+    algos = [hashlib.md5, hashlib.sha256, hashlib.sha1, hashlib.sha384]
+    algo = algos[algo_idx]
+
+    key = (XIAOMI_SALT + nonce).encode("utf-8")
+    digest = hmac.new(key, arranged.encode("utf-8"), algo).digest()
+    sig = xiaomi_base64(digest)
+    sep = "&" if "?" in base_url else "?"
+    return f"{base_url}{sep}_n={urllib.parse.quote(nonce)}&_s={urllib.parse.quote(sig)}&_v=1"
+
+
+def xiaomi_sign_form_fields(url: str, fields: dict) -> dict:
+    ts = int(time.time() * 1000)
+    nonce = f"{ts}_{random.randint(0, 999)}"
+    query_str = urllib.parse.urlencode(fields)
+    full_url = f"{url}?{query_str}" if query_str else url
+    arranged = xiaomi_arrange_exact(urllib.parse.unquote_plus(full_url), nonce)
+
+    algo_idx = ts % 4
+    algos = [hashlib.md5, hashlib.sha256, hashlib.sha1, hashlib.sha384]
+    algo = algos[algo_idx]
+
+    key = (XIAOMI_SALT + nonce).encode("utf-8")
+    digest = hmac.new(key, arranged.encode("utf-8"), algo).digest()
+    sig = xiaomi_base64(digest)
+
+    res = dict(fields)
+    res["_n"] = nonce
+    res["_s"] = sig
+    res["_v"] = "1"
+    return res
+
+
 def get_xiaomi_info():
-    """获取小米应用商店 QQ 的版本信息与下载直链"""
-    print("[小米监控] 正在抓取小米应用商店网页端...")
-    endpoints = [
-        "https://app.mi.com/details?id=com.tencent.mobileqq",
-        "https://m.app.mi.com/details?id=com.tencent.mobileqq"
-    ]
+    """获取小米应用商店 QQ 的版本信息与下载直链 (APM 原生私有协议)"""
+    print("[小米监控] 正在向官方更新接口查询线上版本...")
+    try:
+        update_url = "https://updateinfo.market.xiaomi.com/apm/updateinfo/v2?lo=CN"
+        now_ts = int(time.time() * 1000)
+        inst_id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
-    for target_url in endpoints:
-        try:
-            headers = {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                ),
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "zh-CN,zh;q=0.9",
-            }
-            resp = requests.get(target_url, headers=headers, timeout=15)
-            if resp.status_code != 200:
-                continue
+        # 1. 向 updateinfo 请求 64 位版本
+        fields = {
+            "co": "CN",
+            "la": "zh",
+            "lo": "CN",
+            "marketVersion": "40007460",
+            "os": "OS3.0",
+            "sdk": "36",
+            "model": "2509FPN0BC",
+            "device": "popsicle",
+            "cpuArchitecture": "arm64-v8a",
+            "androidVersion": "16",
+            "apkSource": "0",
+            "autoUpdateEnabled": "false",
+            "background": "false",
+            "downloadRestriction": "1",
+            "downloadRestrictionMode": "0",
+            "invalidSystemPackageHash": "null",
+            "privacyCompliance": "true",
+            "rankTypeV2": "true",
+            "session_id": f"{inst_id}{now_ts}",
+            "showUnfitnessApp": "true",
+            "splits": "0",
+            "packageName": "com.tencent.mobileqq",
+            "versionCode": "0",
+            "oldApkHash": "0",
+            "installedByMarket": "1",
+            "ref": "update"
+        }
+        signed_fields = xiaomi_sign_form_fields(update_url, fields)
+        headers = {
+            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; 2509FPN0BC Build/BP2A.250605.031.A3)",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        r = requests.post(update_url, data=signed_fields, headers=headers, timeout=15)
+        if r.status_code != 200:
+            print(f"[小米监控] 更新接口请求失败: HTTP {r.status_code}")
+            return None
 
-            html_text = resp.text
-            soup = BeautifulSoup(html_text, "html.parser")
-            text_content = soup.get_text()
+        res_json = r.json()
+        apps = res_json.get("listApp") or res_json.get("miuiApp") or []
+        if not apps:
+            print("[小米监控] 未能获取到匹配的应用列表")
+            return None
 
-            # 1. 提取版本号
-            version = None
-            # 策略 A: 遍历 DOM 兄弟节点 (<li class="weight-font">版本号：</li><li>9.3.70</li>)
-            for li in soup.find_all(["li", "p", "div", "span"]):
-                txt = li.get_text().strip()
-                if txt in ("版本号：", "版本号:", "版本：", "版本:"):
-                    nxt = li.find_next_sibling()
-                    if nxt:
-                        m = re.search(r"([0-9]+(?:\.[0-9]+)+)", nxt.get_text())
-                        if m:
-                            version = m.group(1).strip()
-                            break
+        target = apps[0]
+        version_name = str(target.get("versionName", "")).strip()
+        app_id = str(target.get("appId") or target.get("id") or "1359")
+        raw_update_time = target.get("updateTime") or target.get("createTime") or 0
 
-            # 策略 B: 剥离 HTML 标签后的纯文本正则匹配
-            if not version:
-                m_ver = re.search(r"版本号[：:\s]*\n*\s*([0-9]+(?:\.[0-9]+)+)", text_content)
-                if not m_ver:
-                    m_ver = re.search(r"版本[：:\s]*\n*\s*([0-9]+(?:\.[0-9]+)+)", text_content)
-                if m_ver:
-                    version = m_ver.group(1).strip()
+        date_str = None
+        if raw_update_time > 0:
+            ts_clean = raw_update_time // 1000 if raw_update_time > 1e12 else raw_update_time
+            date_str = validate_date_str(time.strftime("%Y-%m-%d", time.localtime(ts_clean)))
+        if not date_str:
+            date_str = time.strftime("%Y-%m-%d")
 
-            # 2. 提取更新日期
-            date_str = None
-            for li in soup.find_all(["li", "p", "div", "span"]):
-                txt = li.get_text().strip()
-                if any(k in txt for k in ["更新时间", "更新日期", "发布时间"]):
-                    nxt = li.find_next_sibling()
-                    if nxt:
-                        val = validate_date_str(nxt.get_text())
-                        if val:
-                            date_str = val
-                            break
+        if not version_name:
+            print("[小米监控] 未能获取到有效版本号")
+            return None
 
-            if not date_str:
-                m_date = re.search(
-                    r"(?:更新日期|更新时间|发布时间)[：:\s]*\n*\s*([12]\d{3}[-/年.](?:0?[1-9]|1[0-2])[-/月.](?:0?[1-9]|[12]\d|3[01]))",
-                    text_content
-                )
-                if m_date:
-                    date_str = validate_date_str(m_date.group(1))
+        # 2. 用专属 appId (1359) 与 64 位标识请求下载接口换取 CDN 直链
+        dl_params = {
+            "appId": app_id,
+            "pName": "com.tencent.mobileqq",
+            "packageName": "com.tencent.mobileqq",
+            "clientId": "6f24320b1e9596bf",
+            "co": "CN",
+            "la": "zh",
+            "lo": "CN",
+            "marketVersion": "40007460",
+            "os": "OS3.0",
+            "sdk": "36",
+            "model": "2509FPN0BC",
+            "device": "popsicle",
+            "cpuArchitecture": "arm64-v8a",
+            "callerPackage": "com.xiaomi.market",
+            "callerSignature": "88daa889de21a80bca64464243c9ede6",
+            "ref": "detail",
+            "instance_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        }
+        dl_url = xiaomi_sign_url(f"https://app.market.xiaomi.com/apm/download/{app_id}?{urllib.parse.urlencode(dl_params)}")
+        r_dl = requests.get(dl_url, headers=headers, timeout=15)
+        if r_dl.status_code != 200:
+            print(f"[小米监控] 下载接口请求失败: HTTP {r_dl.status_code}")
+            return None
 
-            if not date_str:
-                date_str = time.strftime("%Y-%m-%d")
+        dl_json = r_dl.json()
+        hosts = dl_json.get("hosts") or [dl_json.get("host")]
+        host = hosts[0] if hosts and hosts[0] else ""
+        apks = dl_json.get("apks") or []
 
-            # 3. 提取下载链接
-            download_url = None
-            # 策略 A: 查找 a 标签中的 download 类或路径
-            for a in soup.find_all("a", href=True):
-                cls = " ".join(a.get("class", [])) if isinstance(a.get("class"), list) else str(a.get("class", ""))
-                href = a["href"].strip()
-                txt = a.get_text().strip()
-                if "download" in cls or "下载" in txt or "/download/" in href:
-                    if "/download/" in href or "market.xiaomi.com" in href or ".apk" in href:
-                        download_url = href
-                        break
+        download_url = None
+        for apk in apks:
+            apk_path = apk.get("url")
+            if apk_path:
+                download_url = urllib.parse.urljoin(host, apk_path)
+                if apk.get("type") in ("standalone", "base"):
+                    break
 
-            # 策略 B: 扫描原始 html 中的 /download/ 路径
-            if not download_url:
-                m_dl = re.search(r'href=["\'](/download/[^"\']+)["\']', html_text)
-                if m_dl:
-                    download_url = m_dl.group(1).strip()
+        if not download_url:
+            print(f"[小米监控] 未能从下载响应中解析到 APK 直链: {dl_json}")
+            return None
 
-            # 策略 C: 扫描 data-download-url / data-url
-            if not download_url:
-                for elem in soup.find_all(True):
-                    d_url = elem.get("data-download-url") or elem.get("data-url") or elem.get("data-href")
-                    if d_url and ("/download/" in d_url or ".apk" in d_url):
-                        download_url = d_url
-                        break
-
-            if download_url:
-                download_url = urljoin("https://app.mi.com", download_url)
-
-            if version and download_url:
-                return {
-                    "version": version,
-                    "date": date_str,
-                    "download_url": download_url,
-                    "channel": "小米",
-                }
-        except Exception as e:
-            print(f"[小米监控] 尝试访问 {target_url} 异常: {e}")
-
-    print("[小米监控] 解析异常: 版本=None, 下载URL=None")
-    return None
+        return {
+            "version": version_name,
+            "date": date_str,
+            "download_url": download_url,
+            "channel": "小米",
+        }
+    except Exception as e:
+        print(f"[小米监控] 查询异常: {e}")
+        return None
 
 
 # =====================================================================
@@ -762,7 +911,7 @@ def download_target_file(url, target_dir):
                 referer = "https://appgallery.huawei.com/"
             elif "heytap" in url or "oppo.com" in url:
                 referer = "https://store.oppomobile.com/"
-            elif "mi.com" in url or "xiaomi.com" in url:
+            elif "market.xiaomi.com" in url or "mi.com" in url:
                 referer = "https://app.mi.com/"
 
             cmd = [
@@ -1137,7 +1286,7 @@ def main():
             print("[OPPO监控] 线上版本与记录一致，无需下载。")
 
     # -------------------------------------------------------------
-    # G. 检查 小米应用商店 渠道更新
+    # G. 检查 小米应用商店 渠道更新 (APM 官方私有协议)
     # -------------------------------------------------------------
     xiaomi_recorded_ver = ""
     if XIAOMI_VER_FILE.exists():
