@@ -61,6 +61,8 @@ def download_target_file(url, target_dir):
                 referer = "https://appmarket.hihonor.com/"
             elif "samsung" in url or "galaxyappstore.com" in url:
                 referer = "https://galaxyappstore.com/"
+            elif "appchina" in url or "yingyonghui" in url:
+                referer = "https://m.appchina.com/"
 
             cmd = [
                 "curl",
