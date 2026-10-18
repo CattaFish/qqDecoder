@@ -5673,5 +5673,25 @@
       "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_7908d3a45c6e463fa2bb4d3645460559.apk",
       "channel": "荣耀"
     }
+  ],
+  "537397780": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-15",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
+      "channel": "荣耀"
+    }
+  ],
+  "537397819": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-15",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
+      "channel": "荣耀"
+    }
   ]
 }
