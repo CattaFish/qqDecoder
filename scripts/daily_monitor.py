@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -19,16 +20,16 @@ from subid_compiler import compile_subid_map_to_runtime_dict
 
 # 导入解耦后的各大渠道监控模块
 from channels import (
+    get_appchina_info,
+    get_honor_info,
     get_huawei_info,
     get_oppo_info,
+    get_samsung_info,
     get_telegram_tasks,
     get_vivo_info,
     get_wandoujia_info,
     get_xiaomi_info,
     get_yingyongbao_info,
-    get_honor_info,
-    get_samsung_info,
-    get_appchina_info,
 )
 
 sys.stdout.reconfigure(line_buffering=True)
@@ -54,6 +55,30 @@ MARKET_CHANNELS = [
 ]
 
 
+def is_newer_version(new_ver: str, old_ver: str) -> bool:
+    """严格判断 new_ver 是否大于 old_ver (避免老版本倒退触发重复下载)"""
+    if not old_ver:
+        return True
+    if not new_ver:
+        return False
+    if new_ver.strip() == old_ver.strip():
+        return False
+    try:
+        # 清洗 -Beta 等后缀并提取数字序列进行逐段大小比较
+        v1_clean = new_ver.split("-")[0].strip()
+        v2_clean = old_ver.split("-")[0].strip()
+        p1 = [int(x) for x in re.findall(r"\d+", v1_clean)]
+        p2 = [int(x) for x in re.findall(r"\d+", v2_clean)]
+        for a, b in zip(p1, p2):
+            if a > b:
+                return True
+            if a < b:
+                return False
+        return len(p1) > len(p2)
+    except Exception:
+        return new_ver != old_ver
+
+
 def main():
     pending_tasks = []
     versions_to_record = {}
@@ -62,14 +87,16 @@ def main():
     tg_tasks = get_telegram_tasks()
     pending_tasks.extend(tg_tasks)
 
-    # 2. 依次遍历轮询各大手机应用市场渠道
+    # 2. 依次遍历轮询各大应用市场渠道
     for name, fetch_func, ver_file in MARKET_CHANNELS:
         recorded_ver = ver_file.read_text(encoding="utf-8").strip() if ver_file.exists() else ""
         info = fetch_func()
         if info:
             cur_ver = info["version"]
             print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
-            if not recorded_ver or recorded_ver != cur_ver:
+            
+            # 核心优化：只有线上版本严格大于本地记录（或无记录）时才触发
+            if not recorded_ver or is_newer_version(cur_ver, recorded_ver):
                 print(f"[{name}监控] 检测到新版本/首发收录: {cur_ver}，加入待处理任务！")
                 pending_tasks.append({
                     "platform": "Android",
@@ -84,7 +111,7 @@ def main():
                     "ver_file_path": ver_file,
                 })
             else:
-                print(f"[{name}监控] 线上版本与记录一致，无需下载。")
+                print(f"[{name}监控] 线上版本落后于或等于本地记录，无需下载。")
 
     if not pending_tasks:
         print("[状态] 遍历完毕，所有渠道均无新版本。")
