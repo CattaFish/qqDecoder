@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import time
+import random
 import urllib3
 import requests
 from bs4 import BeautifulSoup
@@ -10,20 +11,32 @@ from extractor import validate_date_str
 # 抑制 SSL 不安全连接警告信息
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+BASE_TARGET_URL = "http://m.appchina.com/app/com.tencent.mobileqq"
+
+# 针对海外 IP 封锁，准备了直连与公益代理转发穿透通道
 APPCHINA_URLS = [
-    "http://m.appchina.com/app/com.tencent.mobileqq",
+    BASE_TARGET_URL,
     "https://m.appchina.com/app/com.tencent.mobileqq",
+    f"https://api.allorigins.win/raw?url={BASE_TARGET_URL}",  # 专门用于 GitHub Actions 突破海外IP封锁
 ]
+
+def get_random_cn_ip():
+    """生成随机国内 IP 绕过部分低级 WAF"""
+    return f"{random.randint(114, 115)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}"
 
 
 def get_appchina_info():
-    """获取应用汇 (AppChina) QQ 的版本信息与下载直链 (带短连接防 RST 与精准 DOM 解析)"""
+    """获取应用汇 (AppChina) QQ 的版本信息与下载直链 (带短连接防 RST 与海外 IP 伪装穿透)"""
     print("[应用汇监控] 正在抓取应用汇网页端...")
+    
+    cn_ip = get_random_cn_ip()
     headers = {
         "User-Agent": "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "zh-CN,zh;q=0.9",
-        "Connection": "close",  # 核心：通知服务端不要保持长连接，彻底规避 ConnectionResetError 104
+        "Connection": "close",
+        "X-Forwarded-For": cn_ip,  # 伪装国内源 IP
+        "X-Real-IP": cn_ip,
     }
 
     for target_url in APPCHINA_URLS:
@@ -71,7 +84,8 @@ def get_appchina_info():
                         break
 
             if download_url:
-                download_url = urljoin(target_url, download_url)
+                # 代理请求时域名会变，必须硬编码源站 URL 补全
+                download_url = urljoin("http://m.appchina.com/", download_url)
 
             if version and download_url:
                 return {
@@ -84,5 +98,5 @@ def get_appchina_info():
             time.sleep(1)
             continue
 
-    print("[应用汇监控] 多端点重试均未成功或未能匹配到关键字段")
+    print("[应用汇监控] 抓取失败 (大概率该海外IP已被彻底封锁，跳过本次检测)")
     return None
