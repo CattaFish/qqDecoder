@@ -28,7 +28,7 @@ def validate_date_str(date_str):
 
 
 def download_target_file(url, target_dir):
-    """跨市场通用静默下载，强制 IPv4 解析，智能适配防盗链 Referer"""
+    """跨市场通用静默下载，强制 IPv4 解析与忽略老旧 SSL，智能适配防盗链 Referer"""
     try:
         if "t.me/" in url:
             cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
@@ -66,7 +66,8 @@ def download_target_file(url, target_dir):
 
             cmd = [
                 "curl",
-                "-4",  # ★ 强制 IPv4，彻底规避运营商 IPv6 边缘节点解析失败 (ERR_NAME_NOT_RESOLVED)
+                "-k",  # ★ 核心修复：允许不安全/老旧 SSL 证书连接，避免部分旧市场 CDN 报错
+                "-4",  # ★ 强制 IPv4，彻底规避运营商 IPv6 边缘节点解析失败
                 "-fL",
                 "-s",
                 "-S",
