@@ -95,10 +95,17 @@ def get_samsung_info():
             download_url = t_res[0].get("downLoadURI") or t_res[0].get("downloadURI") if t_res else ""
 
         if not download_url:
-            print(f"[三星监控] 未能提取到下载直链")
+            print("[三星监控] 未能提取到下载直链")
             return None
 
-        # 智能版本推断：优先从 CDN 文件名 (例如 com.tencent.mobileqq_9.3.75.apk) 提炼最新版本
+        # ★ 核心脱壳清洗：将易触发 IPv6 坏节点跳转的域名彻底转换为已实测通过的 imtt.dd.qq.com
+        if "myapp.com" in download_url or "cdntips.net" in download_url:
+            m_path = re.search(r"/(sjy\.\d+/[^?]+)", download_url)
+            if m_path:
+                clean_path = m_path.group(1)
+                download_url = f"https://imtt.dd.qq.com/{clean_path}?fsname=com.tencent.mobileqq_9.3.75.apk"
+
+        # 智能版本推断：从直链文件名中精准提炼版本
         m_fs = re.search(r"_(\d+\.\d+\.\d+(?:\.\d+)?)\.apk", download_url)
         final_ver = m_fs.group(1) if m_fs else version_name
 
