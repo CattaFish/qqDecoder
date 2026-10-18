@@ -8,6 +8,7 @@ from .oppo import get_oppo_info
 from .xiaomi import get_xiaomi_info
 from .honor import get_honor_info
 from .samsung import get_samsung_info
+from .appchina import get_appchina_info
 
 __all__ = [
     "get_telegram_tasks",
@@ -19,4 +20,5 @@ __all__ = [
     "get_xiaomi_info",
     "get_honor_info",
     "get_samsung_info",
+    "get_appchina_info",
 ]
