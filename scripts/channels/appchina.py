@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 import re
 import time
+import urllib3
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from extractor import validate_date_str
 
-APPCHINA_URL = "https://m.appchina.com/app/com.tencent.mobileqq"
+# 抑制 SSL 不安全连接警告信息
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+APPCHINA_URL = "http://m.appchina.com/app/com.tencent.mobileqq"
 
 
 def get_appchina_info():
-    """获取应用汇 (AppChina) QQ 的版本信息与下载直链"""
+    """获取应用汇 (AppChina) QQ 的版本信息与下载直链 (兼容老旧 SSL 证书)"""
     print("[应用汇监控] 正在抓取应用汇网页端...")
     try:
         headers = {
@@ -21,7 +25,8 @@ def get_appchina_info():
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "zh-CN,zh;q=0.9",
         }
-        resp = requests.get(APPCHINA_URL, headers=headers, timeout=20)
+        # 加上 verify=False，解决证书 Hostname mismatch
+        resp = requests.get(APPCHINA_URL, headers=headers, verify=False, timeout=20)
         if resp.status_code != 200:
             print(f"[应用汇监控] 请求网页失败: HTTP {resp.status_code}")
             return None
