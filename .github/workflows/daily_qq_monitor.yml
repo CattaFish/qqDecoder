@@ -49,6 +49,9 @@ jobs:
 
       - name: 运行每日增量监听与 SubID 追加
         id: monitor_step
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
         run: |
           python scripts/daily_monitor.py
 
