@@ -5725,5 +5725,65 @@
       "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
       "channel": "荣耀"
     }
+  ],
+  "537397779": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-14",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/77/774956643fef459a8542279fe29d8bcc/com.tencent.mobileqq.2610132201.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537397818": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-14",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/77/774956643fef459a8542279fe29d8bcc/com.tencent.mobileqq.2610132201.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537397782": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-20",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
+      "channel": "OPPO"
+    }
+  ],
+  "537397821": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-20",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
+      "channel": "OPPO"
+    }
+  ],
+  "537397781": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/06196f382921b430c807287fc0cdd5c7b818f3238",
+      "channel": "小米"
+    }
+  ],
+  "537397820": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/06196f382921b430c807287fc0cdd5c7b818f3238",
+      "channel": "小米"
+    }
   ]
 }
