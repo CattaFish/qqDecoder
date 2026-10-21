@@ -5785,5 +5785,25 @@
       "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/06196f382921b430c807287fc0cdd5c7b818f3238",
       "channel": "小米"
     }
+  ],
+  "537397787": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-20",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/10/20/5/110_b8222d739466f86b718e6336cb66d419.apk",
+      "channel": "豌豆荚"
+    }
+  ],
+  "537397826": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-20",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/10/20/5/110_b8222d739466f86b718e6336cb66d419.apk",
+      "channel": "豌豆荚"
+    }
   ]
 }
