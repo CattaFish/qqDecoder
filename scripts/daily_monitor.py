@@ -18,7 +18,7 @@ from extractor import (
 )
 from subid_compiler import compile_subid_map_to_runtime_dict
 
-# 导入解耦后的各大渠道监控模块
+# 导入各大渠道监控模块
 from channels import (
     get_appchina_info,
     get_honor_info,
@@ -56,7 +56,7 @@ MARKET_CHANNELS = [
 
 
 def is_newer_version(new_ver: str, old_ver: str) -> bool:
-    """严格判断 new_ver 是否大于 old_ver (避免老版本倒退触发重复下载)"""
+    """严格判断 new_ver 是否大于 old_ver (支持 9.3.70 与 9.3.75.42350 逐段比对)"""
     if not old_ver:
         return True
     if not new_ver:
@@ -64,7 +64,6 @@ def is_newer_version(new_ver: str, old_ver: str) -> bool:
     if new_ver.strip() == old_ver.strip():
         return False
     try:
-        # 清洗 -Beta 等后缀并提取数字序列进行逐段大小比较
         v1_clean = new_ver.split("-")[0].strip()
         v2_clean = old_ver.split("-")[0].strip()
         p1 = [int(x) for x in re.findall(r"\d+", v1_clean)]
@@ -83,72 +82,114 @@ def main():
     pending_tasks = []
     versions_to_record = {}
 
-    # 1. 采集 Telegram 官方更新
-    tg_tasks = get_telegram_tasks()
-    pending_tasks.extend(tg_tasks)
-
-    # 2. 依次遍历轮询各大应用市场渠道
-    for name, fetch_func, ver_file in MARKET_CHANNELS:
-        recorded_ver = ver_file.read_text(encoding="utf-8").strip() if ver_file.exists() else ""
-        info = fetch_func()
-        if info:
-            cur_ver = info["version"]
-            print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
-            
-            # 核心优化：只有线上版本严格大于本地记录（或无记录）时才触发
-            if not recorded_ver or is_newer_version(cur_ver, recorded_ver):
-                print(f"[{name}监控] 检测到新版本/首发收录: {cur_ver}，加入待处理任务！")
-                pending_tasks.append({
-                    "platform": "Android",
-                    "arch": "Package",
-                    "version": cur_ver,
-                    "date": info["date"],
-                    "url": info["download_url"],
-                    "is_beta": False,
-                    "channel": name,
-                    "mark_channel_name": name,
-                    "mark_version_val": cur_ver,
-                    "ver_file_path": ver_file,
-                })
-            else:
-                print(f"[{name}监控] 线上版本落后于或等于本地记录，无需下载。")
-
-    if not pending_tasks:
-        print("[状态] 遍历完毕，所有渠道均无新版本。")
-        sys.exit(0)
-
-    # 3. 读主数据库并做 URL 去重排队
+    # 1. 预载已有数据库，构建已处理特征集 (URL + 版本 + 渠道)
     subid_map = {}
     if DATA_FILE.exists():
-        try: subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-        except Exception: subid_map = {}
+        try:
+            subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            subid_map = {}
 
-    processed_urls = {
-        item.get("source_url")
+    processed_records = {
+        (item.get("source_url"), item.get("version"), item.get("channel"))
         for val in subid_map.values()
         for item in (val if isinstance(val, list) else [val])
         if item.get("source_url")
     }
 
-    tasks_to_run = [t for t in pending_tasks if t["url"] not in processed_urls]
+    # 2. 采集 Telegram 官方更新
+    tg_tasks = get_telegram_tasks()
+    pending_tasks.extend(tg_tasks)
+
+    # 3. 核心：基于“版本号 + 下载直链”双重联合比对
+    for name, fetch_func, ver_file in MARKET_CHANNELS:
+        recorded_ver = ""
+        recorded_url = ""
+        if ver_file.exists():
+            lines = [l.strip() for l in ver_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+            if len(lines) >= 1:
+                recorded_ver = lines[0]
+            if len(lines) >= 2:
+                recorded_url = lines[1]
+
+        info = fetch_func()
+        if not info:
+            continue
+
+        cur_ver = info["version"]
+        cur_url = info["download_url"]
+
+        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
+
+        should_update = False
+        update_reason = ""
+
+        # A. 首次收录
+        if not recorded_ver:
+            should_update = True
+            update_reason = "首次收录"
+        # B. 版本号升级
+        elif is_newer_version(cur_ver, recorded_ver):
+            should_update = True
+            update_reason = f"版本升级 ({recorded_ver} -> {cur_ver})"
+        # C. 核心：同版本静默换包 (版本号一致，但下载直链变动或未曾记录)
+        elif cur_ver == recorded_ver:
+            if recorded_url and cur_url != recorded_url:
+                should_update = True
+                update_reason = f"同版本静默换包 (直链变动)"
+            elif not recorded_url and (cur_url, cur_ver, name) not in processed_records:
+                should_update = True
+                update_reason = f"未处理直链补全"
+            else:
+                print(f"[{name}监控] 版本与下载直链均一致，无需下载。")
+        # D. 线上版本落后 (如撤包回滚)
+        else:
+            print(f"[{name}监控] 线上版本 ({cur_ver}) 落后于本地最高记录 ({recorded_ver})，跳过。")
+
+        if should_update:
+            print(f"[{name}监控] ★ 触发更新: [{update_reason}]！加入待处理任务。")
+            pending_tasks.append({
+                "platform": "Android",
+                "arch": "Package",
+                "version": cur_ver,
+                "date": info["date"],
+                "url": cur_url,
+                "is_beta": False,
+                "channel": name,
+                "mark_channel_name": name,
+                "mark_version_val": cur_ver,
+                "mark_url_val": cur_url,
+                "ver_file_path": ver_file,
+            })
+
+    if not pending_tasks:
+        print("[状态] 遍历完毕，所有渠道均无新包。")
+        sys.exit(0)
+
+    # 4. 任务队列精细去重 (按 URL + 版本 + 渠道，避免固定 ID 链接跨版本被误杀)
+    tasks_to_run = [
+        t for t in pending_tasks
+        if (t["url"], t["version"], t.get("channel")) not in processed_records
+    ]
     github_output = os.environ.get("GITHUB_OUTPUT")
 
     if not tasks_to_run:
-        print("[状态] 所有目标任务的直链均已录入，无需重复处理。")
+        print("[状态] 所有目标任务在此版本下的包体均已录入，无需重复处理。")
         if github_output:
             with open(github_output, "a", encoding="utf-8") as f:
                 f.write("has_new_version=false\ntrigger_decompile=false\n")
         return
 
-    print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个任务待处理！")
+    print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
-    # 4. 执行批量下载、解包与 SubID 抽取
+    # 5. 执行批量下载、解包与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
 
-        if TEMP_DL.exists(): shutil.rmtree(TEMP_DL)
+        if TEMP_DL.exists():
+            shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
         proc = download_target_file(t["url"], TEMP_DL)
@@ -157,13 +198,15 @@ def main():
             continue
 
         dl_files = [f for f in TEMP_DL.rglob("*") if f.is_file() and not f.name.endswith(".tdl")]
-        if not dl_files: continue
+        if not dl_files:
+            continue
 
         downloaded_file = dl_files[0]
         fname = downloaded_file.name
         base_ver = extract_version_from_filename(fname) or t["version"]
 
-        if TEMP_EXTRACT.exists(): shutil.rmtree(TEMP_EXTRACT)
+        if TEMP_EXTRACT.exists():
+            shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
 
         try:
@@ -191,13 +234,29 @@ def main():
                         "version": clean_ver, "platform": plat, "arch": a_val,
                         "date": t["date"], "source_url": t["url"], "channel": ch_label,
                     }
-                    if s_id not in subid_map: subid_map[s_id] = [new_item]
+
+                    # 铁律：只增不减！仅在同 SubID 内部对相同 URL+架构幂等去重
+                    if s_id not in subid_map:
+                        subid_map[s_id] = [new_item]
                     else:
-                        if isinstance(subid_map[s_id], dict): subid_map[s_id] = [subid_map[s_id]]
-                        subid_map[s_id].append(new_item)
+                        if isinstance(subid_map[s_id], dict):
+                            subid_map[s_id] = [subid_map[s_id]]
+                        exist_idx = -1
+                        for i, ex in enumerate(subid_map[s_id]):
+                            if ex.get("source_url") == t["url"] and ex.get("arch") == a_val:
+                                exist_idx = i
+                                break
+                        if exist_idx >= 0:
+                            subid_map[s_id][exist_idx] = new_item
+                        else:
+                            subid_map[s_id].append(new_item)
 
                 if t.get("mark_channel_name"):
-                    versions_to_record[t["ver_file_path"]] = (t["mark_channel_name"], t["mark_version_val"])
+                    versions_to_record[t["ver_file_path"]] = (
+                        t["mark_channel_name"],
+                        t["mark_version_val"],
+                        t["mark_url_val"]
+                    )
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
@@ -210,14 +269,15 @@ def main():
         print("[状态] 本批次下载解析未能提取到有效 SubID，取消落盘。")
         return
 
-    # 5. 原子落盘保存主数据库 data/qq_subid_map.json
+    # 6. 原子落盘保存主数据库 data/qq_subid_map.json
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
     temp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
-    if DATA_FILE.exists(): shutil.copy2(DATA_FILE, BAK_FILE)
+    if DATA_FILE.exists():
+        shutil.copy2(DATA_FILE, BAK_FILE)
     temp_file.replace(DATA_FILE)
 
-    # 6. 同步派生编译出运行时字典 data/subid.json
+    # 7. 同步派生编译出运行时字典 data/subid.json
     try:
         compiled_data = compile_subid_map_to_runtime_dict(subid_map)
         runtime_file = DATA_FILE.parent / "subid.json"
@@ -228,15 +288,16 @@ def main():
     except Exception as e:
         print(f"[警告] 编译运行时字典异常: {e}")
 
-    # 7. 满足要求：在所有 SubID 全部成功入库落盘后，最后批量写入版本记录文件
-    for ver_path, (ch_name, ver_val) in versions_to_record.items():
+    # 8. 核心要求：在所有 SubID 全部入库后，双行原子写回版本号与直链 URL
+    for ver_path, (ch_name, ver_val, url_val) in versions_to_record.items():
         ver_path.parent.mkdir(parents=True, exist_ok=True)
-        ver_path.write_text(ver_val.strip(), encoding="utf-8")
-        print(f"[版本记录] {ch_name}最新版本 {ver_val} 已成功写入 {ver_path}")
+        # 第1行版本号，第2行直链URL
+        ver_path.write_text(f"{ver_val.strip()}\n{url_val.strip()}\n", encoding="utf-8")
+        print(f"[版本记录] {ch_name}已更新: 版本={ver_val} | 直链已记录")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
-    # 8. GitHub Actions 联动输出
+    # 9. GitHub Actions 联动输出
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write("has_new_version=true\n")
