@@ -32,6 +32,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y p7zip-full rpm2cpio cpio curl aapt
 
+          # 安装 Python 网页解析依赖
       - name: 安装 Python 网页解析依赖
         run: |
           pip install requests beautifulsoup4
@@ -70,7 +71,7 @@ jobs:
           git push origin main
 
       # ==========================================
-      # 联动步骤：检测到 Android 更新时唤起 decompile.yml 并投喂参数
+      # 联动步骤：检测到 Android 更新时唤起 decompile.yml 并指定全量反编译
       # ==========================================
       - name: 自动唤起 Android 反编译与 Diff 工作流
         if: steps.monitor_step.outputs.trigger_decompile == 'true'
@@ -81,4 +82,5 @@ jobs:
           gh workflow run "Auto Decompile & Twinflame DEX Diff QQ APK" \
             -f apk_url="${{ steps.monitor_step.outputs.android_apk_url }}" \
             -f version_short="${{ steps.monitor_step.outputs.android_version }}" \
-            -f is_beta="${{ steps.monitor_step.outputs.android_is_beta }}"
+            -f is_beta="${{ steps.monitor_step.outputs.android_is_beta }}" \
+            -f decompile_all="true"
