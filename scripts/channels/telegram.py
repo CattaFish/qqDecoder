@@ -6,6 +6,14 @@ from extractor import validate_date_str
 
 TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 
+def clean_version_str(v_str: str) -> str:
+    """归一化版本号：剥离 (16580) 等冗余构建号括号，确保与 AAPT 及数据库标准完全对齐"""
+    if not v_str:
+        return ""
+    # 移除 (16580) 等括号内容
+    v = re.sub(r"\s*\(\d+\)", "", str(v_str)).strip()
+    return v
+
 def get_latest_message():
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     resp = requests.get(TG_CHANNEL_URL, headers=headers, timeout=30)
@@ -40,7 +48,7 @@ def get_telegram_tasks():
         print("[TG 监控] 未获取到频道有效消息")
         return []
 
-    print(f"[TG 监控] 最新消息 ID: {msg['post_id']} | 日期: {msg['date']}")
+    print(f"[TG 监控] 检索到线上最新消息 ID: {msg['post_id']} | 日期: {msg['date']}")
     text, html, date = msg["text"], msg["html"], msg["date"]
     is_beta = bool(re.search(r"#Beta\b", text, re.IGNORECASE))
 
@@ -64,6 +72,12 @@ def get_telegram_tasks():
                 elif any(k in text for k in ["Mac QQ_NT", "MacOS", "Mac"]): mac_ver = extracted_v
                 elif any(k in text for k in ["Linux QQ_NT", "Linux"]): linux_ver = extracted_v
                 else: android_ver = extracted_v
+
+    # ★ 关键脱敏：清洗掉版本号中的括号噪音
+    win_ver = clean_version_str(win_ver)
+    mac_ver = clean_version_str(mac_ver)
+    linux_ver = clean_version_str(linux_ver)
+    android_ver = clean_version_str(android_ver)
 
     tasks = []
     has_desktop = any(p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"])
@@ -89,7 +103,6 @@ def get_telegram_tasks():
                 elif any(ext in href.lower() for ext in [".exe", ".dmg", ".deb", ".rpm", ".appimage"]) or "官网" in a_text:
                     official_links.append((href, a_text))
 
-            # ★ 日常监控优先选用官方 CDN 直链，无直链时才兜底走备份
             chosen_links = official_links if official_links else backup_links
             for href, a_text in chosen_links:
                 arch = a_text.replace("官网链接", "").replace("频道备份", "").replace("官网", "").replace("备份", "").strip()
@@ -112,7 +125,6 @@ def get_telegram_tasks():
             elif ".apk" in href.lower() or "android_apk" in href.lower() or "qq.com" in href.lower() or "官网" in a_text:
                 official_links.append(href)
 
-        # ★ 核心修复：针对 Android，日常监控必须优先选取“官网链接”(直链)，供 downstream 无 TG 环境直接 curl
         target_urls = list(dict.fromkeys(official_links if official_links else backup_links))
         for u in target_urls:
             tasks.append({
@@ -121,5 +133,4 @@ def get_telegram_tasks():
                 "is_beta": is_beta, "channel": "官方",
             })
 
-    print(f"[TG 监控] 成功解析到任务数: {len(tasks)}")
     return tasks
