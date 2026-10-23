@@ -1,7 +1,6 @@
 name: Auto Decompile & Twinflame DEX Diff QQ APK
 
 on:
-  # 彻底移除 schedule 定时，统一由 daily_qq_monitor.yml 在检测到 Android 新版时自动唤起
   workflow_dispatch:
     inputs:
       apk_url:
@@ -20,18 +19,18 @@ on:
         type: boolean
         default: false
       decompile_all:
-        description: '是否完整反编译整个 APK 源码 (产物较大)'
-        required: true
+        description: '是否完整反编译整个 APK 源码 (全量)'
+        required: false
         type: boolean
-        default: false
+        default: true
       decompile_mobileqq:
-        description: '是否反编译 com.tencent.mobileqq'
-        required: true
+        description: '是否反编译 com.tencent.mobileqq (仅在非全量时有效)'
+        required: false
         type: boolean
         default: true
       decompile_qqnt:
-        description: '是否反编译 com.tencent.qqnt'
-        required: true
+        description: '是否反编译 com.tencent.qqnt (仅在非全量时有效)'
+        required: false
         type: boolean
         default: true
 
@@ -65,9 +64,9 @@ jobs:
           input_beta = "${{ inputs.is_beta }}".strip().lower()
           github_output = os.environ.get('GITHUB_OUTPUT')
 
-          # ★ 容错拦截：若外部误传入了 TG 备份链接，自动在频道页面中反查该版本的官方直链
+          # 容错拦截：若外部误传入了 TG 备份链接，自动在频道页面中反查该版本的官方直链
           if input_apk_url and "t.me/" in input_apk_url:
-              print(f"[直链纠偏] 外部传入了 Telegram 备份链接 ({input_apk_url})，正在尝试反查官方直链...")
+              print(f"[直链纠偏] 外部传入了 Telegram 备份链接 ({input_apk_url})，正在反查官方直链...")
               try:
                   ch_req = urllib.request.Request(
                       "https://t.me/s/qq_updatelog",
@@ -77,7 +76,6 @@ jobs:
                   blocks = ch_html.split('class="tgme_widget_message_wrap')
                   for b in reversed(blocks):
                       if input_apk_url in b or input_apk_url.split('/')[-1] in b:
-                          # 匹配该消息中的非 t.me 官网直链
                           m_cands = re.findall(r'href="(https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"]+\.apk[^"]*)"', b)
                           if m_cands:
                               input_apk_url = m_cands[0]
@@ -118,9 +116,7 @@ jobs:
           
           apk_entries = []
           for msg in messages:
-              # ★ 兼容 Markdown 富文本解析后的 <a>官网链接</a> 形式，彻底排除 t.me
               direct_url = None
-              
               # 1. 优先提取 <a> 标签中的官方 CDN 直链
               cand_hrefs = re.findall(r'href="(https?://[^"]+\.apk[^"]*)"', msg)
               for h in cand_hrefs:
@@ -686,51 +682,88 @@ jobs:
           rm -rf old_dex old_smali new_smali prev_download
 
       # ==========================================
-      # 13. 安装 JADX 并反编译源码
+      # 13. 安装 JADX 并执行全量反编译 (修复参数错误与输出结构)
       # ==========================================
       - name: Install JADX and Decompile Java Source
         if: steps.check_update.outputs.has_update == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p bin
-          JADX_VERSION=$(curl -s https://api.github.com/repos/skylot/jadx/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-          curl -L "https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip" -o jadx.zip
-          unzip -d bin/jadx jadx.zip
+          
+          # 1. 稳妥安装 JADX (避免 API 频控，保底 1.5.1)
+          JADX_VER=$(gh release view -R skylot/jadx --json tagName -q .tagName 2>/dev/null | sed 's/^v//' || true)
+          [ -z "$JADX_VER" ] && JADX_VER="1.5.1"
+          echo "安装 JADX 版本: v${JADX_VER}..."
+          
+          curl -sL "https://github.com/skylot/jadx/releases/download/v${JADX_VER}/jadx-${JADX_VER}.zip" -o jadx.zip
+          unzip -q -d bin/jadx jadx.zip
           chmod -R +x bin/jadx/bin
           
           cd workspace
           mkdir -p java_final
           
-          FILTER=""
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.decompile_all }}" = "false" ]; then
-            if [ "${{ inputs.decompile_mobileqq }}" = "true" ] && [ "${{ inputs.decompile_qqnt }}" = "true" ]; then
-              FILTER="com.tencent.mobileqq,com.tencent.qqnt"
-            elif [ "${{ inputs.decompile_mobileqq }}" = "true" ]; then
-              FILTER="com.tencent.mobileqq"
-            elif [ "${{ inputs.decompile_qqnt }}" = "true" ]; then
-              FILTER="com.tencent.qqnt"
-            fi
-          fi
+          # 2. 判断反编译范围：默认全量反编译
+          DECOMPILE_ALL="${{ inputs.decompile_all }}"
+          [ -z "$DECOMPILE_ALL" ] && DECOMPILE_ALL="true"
           
+          # 3. 运行 JADX 反编译
           export JAVA_OPTS="-Xmx28g"
-          set +e
-          if [ -n "$FILTER" ]; then
-            echo "局部反编译包: $FILTER"
-            "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" -d java_final --no-res --threads-count 2 --no-debug-info --show-only "$FILTER" new_dex/*.dex
-          else
-            echo "完整反编译中..."
-            "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" -d java_final --no-res --threads-count 2 new_dex/*.dex
-          fi
-          EXIT_CODE=$?
-          set -e
+          THREADS=$(nproc || echo 4)
+          
+          if [ "$DECOMPILE_ALL" = "true" ]; then
+            echo "=========================================="
+            echo "🚀 正在执行【全量反编译】所有 DEX 字节码..."
+            echo "线程数: $THREADS | JVM 最大堆内存: 28GB"
+            echo "=========================================="
+            
+            set +e
+            "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" \
+              -d java_final \
+              --no-res \
+              --threads-count "$THREADS" \
+              --no-debug-info \
+              new_dex/*.dex
+            EXIT_CODE=$?
+            set -e
+            echo "JADX 反编译结束，退出码: $EXIT_CODE"
 
-          if [ -d "java_final" ] && [ "$(ls -A java_final)" ]; then
+          else
+            echo "正在执行局部反编译..."
+            mkdir -p java_raw
+            set +e
+            "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" \
+              -d java_raw \
+              --no-res \
+              --threads-count "$THREADS" \
+              --no-debug-info \
+              new_dex/*.dex
+            set -e
+            
+            mkdir -p java_final/sources
+            for pkg in com/tencent/mobileqq com/tencent/qqnt; do
+              if [ -d "java_raw/sources/$pkg" ]; then
+                mkdir -p "java_final/sources/$(dirname "$pkg")"
+                mv "java_raw/sources/$pkg" "java_final/sources/$pkg"
+              fi
+            done
+            rm -rf java_raw
+          fi
+
+          # 4. 打包产物
+          if [ -d "java_final/sources" ] && [ "$(ls -A java_final/sources 2>/dev/null)" ]; then
             mv java_final decompiled_java
+            echo "正在打包全量 Java 源码为 java_output.zip ..."
             zip -q -r java_output.zip decompiled_java
+            echo "✅ 全量 Java 源码打包完成！产物体积: $(du -sh java_output.zip | awk '{print $1}')"
           else
             mkdir -p decompiled_java
-            echo "未提取到指定 Java 代码。" > decompiled_java/readme.txt
+            echo "未提取到 Java 代码。" > decompiled_java/readme.txt
             zip -q -r java_output.zip decompiled_java
+            echo "::error::JADX 反编译未产出任何源码文件"
+            exit 1
           fi
+          
           rm -rf new_dex target.apk
 
       # ==========================================
@@ -792,7 +825,7 @@ jobs:
           gh release upload "v${VERSION_SHORT}" ${ASSETS} --clobber
 
       # ==========================================
-      # 15. 更新版本记录与多版本轮询 (加上重试拉取防冲突)
+      # 15. 更新版本记录与多版本轮询
       # ==========================================
       - name: Commit and Push Version Update
         if: steps.check_update.outputs.has_update == 'true'
