@@ -55,6 +55,34 @@ MARKET_CHANNELS = [
 ]
 
 
+def get_url_fingerprint(url: str, channel: str = "") -> str:
+    """
+    提取下载直链的静态特征指纹，彻底剥离鉴权 Token、时间戳等瞬时动态噪音：
+    - OPPO / Heytap: 剥离 ?sign=...&t=...，保留真实包含文件 MD5 的 /apk/YYYYMM/DD/<md5>.apk
+    - 应用汇: 剥离路径中嵌入的 13 位动态请求时间戳 (/1792752722378/package_16580.1792752722378)
+    - 其它各渠道: 若存在 .apk，剥离其后的动态 Query 鉴权参数
+    """
+    if not url:
+        return ""
+    clean = url.strip()
+
+    # 1. 应用汇 (AppChina)：剥离动态时间戳
+    if "appchina" in clean or channel == "应用汇":
+        clean = re.sub(r"/\d{10,}/package_(\d+)\.\d+", r"/package_\1", clean)
+        clean = re.sub(r"/\d{10,}/", "/", clean)
+        return clean.split("?")[0]
+
+    # 2. OPPO / 欢太 (Heytap)：剥离动态签名与时间戳
+    if "heytap" in clean or "oppo" in clean or channel == "OPPO":
+        return clean.split("?")[0]
+
+    # 3. 通用处理：如果 URL 包含 .apk，以 .apk 之前的静态路径作为唯一文件特征
+    if ".apk" in clean.lower():
+        return clean.split("?")[0]
+
+    return clean.split("?")[0]
+
+
 def is_newer_version(new_ver: str, old_ver: str) -> bool:
     """严格判断 new_ver 是否大于 old_ver (支持 9.3.70 与 9.3.75.42350 逐段比对)"""
     if not old_ver:
@@ -78,20 +106,52 @@ def is_newer_version(new_ver: str, old_ver: str) -> bool:
         return new_ver != old_ver
 
 
+def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
+    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, channel, version) 的重复实体，优先保留官方直链"""
+    cleaned_map = {}
+    purged_count = 0
+    for s_id, val in raw_map.items():
+        items = val if isinstance(val, list) else [val]
+        unique_entities = {}
+        for item in items:
+            v = item.get("version", "").strip()
+            p = item.get("platform", "").strip()
+            a = item.get("arch", "").strip()
+            c = item.get("channel", "").strip()
+            url = item.get("source_url", "").strip()
+
+            key = (p, a, c, v)
+            if key not in unique_entities:
+                unique_entities[key] = item
+            else:
+                purged_count += 1
+                old_item = unique_entities[key]
+                old_url = old_item.get("source_url", "")
+                # 如果历史记录是 TG 备份链接，而新条目是官网直链，自动升级晋级为官网直链
+                if "t.me/" in old_url and "t.me/" not in url:
+                    unique_entities[key] = item
+        cleaned_map[s_id] = list(unique_entities.values())
+    return cleaned_map, purged_count
+
+
 def main():
     pending_tasks = []
     versions_to_record = {}
 
-    # 1. 预载已有数据库，构建已处理特征集 (URL + 版本 + 渠道)
+    # 1. 预载已有数据库并执行瞬时去重自愈
     subid_map = {}
     if DATA_FILE.exists():
         try:
             subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            subid_map, purged_count = sanitize_and_deduplicate_map(subid_map)
+            if purged_count > 0:
+                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录: {purged_count} 条！")
         except Exception:
             subid_map = {}
 
-    processed_records = {
-        (item.get("source_url"), item.get("version"), item.get("channel"))
+    # 构建已处理特征指纹集 (URL特征指纹, 版本, 渠道)
+    processed_fingerprints = {
+        (get_url_fingerprint(item.get("source_url"), item.get("channel")), item.get("version"), item.get("channel"))
         for val in subid_map.values()
         for item in (val if isinstance(val, list) else [val])
         if item.get("source_url")
@@ -101,7 +161,7 @@ def main():
     tg_tasks = get_telegram_tasks()
     pending_tasks.extend(tg_tasks)
 
-    # 3. 核心：基于“版本号 + 下载直链”双重联合比对
+    # 3. 核心：基于“版本号 + 脱敏特征指纹”双重联合比对
     for name, fetch_func, ver_file in MARKET_CHANNELS:
         recorded_ver = ""
         recorded_url = ""
@@ -132,14 +192,17 @@ def main():
         elif is_newer_version(cur_ver, recorded_ver):
             should_update = True
             update_reason = f"版本升级 ({recorded_ver} -> {cur_ver})"
-        # C. 核心：同版本静默换包 (版本号一致，但下载直链变动或未曾记录)
+        # C. 核心：同版本静默换包 (采用脱敏特征指纹比对，天然免疫动态 Token 干扰)
         elif cur_ver == recorded_ver:
-            if recorded_url and cur_url != recorded_url:
+            fp_cur = get_url_fingerprint(cur_url, name)
+            fp_rec = get_url_fingerprint(recorded_url, name)
+
+            if recorded_url and fp_cur != fp_rec:
                 should_update = True
-                update_reason = f"同版本静默换包 (直链变动)"
-            elif not recorded_url and (cur_url, cur_ver, name) not in processed_records:
+                update_reason = "同版本静默换包 (直链变动)"
+            elif not recorded_url and (fp_cur, cur_ver, name) not in processed_fingerprints:
                 should_update = True
-                update_reason = f"未处理直链补全"
+                update_reason = "未处理直链补全"
             else:
                 print(f"[{name}监控] 版本与下载直链均一致，无需下载。")
         # D. 线上版本落后 (如撤包回滚)
@@ -166,11 +229,22 @@ def main():
         print("[状态] 遍历完毕，所有渠道均无新包。")
         sys.exit(0)
 
-    # 4. 任务队列精细去重 (按 URL + 版本 + 渠道，避免固定 ID 链接跨版本被误杀)
-    tasks_to_run = [
-        t for t in pending_tasks
-        if (t["url"], t["version"], t.get("channel")) not in processed_records
-    ]
+    # 4. 任务队列精细去重 (按 指纹 + 版本 + 渠道)
+    tasks_to_run = []
+    for t in pending_tasks:
+        fp_t = get_url_fingerprint(t["url"], t.get("channel"))
+        # 针对官方包的直链升级机制：如果历史记录是 t.me，且当前拿到的是官网直链，则放行进入替换
+        is_official_upgrade = False
+        if t.get("channel") == "官方" and "t.me/" not in t["url"]:
+            for item_key in processed_fingerprints:
+                # 命中同版本官方包但历史是 t.me
+                if item_key[1] == t["version"] and item_key[2] == "官方" and "t.me/" in item_key[0]:
+                    is_official_upgrade = True
+                    break
+
+        if (fp_t, t["version"], t.get("channel")) not in processed_fingerprints or is_official_upgrade:
+            tasks_to_run.append(t)
+
     github_output = os.environ.get("GITHUB_OUTPUT")
 
     if not tasks_to_run:
@@ -235,7 +309,7 @@ def main():
                         "date": t["date"], "source_url": t["url"], "channel": ch_label,
                     }
 
-                    # 铁律：只增不减！仅在同 SubID 内部对相同 URL+架构幂等去重
+                    # ★ 核心去重：以 (platform, arch, channel, version) 作为业务实体唯一标识，杜绝克隆追加
                     if s_id not in subid_map:
                         subid_map[s_id] = [new_item]
                     else:
@@ -243,10 +317,18 @@ def main():
                             subid_map[s_id] = [subid_map[s_id]]
                         exist_idx = -1
                         for i, ex in enumerate(subid_map[s_id]):
-                            if ex.get("source_url") == t["url"] and ex.get("arch") == a_val:
+                            if (ex.get("platform") == plat and
+                                ex.get("arch") == a_val and
+                                ex.get("channel") == ch_label and
+                                ex.get("version") == clean_ver):
                                 exist_idx = i
                                 break
+
                         if exist_idx >= 0:
+                            # 存在同实体：就地升级替换
+                            old_url = subid_map[s_id][exist_idx].get("source_url", "")
+                            if "t.me/" in old_url and "t.me/" not in t["url"]:
+                                print(f"[直链晋级] SubID {s_id} 历史备份链接已升级替换为官方直链: {t['url']}")
                             subid_map[s_id][exist_idx] = new_item
                         else:
                             subid_map[s_id].append(new_item)
@@ -288,10 +370,9 @@ def main():
     except Exception as e:
         print(f"[警告] 编译运行时字典异常: {e}")
 
-    # 8. 核心要求：在所有 SubID 全部入库后，双行原子写回版本号与直链 URL
+    # 8. 双行原子写回版本号与直链 URL
     for ver_path, (ch_name, ver_val, url_val) in versions_to_record.items():
         ver_path.parent.mkdir(parents=True, exist_ok=True)
-        # 第1行版本号，第2行直链URL
         ver_path.write_text(f"{ver_val.strip()}\n{url_val.strip()}\n", encoding="utf-8")
         print(f"[版本记录] {ch_name}已更新: 版本={ver_val} | 直链已记录")
 
