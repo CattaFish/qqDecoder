@@ -5607,7 +5607,7 @@
       "version": "9.3.75.42350",
       "platform": "Android",
       "arch": "Phone",
-      "date": "2026-10-18",
+      "date": "2026-10-23",
       "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
       "channel": "三星"
     },
@@ -5633,7 +5633,7 @@
       "version": "9.3.75.42350",
       "platform": "Android",
       "arch": "Pad",
-      "date": "2026-10-18",
+      "date": "2026-10-23",
       "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
       "channel": "三星"
     },
@@ -5711,7 +5711,7 @@
       "version": "9.3.75.42350",
       "platform": "Android",
       "arch": "Phone",
-      "date": "2026-10-15",
+      "date": "2026-10-19",
       "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
       "channel": "荣耀"
     }
@@ -5721,7 +5721,7 @@
       "version": "9.3.75.42350",
       "platform": "Android",
       "arch": "Pad",
-      "date": "2026-10-15",
+      "date": "2026-10-19",
       "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
       "channel": "荣耀"
     }
@@ -5754,6 +5754,14 @@
       "date": "2026-10-20",
       "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
       "channel": "OPPO"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-23",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=6f68ba9a42514a26e264d3602bdbc88b&t=6ADACD84&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
+      "channel": "OPPO"
     }
   ],
   "537397821": [
@@ -5763,6 +5771,14 @@
       "arch": "Pad",
       "date": "2026-10-20",
       "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
+      "channel": "OPPO"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-23",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=6f68ba9a42514a26e264d3602bdbc88b&t=6ADACD84&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
       "channel": "OPPO"
     }
   ],
@@ -5814,6 +5830,14 @@
       "date": "2026-10-19",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792601968932/package_16580.1792601968932",
       "channel": "应用汇"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792724368870/package_16580.1792724368870",
+      "channel": "应用汇"
     }
   ],
   "537397831": [
@@ -5824,6 +5848,34 @@
       "date": "2026-10-19",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792601968932/package_16580.1792601968932",
       "channel": "应用汇"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792724368870/package_16580.1792724368870",
+      "channel": "应用汇"
+    }
+  ],
+  "537397778": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo"
+    }
+  ],
+  "537397817": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo"
     }
   ]
 }
