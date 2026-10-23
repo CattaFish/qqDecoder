@@ -34,7 +34,7 @@ def get_latest_message():
     }
 
 def get_telegram_tasks():
-    """获取 Telegram 频道最新发布的架构下载任务"""
+    """获取 Telegram 频道最新发布的架构下载任务 (日常监控模式：优先官方直链)"""
     msg = get_latest_message()
     if not msg:
         print("[TG 监控] 未获取到频道有效消息")
@@ -89,7 +89,8 @@ def get_telegram_tasks():
                 elif any(ext in href.lower() for ext in [".exe", ".dmg", ".deb", ".rpm", ".appimage"]) or "官网" in a_text:
                     official_links.append((href, a_text))
 
-            chosen_links = backup_links if backup_links else official_links
+            # ★ 日常监控优先选用官方 CDN 直链，无直链时才兜底走备份
+            chosen_links = official_links if official_links else backup_links
             for href, a_text in chosen_links:
                 arch = a_text.replace("官网链接", "").replace("频道备份", "").replace("官网", "").replace("备份", "").strip()
                 if not arch:
@@ -106,10 +107,13 @@ def get_telegram_tasks():
         for a in soup.find_all("a", href=True):
             href, a_text = a["href"].strip(), a.get_text().strip()
             if "t.me/s/" in href or "t.me/qq_updatelog" in href: continue
-            if "t.me/linqiqi_backup" in href or "备份" in a_text: backup_links.append(href)
-            elif ".apk" in href or "android_apk" in href or "downv6.qq.com" in href or "官网" in a_text: official_links.append(href)
+            if "t.me/linqiqi_backup" in href or "备份" in a_text:
+                backup_links.append(href)
+            elif ".apk" in href.lower() or "android_apk" in href.lower() or "qq.com" in href.lower() or "官网" in a_text:
+                official_links.append(href)
 
-        target_urls = list(dict.fromkeys(backup_links if backup_links else official_links))
+        # ★ 核心修复：针对 Android，日常监控必须优先选取“官网链接”(直链)，供 downstream 无 TG 环境直接 curl
+        target_urls = list(dict.fromkeys(official_links if official_links else backup_links))
         for u in target_urls:
             tasks.append({
                 "platform": "Android", "arch": "Package",
