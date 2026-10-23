@@ -32,7 +32,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y p7zip-full rpm2cpio cpio curl aapt
 
-          # 安装 Python 网页解析依赖
       - name: 安装 Python 网页解析依赖
         run: |
           pip install requests beautifulsoup4
@@ -56,22 +55,44 @@ jobs:
         run: |
           python scripts/daily_monitor.py
 
-      - name: 提交更新后的数据字典到仓库
-        if: steps.monitor_step.outputs.has_new_version == 'true'
+      # ==========================================
+      # 智能提交：只要有新包或数据有变动（含水位线补齐/自愈），必定落盘并推送
+      # ==========================================
+      - name: 提交更新后的数据字典与水位线到仓库
+        if: steps.monitor_step.outputs.has_new_version == 'true' || steps.monitor_step.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           git add data/
-          git commit -m "Auto-database: append new release SubID mapping [skip ci]"
-          git checkout -- . 2>/dev/null || true
-          git clean -fd
-          git pull --rebase origin main || true
-          git push origin main
+          
+          if git diff --staged --quiet; then
+            echo "[状态] 没有新数据生成，跳过提交。"
+          else
+            git commit -m "Auto-database: update QQ SubID mapping and watermarks [skip ci]"
+            for i in {1..5}; do
+              echo "[同步] 尝试拉取并推送最新数据 ($i/5)..."
+              git fetch origin main
+              if git rebase origin/main 2>/dev/null; then
+                if git push origin main; then
+                  echo "[成功] 数据已推送到远程仓库！"
+                  break
+                fi
+              else
+                git rebase --abort 2>/dev/null || true
+                git merge origin/main -m "Merge remote [skip ci]" --strategy-option ours || true
+                if git push origin main; then
+                  echo "[成功] 数据已合并推送到远程仓库！"
+                  break
+                fi
+              fi
+              sleep 2
+            done
+          fi
 
       # ==========================================
-      # 联动步骤：检测到 Android 更新时唤起 decompile.yml 并指定全量反编译
+      # 联动步骤：仅在检测到 Android 新版本时唤起全量反编译
       # ==========================================
       - name: 自动唤起 Android 反编译与 Diff 工作流
         if: steps.monitor_step.outputs.trigger_decompile == 'true'
