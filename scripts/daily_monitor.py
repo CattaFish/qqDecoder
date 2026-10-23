@@ -257,12 +257,33 @@ def main():
         print("[状态] 遍历完毕，所有渠道均无新包。")
         sys.exit(0)
 
-    # 4. 任务队列精细去重
+    # 4. 任务队列精细去重 (按 指纹 + 版本 + 渠道)
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
         if (fp_t, t["version"], t.get("channel")) not in processed_fingerprints:
             tasks_to_run.append(t)
+        else:
+            # ★ 核心修复：数据已在数据库中无需重复下载，但需立即就地补齐本地水位线文件
+            if t.get("ver_file_path") and t.get("mark_channel_name"):
+                v_file = t["ver_file_path"]
+                c_name = t["mark_channel_name"]
+                c_ver = t["mark_version_val"]
+                c_url = t["mark_url_val"]
+                
+                need_write = False
+                if not v_file.exists():
+                    need_write = True
+                else:
+                    lines = [l.strip() for l in v_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+                    rec_v = lines[0] if lines else ""
+                    if rec_v != c_ver:
+                        need_write = True
+                
+                if need_write:
+                    v_file.parent.mkdir(parents=True, exist_ok=True)
+                    v_file.write_text(f"{c_ver.strip()}\n{c_url.strip()}\n", encoding="utf-8")
+                    print(f"[水位线同步] {c_name} 安装包已在库中，已就地补齐本地记录文件: {c_ver}")
 
     github_output = os.environ.get("GITHUB_OUTPUT")
 
@@ -272,7 +293,7 @@ def main():
             with open(github_output, "a", encoding="utf-8") as f:
                 f.write("has_new_version=false\ntrigger_decompile=false\n")
         return
-
+    
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
