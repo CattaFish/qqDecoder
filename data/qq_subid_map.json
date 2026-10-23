@@ -4034,13 +4034,6 @@
       "arch": "Phone",
       "date": "2025-05-18",
       "source_url": "https://t.me/linqiqi_backup/1720"
-    },
-    {
-      "version": "9.1.76",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2025-05-18",
-      "source_url": "https://t.me/linqiqi_backup/1736"
     }
   ],
   "537288658": [
@@ -4050,13 +4043,6 @@
       "arch": "Pad",
       "date": "2025-05-18",
       "source_url": "https://t.me/linqiqi_backup/1720"
-    },
-    {
-      "version": "9.1.76",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2025-05-18",
-      "source_url": "https://t.me/linqiqi_backup/1736"
     }
   ],
   "537288307": [
@@ -5540,27 +5526,11 @@
       "platform": "Android",
       "arch": "Phone",
       "date": "2026-10-13",
-      "source_url": "https://t.me/linqiqi_backup/2929",
-      "channel": "官方"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2026-10-13",
       "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.75.42350_8b979832d5b7a366.apk",
       "channel": "官方"
     }
   ],
   "537397815": [
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2026-10-13",
-      "source_url": "https://t.me/linqiqi_backup/2929",
-      "channel": "官方"
-    },
     {
       "version": "9.3.75.42350",
       "platform": "Android",
@@ -5770,22 +5740,6 @@
       "date": "2026-10-20",
       "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
       "channel": "OPPO"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2026-10-23",
-      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=6f68ba9a42514a26e264d3602bdbc88b&t=6ADACD84&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
-      "channel": "OPPO"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2026-10-23",
-      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=f64750743d3a3525a3534ebc71857e74&t=6ADB3C45&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
-      "channel": "OPPO"
     }
   ],
   "537397821": [
@@ -5795,22 +5749,6 @@
       "arch": "Pad",
       "date": "2026-10-20",
       "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
-      "channel": "OPPO"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2026-10-23",
-      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=6f68ba9a42514a26e264d3602bdbc88b&t=6ADACD84&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
-      "channel": "OPPO"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2026-10-23",
-      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=f64750743d3a3525a3534ebc71857e74&t=6ADB3C45&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
       "channel": "OPPO"
     }
   ],
@@ -5862,22 +5800,6 @@
       "date": "2026-10-19",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792601968932/package_16580.1792601968932",
       "channel": "应用汇"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2026-10-19",
-      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792724368870/package_16580.1792724368870",
-      "channel": "应用汇"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Phone",
-      "date": "2026-10-19",
-      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792752722378/package_16580.1792752722378",
-      "channel": "应用汇"
     }
   ],
   "537397831": [
@@ -5887,22 +5809,6 @@
       "arch": "Pad",
       "date": "2026-10-19",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792601968932/package_16580.1792601968932",
-      "channel": "应用汇"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2026-10-19",
-      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792724368870/package_16580.1792724368870",
-      "channel": "应用汇"
-    },
-    {
-      "version": "9.3.75.42350",
-      "platform": "Android",
-      "arch": "Pad",
-      "date": "2026-10-19",
-      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792752722378/package_16580.1792752722378",
       "channel": "应用汇"
     }
   ],
