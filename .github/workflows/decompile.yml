@@ -60,15 +60,35 @@ jobs:
           import re
           import os
 
-          # 优先接收外部工作流传递的指定参数
           input_apk_url = "${{ inputs.apk_url }}".strip()
           input_ver = "${{ inputs.version_short }}".strip()
           input_beta = "${{ inputs.is_beta }}".strip().lower()
           github_output = os.environ.get('GITHUB_OUTPUT')
 
+          # ★ 容错拦截：若外部误传入了 TG 备份链接，自动在频道页面中反查该版本的官方直链
+          if input_apk_url and "t.me/" in input_apk_url:
+              print(f"[直链纠偏] 外部传入了 Telegram 备份链接 ({input_apk_url})，正在尝试反查官方直链...")
+              try:
+                  ch_req = urllib.request.Request(
+                      "https://t.me/s/qq_updatelog",
+                      headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                  )
+                  ch_html = urllib.request.urlopen(ch_req, timeout=20).read().decode('utf-8')
+                  blocks = ch_html.split('class="tgme_widget_message_wrap')
+                  for b in reversed(blocks):
+                      if input_apk_url in b or input_apk_url.split('/')[-1] in b:
+                          # 匹配该消息中的非 t.me 官网直链
+                          m_cands = re.findall(r'href="(https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"]+\.apk[^"]*)"', b)
+                          if m_cands:
+                              input_apk_url = m_cands[0]
+                              print(f"[直链纠偏] 成功替换为官方直链: {input_apk_url}")
+                              break
+              except Exception as e:
+                  print(f"[直链纠偏异常] {e}")
+
           if input_apk_url:
-              print(f"[联动触发] 接收到外部指定参数 APK: {input_apk_url}")
-              fname = input_apk_url.split('/')[-1].replace('.apk', '')
+              print(f"[任务确认] 目标 APK 下载链接: {input_apk_url}")
+              fname = input_apk_url.split('?')[0].split('/')[-1].replace('.apk', '')
               v_short = input_ver or fname.split('_')[0]
               with open(github_output, 'a', encoding='utf-8') as f:
                   f.write(f"apk_url={input_apk_url}\n")
@@ -84,7 +104,7 @@ jobs:
           req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
           
           try:
-              html = urllib.request.urlopen(req).read().decode('utf-8')
+              html = urllib.request.urlopen(req, timeout=30).read().decode('utf-8')
           except Exception as e:
               print(f"Error fetching TG channel: {e}")
               exit(1)
@@ -98,12 +118,27 @@ jobs:
           
           apk_entries = []
           for msg in messages:
-              urls = re.findall(r'https://downv6\.qq\.com/qqweb/QQ_1/android_apk/[a-zA-Z0-9_.-]+\.apk', msg)
-              if urls:
-                  apk_entries.append({'url': urls[-1], 'msg': msg})
+              # ★ 兼容 Markdown 富文本解析后的 <a>官网链接</a> 形式，彻底排除 t.me
+              direct_url = None
+              
+              # 1. 优先提取 <a> 标签中的官方 CDN 直链
+              cand_hrefs = re.findall(r'href="(https?://[^"]+\.apk[^"]*)"', msg)
+              for h in cand_hrefs:
+                  if "t.me/" not in h and any(k in h for k in ["qq.com", "myapp.com"]):
+                      direct_url = h
+                      break
+              
+              # 2. 兜底正则扫描
+              if not direct_url:
+                  urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', msg)
+                  if urls:
+                      direct_url = urls[-1]
+
+              if direct_url:
+                  apk_entries.append({'url': direct_url, 'msg': msg})
 
           if not apk_entries:
-              print("错误: 未能在 Telegram 频道找到任何有效的 APK 下载链接。")
+              print("错误: 未能在 Telegram 频道找到任何有效的官方 APK 下载直链。")
               exit(1)
 
           pending_entries = []
@@ -146,7 +181,7 @@ jobs:
           if not ver_match:
               ver_match = re.search(r'\b([0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?)\b', target_msg)
 
-          filename = target_url.split('/')[-1].replace('.apk', '')
+          filename = target_url.split('?')[0].split('/')[-1].replace('.apk', '')
           version_short = ver_match.group(1) if ver_match else filename.split('_')[0]
 
           with open(github_output, 'a', encoding='utf-8') as f:
@@ -158,6 +193,7 @@ jobs:
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
           print(f"本次待处理版本: {version_short}")
+          print(f"解析到官方直链: {target_url}")
           print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理: {len(pending_entries) - 1})")
 
       # ==========================================
