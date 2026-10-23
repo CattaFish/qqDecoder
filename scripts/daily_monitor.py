@@ -125,18 +125,41 @@ def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
     return cleaned_map, purged_count
 
 
+def save_database_and_runtime(subid_map: dict):
+    """原子写盘保存主数据库并派生编译运行时字典"""
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = DATA_FILE.with_suffix(".tmp")
+    temp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
+    if DATA_FILE.exists():
+        shutil.copy2(DATA_FILE, BAK_FILE)
+    temp_file.replace(DATA_FILE)
+
+    try:
+        compiled_data = compile_subid_map_to_runtime_dict(subid_map)
+        runtime_file = DATA_FILE.parent / "subid.json"
+        temp_rt = runtime_file.with_suffix(".tmp")
+        temp_rt.write_text(json.dumps(compiled_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp_rt.replace(runtime_file)
+        print(f"[运行时同步] 已派生编译 data/subid.json (收录 {len(compiled_data)} 条)")
+    except Exception as e:
+        print(f"[警告] 编译运行时字典异常: {e}")
+
+
 def main():
     pending_tasks = []
     versions_to_record = {}
+    has_synced_watermark = False
 
     # 1. 预载已有数据库并执行瞬时去重自愈
     subid_map = {}
+    purged_count = 0
     if DATA_FILE.exists():
         try:
             subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
             subid_map, purged_count = sanitize_and_deduplicate_map(subid_map)
             if purged_count > 0:
-                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录: {purged_count} 条！")
+                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录: {purged_count} 条！立即持久化落盘...")
+                save_database_and_runtime(subid_map)
         except Exception:
             subid_map = {}
 
@@ -147,7 +170,7 @@ def main():
         if item.get("source_url")
     }
 
-    # 2. ★ 采集 Telegram 官方更新 (对齐各大市场，引入独立水位线比对机制)
+    # 2. 采集 Telegram 官方更新 (对齐各大市场，引入独立水位线比对机制)
     tg_ver_file = Path("data/telegram_latest_version.txt")
     recorded_tg_ver = ""
     recorded_tg_url = ""
@@ -255,22 +278,27 @@ def main():
 
     if not pending_tasks:
         print("[状态] 遍历完毕，所有渠道均无新包。")
+        github_output = os.environ.get("GITHUB_OUTPUT")
+        if github_output:
+            with open(github_output, "a", encoding="utf-8") as f:
+                f.write(f"has_changes={'true' if purged_count > 0 else 'false'}\n")
+                f.write("has_new_version=false\ntrigger_decompile=false\n")
         sys.exit(0)
 
-    # 4. 任务队列精细去重 (按 指纹 + 版本 + 渠道)
+    # 4. 任务队列精细去重
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
         if (fp_t, t["version"], t.get("channel")) not in processed_fingerprints:
             tasks_to_run.append(t)
         else:
-            # ★ 核心修复：数据已在数据库中无需重复下载，但需立即就地补齐本地水位线文件
+            # ★ 核心修复：数据已在数据库中无需重复下载，但就地补齐本地水位线文件
             if t.get("ver_file_path") and t.get("mark_channel_name"):
                 v_file = t["ver_file_path"]
                 c_name = t["mark_channel_name"]
                 c_ver = t["mark_version_val"]
                 c_url = t["mark_url_val"]
-                
+
                 need_write = False
                 if not v_file.exists():
                     need_write = True
@@ -279,10 +307,11 @@ def main():
                     rec_v = lines[0] if lines else ""
                     if rec_v != c_ver:
                         need_write = True
-                
+
                 if need_write:
                     v_file.parent.mkdir(parents=True, exist_ok=True)
                     v_file.write_text(f"{c_ver.strip()}\n{c_url.strip()}\n", encoding="utf-8")
+                    has_synced_watermark = True
                     print(f"[水位线同步] {c_name} 安装包已在库中，已就地补齐本地记录文件: {c_ver}")
 
     github_output = os.environ.get("GITHUB_OUTPUT")
@@ -291,9 +320,11 @@ def main():
         print("[状态] 所有目标任务在此版本下的包体均已录入，无需重复处理。")
         if github_output:
             with open(github_output, "a", encoding="utf-8") as f:
+                has_any_change = "true" if (has_synced_watermark or purged_count > 0) else "false"
+                f.write(f"has_changes={has_any_change}\n")
                 f.write("has_new_version=false\ntrigger_decompile=false\n")
         return
-    
+
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
@@ -389,26 +420,10 @@ def main():
         print("[状态] 本批次下载解析未能提取到有效 SubID，取消落盘。")
         return
 
-    # 6. 原子落盘保存主数据库 data/qq_subid_map.json
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    temp_file = DATA_FILE.with_suffix(".tmp")
-    temp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
-    if DATA_FILE.exists():
-        shutil.copy2(DATA_FILE, BAK_FILE)
-    temp_file.replace(DATA_FILE)
+    # 6. 原子落盘保存主数据库与派生字典
+    save_database_and_runtime(subid_map)
 
-    # 7. 同步派生编译出运行时字典 data/subid.json
-    try:
-        compiled_data = compile_subid_map_to_runtime_dict(subid_map)
-        runtime_file = DATA_FILE.parent / "subid.json"
-        temp_rt = runtime_file.with_suffix(".tmp")
-        temp_rt.write_text(json.dumps(compiled_data, indent=2, ensure_ascii=False), encoding="utf-8")
-        temp_rt.replace(runtime_file)
-        print(f"[运行时同步] 已派生编译 data/subid.json (收录 {len(compiled_data)} 条)")
-    except Exception as e:
-        print(f"[警告] 编译运行时字典异常: {e}")
-
-    # 8. 双行原子写回版本号与直链 URL (包含 TG 记录文件)
+    # 7. 双行原子写回版本号与直链 URL
     for ver_path, (ch_name, ver_val, url_val) in versions_to_record.items():
         ver_path.parent.mkdir(parents=True, exist_ok=True)
         ver_path.write_text(f"{ver_val.strip()}\n{url_val.strip()}\n", encoding="utf-8")
@@ -416,9 +431,10 @@ def main():
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
-    # 9. GitHub Actions 联动输出
+    # 8. GitHub Actions 联动输出
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
+            f.write("has_changes=true\n")
             f.write("has_new_version=true\n")
             if has_android:
                 f.write("trigger_decompile=true\n")
