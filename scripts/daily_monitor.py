@@ -7,7 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-# 环境与路径准备
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
@@ -18,7 +17,6 @@ from extractor import (
 )
 from subid_compiler import compile_subid_map_to_runtime_dict
 
-# 导入各大渠道监控模块
 from channels import (
     get_appchina_info,
     get_honor_info,
@@ -35,13 +33,13 @@ from channels import (
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
-# 统一数据库与缓存路径
 DATA_FILE = Path("data/qq_subid_map.json")
 BAK_FILE = Path("data/qq_subid_map.json.bak")
 TEMP_DL = Path("temp_dl")
 TEMP_EXTRACT = Path("temp_extracted")
+TG_POST_ID_FILE = Path("data/telegram_last_post_id.txt")
 
-# ★ 核心升级：Telegram 官方频道分平台独立水位线字典
+# 各平台独立水位线文件
 TG_PLATFORM_VER_FILES = {
     "Android": Path("data/telegram_android_latest_version.txt"),
     "Windows": Path("data/telegram_windows_latest_version.txt"),
@@ -49,7 +47,6 @@ TG_PLATFORM_VER_FILES = {
     "Linux": Path("data/telegram_linux_latest_version.txt"),
 }
 
-# 各市场独立通道注册表 (名称, 获取函数, 版本记录文件路径)
 MARKET_CHANNELS = [
     ("豌豆荚", get_wandoujia_info, Path("data/wandoujia_latest_version.txt")),
     ("应用宝", get_yingyongbao_info, Path("data/yingyongbao_latest_version.txt")),
@@ -107,7 +104,7 @@ def is_newer_version(new_ver: str, old_ver: str) -> bool:
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
-    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, channel, version) 的重复实体，优先保留官方直链"""
+    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，优先保留官方直链"""
     cleaned_map = {}
     purged_count = 0
     for s_id, val in raw_map.items():
@@ -156,7 +153,7 @@ def save_database_and_runtime(subid_map: dict):
 def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
     """
     获取指定平台的水位线（版本、URL、文件路径）。
-    具备历史兼容性与数据库底限自愈机制。
+    ★ 彻底修复：无论数据库里是否有 channel 字段，均准确提取历史最高版本作为基准，杜绝历史旧包重跑！
     """
     v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/telegram_{plat.lower()}_latest_version.txt"))
     rec_ver, rec_url = "", ""
@@ -165,29 +162,25 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
         lines = [l.strip() for l in v_file.read_text(encoding="utf-8").splitlines() if l.strip()]
         if len(lines) >= 1: rec_ver = lines[0]
         if len(lines) >= 2: rec_url = lines[1]
-    else:
-        # 兼容旧的单一 telegram_latest_version.txt
-        old_unified = Path("data/telegram_latest_version.txt")
-        if old_unified.exists():
-            lines = [l.strip() for l in old_unified.read_text(encoding="utf-8").splitlines() if l.strip()]
-            old_v = lines[0] if lines else ""
-            old_u = lines[1] if len(lines) > 1 else ""
-            if plat == "Android" and old_v.startswith("9.") and not old_v.startswith("9.9."):
-                rec_ver, rec_url = old_v, old_u
-            elif plat == "Windows" and old_v.startswith("9.9."):
-                rec_ver, rec_url = old_v, old_u
 
-        # 自愈保底：从已加载的数据库中提取该平台的最高版本，防止全量重跑
-        if not rec_ver and subid_map:
-            plat_vers = [
-                item.get("version", "").replace("-Beta", "").strip()
-                for val in subid_map.values()
-                for item in (val if isinstance(val, list) else [val])
-                if item.get("platform") == plat and item.get("channel") == "官方" and item.get("version")
-            ]
-            for pv in plat_vers:
-                if is_newer_version(pv, rec_ver):
-                    rec_ver = pv
+    # 兜底：从已有数据库中提取该平台的最高版本，绝不放任为“无”
+    db_highest_ver = ""
+    if subid_map:
+        plat_vers = [
+            item.get("version", "").replace("-Beta", "").strip()
+            for val in subid_map.values()
+            for item in (val if isinstance(val, list) else [val])
+            if item.get("platform") == plat and item.get("version")
+        ]
+        for pv in plat_vers:
+            if is_newer_version(pv, db_highest_ver):
+                db_highest_ver = pv
+
+    # 若独立水位线文件不存在或落后于数据库，以数据库最高版本为安全底限
+    if db_highest_ver and (not rec_ver or is_newer_version(db_highest_ver, rec_ver)):
+        rec_ver = db_highest_ver
+        v_file.parent.mkdir(parents=True, exist_ok=True)
+        v_file.write_text(f"{rec_ver}\n\n", encoding="utf-8")
 
     return rec_ver, rec_url, v_file
 
@@ -196,6 +189,7 @@ def main():
     pending_tasks = []
     versions_to_record = {}
     has_synced_watermark = False
+    latest_seen_post_num = 0
 
     # 1. 预载已有数据库并执行瞬时去重自愈
     subid_map = {}
@@ -210,24 +204,45 @@ def main():
         except Exception:
             subid_map = {}
 
-    processed_fingerprints = {
-        (get_url_fingerprint(item.get("source_url"), item.get("channel")), item.get("version"), item.get("channel"))
-        for val in subid_map.values()
-        for item in (val if isinstance(val, list) else [val])
-        if item.get("source_url")
-    }
+    # ★ 关键去重池：纯 URL 指纹集合，不受 channel 字段缺失影响！
+    processed_url_fps = set()
+    processed_url_ver_pairs = set()
 
-    # 2. 采集 Telegram 官方更新（多端独立水位线比较）
-    tg_tasks = get_telegram_tasks()
+    for val in subid_map.values():
+        for item in (val if isinstance(val, list) else [val]):
+            u = item.get("source_url")
+            v = item.get("version")
+            if u:
+                fp = get_url_fingerprint(u)
+                processed_url_fps.add(fp)
+                if v:
+                    processed_url_ver_pairs.add((fp, v))
+
+    # 2. 读取 Telegram 消息游标
+    min_post_id = 0
+    if TG_POST_ID_FILE.exists():
+        try:
+            min_post_id = int(TG_POST_ID_FILE.read_text(encoding="utf-8").strip())
+        except Exception:
+            min_post_id = 0
+
+    # 3. 采集 Telegram 官方更新（增量比对）
+    tg_tasks = get_telegram_tasks(min_post_id=0)
     for t in tg_tasks:
         plat = t["platform"]
         cur_ver = t["version"]
         cur_url = t["url"]
-        ch_label = t.get("channel", "官方")
+        p_num = t.get("post_num", 0)
+        if p_num > latest_seen_post_num:
+            latest_seen_post_num = p_num
 
         recorded_tg_ver, recorded_tg_url, tg_ver_file = get_platform_watermark(plat, subid_map)
+        fp_cur = get_url_fingerprint(cur_url)
 
-        print(f"[TG 监控 - {plat}] 线上版本: {cur_ver} | 本地记录版本: {recorded_tg_ver or '无'}")
+        # ★ 第一道防御：如果该 URL 指纹已经在数据库中，说明早已录入，绝对跳过！
+        if fp_cur in processed_url_fps:
+            print(f"[TG 监控 - {plat}] {cur_ver} (链接已在库中)，跳过下载。")
+            continue
 
         should_update = False
         update_reason = ""
@@ -239,12 +254,11 @@ def main():
             should_update = True
             update_reason = f"版本升级 ({recorded_tg_ver} -> {cur_ver})"
         elif cur_ver == recorded_tg_ver:
-            fp_cur = get_url_fingerprint(cur_url, ch_label)
-            fp_rec = get_url_fingerprint(recorded_tg_url, ch_label)
+            fp_rec = get_url_fingerprint(recorded_tg_url)
             if recorded_tg_url and fp_cur != fp_rec:
                 should_update = True
                 update_reason = "同版本静默换包 (直链变动)"
-            elif not recorded_tg_url and (fp_cur, cur_ver, ch_label) not in processed_fingerprints:
+            elif not recorded_tg_url and (fp_cur, cur_ver) not in processed_url_ver_pairs:
                 should_update = True
                 update_reason = "未处理直链补全"
             else:
@@ -260,7 +274,7 @@ def main():
             t["ver_file_path"] = tg_ver_file
             pending_tasks.append(t)
 
-    # 3. 九大厂商应用市场比对
+    # 4. 九大厂商应用市场比对
     for name, fetch_func, ver_file in MARKET_CHANNELS:
         recorded_ver = ""
         recorded_url = ""
@@ -294,7 +308,7 @@ def main():
             if recorded_url and fp_cur != fp_rec:
                 should_update = True
                 update_reason = "同版本静默换包 (直链变动)"
-            elif not recorded_url and (fp_cur, cur_ver, name) not in processed_fingerprints:
+            elif not recorded_url and fp_cur not in processed_url_fps:
                 should_update = True
                 update_reason = "未处理直链补全"
             else:
@@ -318,20 +332,11 @@ def main():
                 "ver_file_path": ver_file,
             })
 
-    if not pending_tasks:
-        print("[状态] 遍历完毕，所有渠道均无新包。")
-        github_output = os.environ.get("GITHUB_OUTPUT")
-        if github_output:
-            with open(github_output, "a", encoding="utf-8") as f:
-                f.write(f"has_changes={'true' if purged_count > 0 else 'false'}\n")
-                f.write("has_new_version=false\ntrigger_decompile=false\n")
-        sys.exit(0)
-
-    # 4. 任务队列去重与已在库补齐
+    # 5. 精细去重
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
-        if (fp_t, t["version"], t.get("channel")) not in processed_fingerprints:
+        if fp_t not in processed_url_fps:
             tasks_to_run.append(t)
         else:
             if t.get("ver_file_path") and t.get("mark_channel_name"):
@@ -340,25 +345,19 @@ def main():
                 c_ver = t["mark_version_val"]
                 c_url = t["mark_url_val"]
 
-                need_write = False
-                if not v_file.exists():
-                    need_write = True
-                else:
-                    lines = [l.strip() for l in v_file.read_text(encoding="utf-8").splitlines() if l.strip()]
-                    rec_v = lines[0] if lines else ""
-                    if rec_v != c_ver:
-                        need_write = True
+                v_file.parent.mkdir(parents=True, exist_ok=True)
+                v_file.write_text(f"{c_ver.strip()}\n{c_url.strip()}\n", encoding="utf-8")
+                has_synced_watermark = True
+                print(f"[水位线同步] {c_name} 安装包已在库中，已就地补齐本地记录文件: {c_ver}")
 
-                if need_write:
-                    v_file.parent.mkdir(parents=True, exist_ok=True)
-                    v_file.write_text(f"{c_ver.strip()}\n{c_url.strip()}\n", encoding="utf-8")
-                    has_synced_watermark = True
-                    print(f"[水位线同步] {c_name} 安装包已在库中，已就地补齐本地记录文件: {c_ver}")
+    if latest_seen_post_num > 0:
+        TG_POST_ID_FILE.parent.mkdir(parents=True, exist_ok=True)
+        TG_POST_ID_FILE.write_text(str(latest_seen_post_num), encoding="utf-8")
 
     github_output = os.environ.get("GITHUB_OUTPUT")
 
     if not tasks_to_run:
-        print("[状态] 所有目标任务在此版本下的包体均已录入，无需重复处理。")
+        print("[状态] 所有目标任务在此版本下的包体均已录入，无需下载任何文件。")
         if github_output:
             with open(github_output, "a", encoding="utf-8") as f:
                 has_any_change = "true" if (has_synced_watermark or purged_count > 0) else "false"
@@ -369,7 +368,7 @@ def main():
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
-    # 5. 执行批量下载、解包与 SubID 抽取
+    # 6. 执行真正的增量下载、解包与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
@@ -452,7 +451,6 @@ def main():
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
-                    # 优先给反编译工作流传递官方直链，防止 curl 无法直接下载 t.me 链接
                     decompile_apk_url = t.get("official_url") or t["url"]
                     android_info = {
                         "url": decompile_apk_url,
@@ -464,26 +462,25 @@ def main():
             shutil.rmtree(TEMP_EXTRACT, ignore_errors=True)
 
     if not has_subid_extracted:
-        print("[状态] 本批次下载解析未能提取到有效 SubID，取消落盘。")
+        print("[状态] 本批次无有效新 SubID，取消落盘。")
         return
 
-    # 6. 原子落盘保存主数据库与派生字典
+    # 7. 原子落盘保存主数据库与派生字典
     save_database_and_runtime(subid_map)
 
-    # 7. 原子更新各渠道独立水位线文件
+    # 8. 更新各渠道独立水位线文件
     for ver_path, (ch_name, ver_val, url_val) in versions_to_record.items():
         ver_path.parent.mkdir(parents=True, exist_ok=True)
         ver_path.write_text(f"{ver_val.strip()}\n{url_val.strip()}\n", encoding="utf-8")
         print(f"[版本记录] {ch_name}已更新: 版本={ver_val} | 直链已记录")
 
-        # 同步保留兼容的旧统一水位线文件（以 Android 或当前最高版本为主）
         if "telegram_android" in ver_path.name:
             compat_file = Path("data/telegram_latest_version.txt")
             compat_file.write_text(f"{ver_val.strip()}\n{url_val.strip()}\n", encoding="utf-8")
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
-    # 8. GitHub Actions 联动输出
+    # 9. GitHub Actions 联动输出
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write("has_changes=true\n")
