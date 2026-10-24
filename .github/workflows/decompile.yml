@@ -64,9 +64,9 @@ jobs:
           input_beta = "${{ inputs.is_beta }}".strip().lower()
           github_output = os.environ.get('GITHUB_OUTPUT')
 
-          # 容错拦截：若外部误传入了 TG 备份链接，自动在频道页面中反查该版本的官方直链
+          # 容错拦截：若外部传入了 TG 备份链接，自动在频道页面中反查该版本的官方直链
           if input_apk_url and "t.me/" in input_apk_url:
-              print(f"[直链纠偏] 外部传入了 Telegram 备份链接 ({input_apk_url})，正在反查官方直链...")
+              print(f"[直链纠偏] 外部传入了 Telegram 备份链接 ({input_apk_url})，正在尝试反查官方直链...")
               try:
                   ch_req = urllib.request.Request(
                       "https://t.me/s/qq_updatelog",
@@ -117,14 +117,12 @@ jobs:
           apk_entries = []
           for msg in messages:
               direct_url = None
-              # 1. 优先提取 <a> 标签中的官方 CDN 直链
               cand_hrefs = re.findall(r'href="(https?://[^"]+\.apk[^"]*)"', msg)
               for h in cand_hrefs:
                   if "t.me/" not in h and any(k in h for k in ["qq.com", "myapp.com"]):
                       direct_url = h
                       break
               
-              # 2. 兜底正则扫描
               if not direct_url:
                   urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', msg)
                   if urls:
@@ -188,17 +186,12 @@ jobs:
               f.write("has_update=true\n")
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
-          print(f"本次待处理版本: {version_short}")
-          print(f"解析到官方直链: {target_url}")
-          print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理: {len(pending_entries) - 1})")
-
       # ==========================================
       # 3. 深度清理磁盘并选定工作空间
       # ==========================================
       - name: Free Disk Space & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
         run: |
-          echo "正在执行深度磁盘清理..."
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY" 2>/dev/null || true
           sudo rm -rf /mnt/docker 2>/dev/null || true
@@ -263,7 +256,20 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       # ==========================================
-      # 6. 下载 APK 并提取当前 DEX
+      # ★ 核心修复：安装 tdl 并恢复 TG 会话 (应对 t.me 直链下载)
+      # ==========================================
+      - name: Setup tdl Client & Telegram Session
+        if: steps.check_update.outputs.has_update == 'true'
+        run: |
+          curl -sSL https://docs.iyear.me/tdl/install.sh | sudo bash
+          if [ -n "${{ secrets.TDL_SESSION_BASE64 }}" ]; then
+            echo "${{ secrets.TDL_SESSION_BASE64 }}" | base64 -d > tg_backup.zip
+            tdl recover -f tg_backup.zip || true
+            rm -f tg_backup.zip
+          fi
+
+      # ==========================================
+      # 6. 下载 APK 并提取当前 DEX (协议自适应)
       # ==========================================
       - name: Download APK and Extract DEX
         if: steps.check_update.outputs.has_update == 'true'
@@ -281,8 +287,26 @@ jobs:
           ln -sf $REAL_WORKSPACE workspace
           cd workspace
           
-          echo "正在下载 APK: ${{ steps.check_update.outputs.apk_url }}"
-          curl -L "${{ steps.check_update.outputs.apk_url }}" -o target.apk
+          TARGET_URL="${{ steps.check_update.outputs.apk_url }}"
+          echo "正在下载 APK: ${TARGET_URL}"
+          
+          # ★ 智能分流：如果是 t.me 链接，调用 tdl；否则使用 curl
+          if [[ "$TARGET_URL" =~ t\.me/ ]]; then
+            echo "[下载协议] 识别为 Telegram 备份直链，使用 tdl 下载..."
+            tdl dl -u "$TARGET_URL" -d .
+            DL_FILE=$(find . -maxdepth 1 -name "*.apk" | head -n 1)
+            if [ -n "$DL_FILE" ] && [ "$DL_FILE" != "./target.apk" ]; then
+              mv "$DL_FILE" target.apk
+            fi
+          else
+            echo "[下载协议] 识别为标准 HTTP 直连，使用 curl 下载..."
+            curl -L "$TARGET_URL" -o target.apk
+          fi
+          
+          if [ ! -s target.apk ]; then
+            echo "::error::未能成功下载 APK 安装包！"
+            exit 1
+          fi
           
           mkdir -p new_dex
           unzip -q target.apk "classes*.dex" -d new_dex/
@@ -682,7 +706,7 @@ jobs:
           rm -rf old_dex old_smali new_smali prev_download
 
       # ==========================================
-      # 13. 安装 JADX 并执行全量反编译 (修复参数错误与输出结构)
+      # 13. 安装 JADX 并执行全量反编译
       # ==========================================
       - name: Install JADX and Decompile Java Source
         if: steps.check_update.outputs.has_update == 'true'
@@ -691,7 +715,6 @@ jobs:
         run: |
           mkdir -p bin
           
-          # 1. 稳妥安装 JADX (避免 API 频控，保底 1.5.1)
           JADX_VER=$(gh release view -R skylot/jadx --json tagName -q .tagName 2>/dev/null | sed 's/^v//' || true)
           [ -z "$JADX_VER" ] && JADX_VER="1.5.1"
           echo "安装 JADX 版本: v${JADX_VER}..."
@@ -703,11 +726,9 @@ jobs:
           cd workspace
           mkdir -p java_final
           
-          # 2. 判断反编译范围：默认全量反编译
           DECOMPILE_ALL="${{ inputs.decompile_all }}"
           [ -z "$DECOMPILE_ALL" ] && DECOMPILE_ALL="true"
           
-          # 3. 运行 JADX 反编译
           export JAVA_OPTS="-Xmx28g"
           THREADS=$(nproc || echo 4)
           
@@ -750,7 +771,6 @@ jobs:
             rm -rf java_raw
           fi
 
-          # 4. 打包产物
           if [ -d "java_final/sources" ] && [ "$(ls -A java_final/sources 2>/dev/null)" ]; then
             mv java_final decompiled_java
             echo "正在打包全量 Java 源码为 java_output.zip ..."
@@ -846,7 +866,7 @@ jobs:
                 fi
               else
                 git rebase --abort 2>/dev/null || true
-                git merge origin/main -m "Merge remote [skip ci]" --strategy-option ours || true
+                git pull --rebase origin main || true
                 if git push origin main; then
                   echo "[成功] 版本记录已合并推送到 main 分支！"
                   break
