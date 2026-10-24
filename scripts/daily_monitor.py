@@ -79,10 +79,7 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
 
 
 def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_old_beta: bool = None) -> bool:
-    """
-    严格版本单调性判断（全面兼顾 Beta 测试版晋级到正式版的情形）
-    彻底避免 9.3.80 正式版被 9.3.80.42670-Beta 降维拦截！
-    """
+    """严格版本单调性判断（全面兼顾 Beta 测试版晋级到正式版的情形）"""
     if not old_ver:
         return True
     if not new_ver:
@@ -106,17 +103,15 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
         if a < b:
             return False
 
-    # 2. ★ 核心突破：前 3 段主版本完全相同时（如 9.3.80 vs 9.3.80.42670）
-    # 若历史记录为 Beta 测试版，而线上迎来了正式版（非 Beta），正式版绝对晋级胜出！
+    # 2. 前 3 段主版本完全相同时（如 9.3.80 vs 9.3.80.42670），正式版胜出
     if len(p1) >= 3 and len(p2) >= 3 and p1[:3] == p2[:3]:
         if is_old_beta and not is_new_b:
             return True
 
-    # 3. 常规长度段数比较（如 9.3.80.42670 > 9.3.80）
+    # 3. 常规长度段数比较
     if len(p1) != len(p2):
         return len(p1) > len(p2)
 
-    # 4. 段数与数字完全相同：若老版本是 Beta，新版本为正式版，正式版胜出
     if is_old_beta and not is_new_b:
         return True
 
@@ -180,7 +175,6 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
         if len(lines) >= 1: rec_ver = lines[0]
         if len(lines) >= 2: rec_url = lines[1]
 
-    # 兜底：从已有数据库中提取该平台的最高版本，绝不放任为“无”
     db_highest_ver = ""
     if subid_map:
         plat_vers = [
@@ -206,7 +200,7 @@ def main():
     versions_to_record = {}
     has_synced_watermark = False
 
-    # 1. 预载已有数据库并执行瞬时去重自愈
+    # 1. 预载数据库
     subid_map = {}
     purged_count = 0
     if DATA_FILE.exists():
@@ -220,7 +214,7 @@ def main():
             subid_map = {}
 
     processed_url_fps = set()
-    platform_version_arches = {}  # (plat, version) -> set(arch)
+    platform_version_arches = {}
 
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
@@ -233,7 +227,7 @@ def main():
             if p and v and a:
                 platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 2. 采集 Telegram 官方更新
+    # 2. 采集 Telegram 官方更新（严格备份独占）
     tg_tasks = get_telegram_tasks()
     seen_platform_tasks = set()
 
@@ -245,7 +239,7 @@ def main():
         is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
-        # 绝对拦截：直链早已在库中
+        # 彻底拦截：链接已在库中
         if fp_cur in processed_url_fps:
             print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
             continue
@@ -267,12 +261,12 @@ def main():
             should_update = True
             update_reason = f"版本升级 ({recorded_tg_ver} -> {cur_ver})"
         else:
-            # ★ 核心自愈：若版本号等于本地记录，但该架构在此版本中未曾录入，判定为架构漏包补齐！
+            # 只有当该备份包对应的架构在当前版本完全未收录时，才允许自愈补齐
             clean_cur = cur_ver.replace("-Beta", "").strip()
             clean_rec = recorded_tg_ver.replace("-Beta", "").strip()
             known_arches = platform_version_arches.get((plat, clean_cur), set())
 
-            if clean_cur == clean_rec and arch not in known_arches:
+            if clean_cur == clean_rec and arch not in known_arches and "t.me/linqiqi_backup" in cur_url:
                 should_update = True
                 update_reason = f"同版本缺失架构自愈补全 ({arch})"
             else:
@@ -348,7 +342,7 @@ def main():
                 "ver_file_path": ver_file,
             })
 
-    # 4. 二次精细去重与水位线补齐
+    # 4. 二次精细去重
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
@@ -464,7 +458,6 @@ def main():
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
-                    # 优先传递官方直链供反编译，若只有备份链接则透传
                     decompile_apk_url = t.get("official_url") or t["url"]
                     android_info = {
                         "url": decompile_apk_url,
