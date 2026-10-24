@@ -64,8 +64,10 @@ def get_recent_messages(limit: int = 5):
 
 def parse_single_message_tasks(msg: dict):
     """
-    单条消息解析核心（绝对备份优先原则）：
-    只要消息中存在 t.me/linqiqi_backup，坚决无视并丢弃所有官方链接，100% 只提取备份链接！
+    单条消息解析核心（彻底消除 Windows Package Unknown 幽灵任务）：
+    1. 消息级平台预判（根据标签与版本号精准确定默认平台）；
+    2. 绝对备份优先（有备份绝不下官方）；
+    3. 严格过滤拦截任何版本为 Unknown 的伪任务。
     """
     text = msg["text"]
     html = msg["html"]
@@ -118,8 +120,21 @@ def parse_single_message_tasks(msg: dict):
     if all_apks:
         official_apk_url = all_apks[0]
 
-    tasks_map = {} # (plat, arch) -> task
-    current_platform = "Windows"
+    # ★ 核心改进 1：智能决定本消息的初始平台，绝不无脑写死为 Windows！
+    is_pure_android = ("#QQ_NT_Phone" in text) or ("#QQ_Android" in text) or (android_ver and not (win_ver or mac_ver or linux_ver))
+    is_pure_linux = ("#QQ_NT_Linux" in text) or (linux_ver and not (win_ver or mac_ver or android_ver))
+    is_pure_mac = ("#QQ_NT_MacOS" in text) or (mac_ver and not (win_ver or linux_ver or android_ver))
+
+    if is_pure_android:
+        current_platform = "Android"
+    elif is_pure_linux:
+        current_platform = "Linux"
+    elif is_pure_mac:
+        current_platform = "macOS"
+    else:
+        current_platform = "Windows"
+
+    tasks_map = {}
     in_backup_section = False
 
     for line in re.split(r"<br\s*/?>|\n", html):
@@ -128,13 +143,12 @@ def parse_single_message_tasks(msg: dict):
         if not line_text and not line_soup.find("a"):
             continue
 
-        # 区块追踪
         if "备份" in line_text:
             in_backup_section = True
         elif "下载" in line_text or "官网" in line_text:
             in_backup_section = False
 
-        # 平台追踪
+        # 动态感知区块中的平台切换
         if any(k in line_text for k in ["Windows", "- Windows"]): current_platform = "Windows"
         elif any(k in line_text for k in ["MacOS", "Mac", "- MacOS", "- Mac"]): current_platform = "macOS"
         elif any(k in line_text for k in ["Linux", "- Linux"]): current_platform = "Linux"
@@ -144,7 +158,6 @@ def parse_single_message_tasks(msg: dict):
         if not line_a_tags:
             continue
 
-        # ★ 核心原则：如果本消息含有备份链接，但当前行不在备份区且不是备份链接，直接忽略！
         for a in line_a_tags:
             href = a["href"].strip()
             a_txt = a.get_text().strip()
@@ -153,11 +166,9 @@ def parse_single_message_tasks(msg: dict):
 
             is_this_backup = "t.me/linqiqi_backup" in href or "备份" in a_txt
 
-            # 如果消息有备份，绝对抛弃任何非备份链接！
             if has_backup and not is_this_backup:
                 continue
 
-            # 平台确定
             target_plat = current_platform
             if ".apk" in href.lower() or "android" in href.lower():
                 target_plat = "Android"
@@ -168,7 +179,6 @@ def parse_single_message_tasks(msg: dict):
             elif any(ext in href.lower() for ext in [".deb", ".rpm", ".appimage"]):
                 target_plat = "Linux"
 
-            # 架构确定（结合 <a> 文字与所在行文本精准提炼）
             if target_plat == "Android":
                 target_arch = "Package"
             elif target_plat == "macOS":
@@ -178,17 +188,19 @@ def parse_single_message_tasks(msg: dict):
                 if target_arch == "Package":
                     target_arch = normalize_arch_name(line_text + " " + href)
 
+            ver = (
+                win_ver if target_plat == "Windows"
+                else mac_ver if target_plat == "macOS"
+                else linux_ver if target_plat == "Linux"
+                else android_ver
+            )
+
+            # ★ 核心改进 2：坚决过滤 Unknown！如果当前平台根本没有提取出版本号，直接忽略该链接，绝不生成伪任务！
+            if not ver or ver == "Unknown":
+                continue
+
             key = (target_plat, target_arch)
-
-            # 同一平台同一架构下，优先保留备份链接
             if key not in tasks_map or (is_this_backup and "t.me/linqiqi_backup" not in tasks_map[key]["url"]):
-                ver = (
-                    win_ver if target_plat == "Windows"
-                    else mac_ver if target_plat == "macOS"
-                    else linux_ver if target_plat == "Linux"
-                    else android_ver
-                ) or "Unknown"
-
                 tasks_map[key] = {
                     "platform": target_plat,
                     "arch": target_arch,
@@ -201,14 +213,14 @@ def parse_single_message_tasks(msg: dict):
                     "post_id": post_id,
                 }
 
-    # 3. 兼容处理纯文本中裸露的 APK 链接（如消息 731，完全没有备份链接的情况）
-    if not has_backup and ("Android", "Package") not in tasks_map:
+    # 3. 兼容处理纯文本中裸露的 APK 链接（如消息 731）
+    if not has_backup and ("Android", "Package") not in tasks_map and android_ver:
         naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
         if naked_urls:
             tasks_map[("Android", "Package")] = {
                 "platform": "Android",
                 "arch": "Package",
-                "version": android_ver or "Unknown",
+                "version": android_ver,
                 "date": date,
                 "url": naked_urls[0].strip(),
                 "official_url": naked_urls[0].strip(),
