@@ -5909,5 +5909,25 @@
       "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.36/beta/9ee04bef/linuxqq_3.2.34-53644_arm64.deb",
       "channel": "官方"
     }
+  ],
+  "537397788": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-24",
+      "source_url": "https://gdown.baidu.com/appcenter/pkg/upload/d12997a65b78f417c8c63c36970e1410?prodid=2",
+      "channel": "百度"
+    }
+  ],
+  "537397827": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-24",
+      "source_url": "https://gdown.baidu.com/appcenter/pkg/upload/d12997a65b78f417c8c63c36970e1410?prodid=2",
+      "channel": "百度"
+    }
   ]
 }

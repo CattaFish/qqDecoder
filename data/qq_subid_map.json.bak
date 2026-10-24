@@ -1,0 +1,5913 @@
+{
+  "537391627": [
+    {
+      "version": "9.9.36.53644",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2882"
+    }
+  ],
+  "537391628": [
+    {
+      "version": "9.9.36.53644",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2881"
+    }
+  ],
+  "537391640": [
+    {
+      "version": "9.9.36.53644",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2883"
+    }
+  ],
+  "537391652": [
+    {
+      "version": "7.0.2.53644",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2884"
+    }
+  ],
+  "537391664": [
+    {
+      "version": "3.2.34.53644",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2887?single"
+    },
+    {
+      "version": "3.2.34.53644",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2885?single"
+    },
+    {
+      "version": "3.2.34.53644",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2889?single"
+    },
+    {
+      "version": "3.2.34.53644",
+      "platform": "Linux",
+      "arch": "X64",
+      "date": "2026-09-23",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.36/beta/9ee04bef/linuxqq_3.2.34-53644_amd64.deb",
+      "channel": "官方"
+    }
+  ],
+  "537391666": [
+    {
+      "version": "3.2.34.53644",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2891"
+    }
+  ],
+  "537391474": [
+    {
+      "version": "9.9.36.53489",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-09-20",
+      "source_url": "https://t.me/linqiqi_backup/2873"
+    }
+  ],
+  "537391475": [
+    {
+      "version": "9.9.36.53489",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-09-20",
+      "source_url": "https://t.me/linqiqi_backup/2872"
+    }
+  ],
+  "537391487": [
+    {
+      "version": "9.9.36.53489",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-09-20",
+      "source_url": "https://t.me/linqiqi_backup/2874"
+    }
+  ],
+  "537391499": [
+    {
+      "version": "7.0.2.53489",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-09-20",
+      "source_url": "https://t.me/linqiqi_backup/2875"
+    }
+  ],
+  "537382818": [
+    {
+      "version": "9.9.35.52892",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2772"
+    }
+  ],
+  "537382819": [
+    {
+      "version": "9.9.35.52892",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2771"
+    }
+  ],
+  "537382831": [
+    {
+      "version": "9.9.35.52892",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2773"
+    }
+  ],
+  "537382843": [
+    {
+      "version": "7.0.1.52892",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2774"
+    }
+  ],
+  "537382855": [
+    {
+      "version": "3.2.33.52892",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2777?single"
+    },
+    {
+      "version": "3.2.33.52892",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2775?single"
+    },
+    {
+      "version": "3.2.33.52892",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2779?single"
+    }
+  ],
+  "537382857": [
+    {
+      "version": "3.2.33.52892",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2781"
+    }
+  ],
+  "537382858": [
+    {
+      "version": "3.2.33.52892",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-08-28",
+      "source_url": "https://t.me/linqiqi_backup/2782"
+    }
+  ],
+  "537382716": [
+    {
+      "version": "9.9.35.52804",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-08-26",
+      "source_url": "https://t.me/linqiqi_backup/2758"
+    }
+  ],
+  "537382717": [
+    {
+      "version": "9.9.35.52804",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-08-26",
+      "source_url": "https://t.me/linqiqi_backup/2757"
+    }
+  ],
+  "537382729": [
+    {
+      "version": "9.9.35.52804",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-08-26",
+      "source_url": "https://t.me/linqiqi_backup/2759"
+    }
+  ],
+  "537382741": [
+    {
+      "version": "7.0.1.52804",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-08-26",
+      "source_url": "https://t.me/linqiqi_backup/2760"
+    }
+  ],
+  "537379410": [
+    {
+      "version": "9.9.33.52230",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2704"
+    }
+  ],
+  "537379411": [
+    {
+      "version": "9.9.33.52230",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2703"
+    }
+  ],
+  "537379423": [
+    {
+      "version": "9.9.33.52230",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2705"
+    }
+  ],
+  "537379435": [
+    {
+      "version": "7.0.0.52194",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2706"
+    }
+  ],
+  "537379447": [
+    {
+      "version": "3.2.32.52194",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2709?single"
+    },
+    {
+      "version": "3.2.32.52194",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2707?single"
+    },
+    {
+      "version": "3.2.32.52194",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2711?single"
+    }
+  ],
+  "537379449": [
+    {
+      "version": "3.2.32.52194",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2713"
+    }
+  ],
+  "537379450": [
+    {
+      "version": "3.2.32.52194",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-08-11",
+      "source_url": "https://t.me/linqiqi_backup/2714"
+    }
+  ],
+  "537379257": [
+    {
+      "version": "9.9.33.52074",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2682"
+    }
+  ],
+  "537379258": [
+    {
+      "version": "9.9.33.52074",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2681"
+    }
+  ],
+  "537379270": [
+    {
+      "version": "9.9.33.52074",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2683"
+    }
+  ],
+  "537379282": [
+    {
+      "version": "7.0.0.52074",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2684"
+    }
+  ],
+  "537379294": [
+    {
+      "version": "3.2.32.52074",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2687"
+    },
+    {
+      "version": "3.2.32.52074",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2685"
+    },
+    {
+      "version": "3.2.32.52074",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2689"
+    }
+  ],
+  "537379296": [
+    {
+      "version": "3.2.32.52074",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2691"
+    }
+  ],
+  "537379297": [
+    {
+      "version": "3.2.32.52074",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-08-06",
+      "source_url": "https://t.me/linqiqi_backup/2692"
+    }
+  ],
+  "537376817": [
+    {
+      "version": "9.9.33.51802",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2664"
+    }
+  ],
+  "537376818": [
+    {
+      "version": "9.9.33.51802",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2663"
+    }
+  ],
+  "537376830": [
+    {
+      "version": "9.9.33.51802",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2665"
+    }
+  ],
+  "537376842": [
+    {
+      "version": "6.9.99.51802",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2666"
+    }
+  ],
+  "537376854": [
+    {
+      "version": "3.2.32.51802",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2667"
+    },
+    {
+      "version": "3.2.32.51802",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2671"
+    }
+  ],
+  "537376855": [
+    {
+      "version": "3.2.32.51802",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2669"
+    }
+  ],
+  "537376856": [
+    {
+      "version": "3.2.32.51802",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2673"
+    }
+  ],
+  "537376857": [
+    {
+      "version": "3.2.32.51802",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-07-29",
+      "source_url": "https://t.me/linqiqi_backup/2674"
+    }
+  ],
+  "537376766": [
+    {
+      "version": "9.9.33.51728",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2649"
+    }
+  ],
+  "537376767": [
+    {
+      "version": "9.9.33.51728",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2648"
+    }
+  ],
+  "537376779": [
+    {
+      "version": "9.9.33.51728",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2650"
+    }
+  ],
+  "537376791": [
+    {
+      "version": "6.9.99.51728",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2651"
+    }
+  ],
+  "537376803": [
+    {
+      "version": "3.2.32.51728",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2654?single"
+    },
+    {
+      "version": "3.2.32.51728",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2652?single"
+    },
+    {
+      "version": "3.2.32.51728",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2656?single"
+    }
+  ],
+  "537376805": [
+    {
+      "version": "3.2.32.51728",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-07-25",
+      "source_url": "https://t.me/linqiqi_backup/2658"
+    }
+  ],
+  "537376613": [
+    {
+      "version": "9.9.33.51552",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-07-21",
+      "source_url": "https://t.me/linqiqi_backup/2637"
+    }
+  ],
+  "537376614": [
+    {
+      "version": "9.9.33.51552",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-07-21",
+      "source_url": "https://t.me/linqiqi_backup/2636"
+    }
+  ],
+  "537376626": [
+    {
+      "version": "9.9.33.51552",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-07-21",
+      "source_url": "https://t.me/linqiqi_backup/2638"
+    }
+  ],
+  "537376638": [
+    {
+      "version": "6.9.99.51552",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-07-21",
+      "source_url": "https://t.me/linqiqi_backup/2639"
+    }
+  ],
+  "537376307": [
+    {
+      "version": "9.9.32.50969",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2596"
+    }
+  ],
+  "537376308": [
+    {
+      "version": "9.9.32.50969",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2595"
+    }
+  ],
+  "537376320": [
+    {
+      "version": "9.9.32.50969",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2597"
+    }
+  ],
+  "537376332": [
+    {
+      "version": "6.9.98.50969",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2598"
+    }
+  ],
+  "537376344": [
+    {
+      "version": "3.2.30.50969",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2601?single"
+    },
+    {
+      "version": "3.2.30.50969",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2599?single"
+    },
+    {
+      "version": "3.2.30.50969",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2603?single"
+    }
+  ],
+  "537376346": [
+    {
+      "version": "3.2.30.50969",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2605"
+    }
+  ],
+  "537376347": [
+    {
+      "version": "3.2.30.50969",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-07-04",
+      "source_url": "https://t.me/linqiqi_backup/2606"
+    }
+  ],
+  "537358738": [
+    {
+      "version": "9.9.32.50828",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2581"
+    }
+  ],
+  "537358739": [
+    {
+      "version": "9.9.32.50828",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2580"
+    }
+  ],
+  "537358751": [
+    {
+      "version": "9.9.32.50828",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2582"
+    }
+  ],
+  "537358763": [
+    {
+      "version": "6.9.97.50828",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2583"
+    }
+  ],
+  "537358775": [
+    {
+      "version": "3.2.30.50828",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2587?single"
+    },
+    {
+      "version": "3.2.30.50828",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2585?single"
+    },
+    {
+      "version": "3.2.30.50828",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2589?single"
+    }
+  ],
+  "537358777": [
+    {
+      "version": "3.2.30.50828",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2591"
+    }
+  ],
+  "537358778": [
+    {
+      "version": "3.2.30.50828",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2592"
+    }
+  ],
+  "537358585": [
+    {
+      "version": "9.9.32.50776",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-06-29",
+      "source_url": "https://t.me/linqiqi_backup/2574"
+    }
+  ],
+  "537358586": [
+    {
+      "version": "9.9.32.50776",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-06-29",
+      "source_url": "https://t.me/linqiqi_backup/2573"
+    }
+  ],
+  "537358598": [
+    {
+      "version": "9.9.32.50776",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-06-29",
+      "source_url": "https://t.me/linqiqi_backup/2575"
+    }
+  ],
+  "537358610": [
+    {
+      "version": "6.9.97.50776",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-06-29",
+      "source_url": "https://t.me/linqiqi_backup/2576"
+    }
+  ],
+  "537355829": [
+    {
+      "version": "9.9.31.49738",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2505"
+    }
+  ],
+  "537355830": [
+    {
+      "version": "9.9.31.49738",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2504"
+    }
+  ],
+  "537355842": [
+    {
+      "version": "9.9.31.49738",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2506"
+    }
+  ],
+  "537355854": [
+    {
+      "version": "6.9.96.49738",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2507"
+    }
+  ],
+  "537355866": [
+    {
+      "version": "3.2.29.49738",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2510?single"
+    },
+    {
+      "version": "3.2.29.49738",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2508?single"
+    },
+    {
+      "version": "3.2.29.49738",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2513?single"
+    }
+  ],
+  "537355868": [
+    {
+      "version": "3.2.29.49738",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2515"
+    }
+  ],
+  "537355869": [
+    {
+      "version": "3.2.29.49738",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-05-26",
+      "source_url": "https://t.me/linqiqi_backup/2516"
+    }
+  ],
+  "537355778": [
+    {
+      "version": "9.9.31.49599",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-05-22",
+      "source_url": "https://t.me/linqiqi_backup/2500"
+    }
+  ],
+  "537355779": [
+    {
+      "version": "9.9.31.49599",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-05-22",
+      "source_url": "https://t.me/linqiqi_backup/2499"
+    }
+  ],
+  "537355791": [
+    {
+      "version": "9.9.31.49599",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-05-22",
+      "source_url": "https://t.me/linqiqi_backup/2501"
+    }
+  ],
+  "537355803": [
+    {
+      "version": "6.9.96.49599",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-05-22",
+      "source_url": "https://t.me/linqiqi_backup/2502"
+    }
+  ],
+  "537352524": [
+    {
+      "version": "9.9.30.48762",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-05-08",
+      "source_url": "https://t.me/linqiqi_backup/2477"
+    }
+  ],
+  "537352525": [
+    {
+      "version": "9.9.30.48762",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-05-08",
+      "source_url": "https://t.me/linqiqi_backup/2476"
+    }
+  ],
+  "537352537": [
+    {
+      "version": "9.9.30.48762",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-05-08",
+      "source_url": "https://t.me/linqiqi_backup/2478"
+    }
+  ],
+  "537352473": [
+    {
+      "version": "9.9.30.48517",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2453"
+    }
+  ],
+  "537352474": [
+    {
+      "version": "9.9.30.48517",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2452"
+    }
+  ],
+  "537352486": [
+    {
+      "version": "9.9.30.48517",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2454"
+    }
+  ],
+  "537352498": [
+    {
+      "version": "6.9.95.48517",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2455"
+    }
+  ],
+  "537352510": [
+    {
+      "version": "3.2.28.48517",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2458?single"
+    },
+    {
+      "version": "3.2.28.48517",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2456?single"
+    },
+    {
+      "version": "3.2.28.48517",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2460?single"
+    }
+  ],
+  "537352512": [
+    {
+      "version": "3.2.28.48517",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2462"
+    }
+  ],
+  "537352513": [
+    {
+      "version": "3.2.28.48517",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-04-24",
+      "source_url": "https://t.me/linqiqi_backup/2463"
+    }
+  ],
+  "537352320": [
+    {
+      "version": "9.9.30.48303",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-04-21",
+      "source_url": "https://t.me/linqiqi_backup/2442"
+    }
+  ],
+  "537352321": [
+    {
+      "version": "9.9.30.48303",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-04-21",
+      "source_url": "https://t.me/linqiqi_backup/2441"
+    }
+  ],
+  "537352333": [
+    {
+      "version": "9.9.30.48303",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-04-21",
+      "source_url": "https://t.me/linqiqi_backup/2443"
+    }
+  ],
+  "537352345": [
+    {
+      "version": "6.9.95.48303",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-04-21",
+      "source_url": "https://t.me/linqiqi_backup/2444"
+    }
+  ],
+  "537346871": [
+    {
+      "version": "9.9.29.47354",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2403"
+    }
+  ],
+  "537346872": [
+    {
+      "version": "9.9.29.47354",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2402"
+    }
+  ],
+  "537346884": [
+    {
+      "version": "9.9.29.47354",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2404"
+    }
+  ],
+  "537346896": [
+    {
+      "version": "6.9.93.47354",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2405"
+    }
+  ],
+  "537346908": [
+    {
+      "version": "3.2.27.47354",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2408?single"
+    },
+    {
+      "version": "3.2.27.47354",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2406?single"
+    },
+    {
+      "version": "3.2.27.47354",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2410?single"
+    }
+  ],
+  "537346910": [
+    {
+      "version": "3.2.27.47354",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2412"
+    }
+  ],
+  "537346911": [
+    {
+      "version": "3.2.27.47354",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-03-30",
+      "source_url": "https://t.me/linqiqi_backup/2413"
+    }
+  ],
+  "537346820": [
+    {
+      "version": "9.9.29.47256",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2384"
+    }
+  ],
+  "537346821": [
+    {
+      "version": "9.9.29.47256",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2383"
+    }
+  ],
+  "537346833": [
+    {
+      "version": "9.9.29.47256",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2385"
+    }
+  ],
+  "537346845": [
+    {
+      "version": "6.9.92.47256",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2386"
+    }
+  ],
+  "537346857": [
+    {
+      "version": "3.2.27.47256",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2389?single"
+    },
+    {
+      "version": "3.2.27.47256",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2387?single"
+    },
+    {
+      "version": "3.2.27.47256",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2391?single"
+    }
+  ],
+  "537346859": [
+    {
+      "version": "3.2.27.47256",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2393"
+    }
+  ],
+  "537346860": [
+    {
+      "version": "3.2.27.47256",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2394"
+    }
+  ],
+  "537346667": [
+    {
+      "version": "9.9.29.47149",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2380"
+    }
+  ],
+  "537346668": [
+    {
+      "version": "9.9.29.47149",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2379"
+    }
+  ],
+  "537346680": [
+    {
+      "version": "9.9.29.47149",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2381"
+    }
+  ],
+  "537346692": [
+    {
+      "version": "6.9.92.47149",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-03-26",
+      "source_url": "https://t.me/linqiqi_backup/2382"
+    }
+  ],
+  "537345956": [
+    {
+      "version": "9.9.28.46928",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2361"
+    }
+  ],
+  "537345957": [
+    {
+      "version": "9.9.28.46928",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2360"
+    }
+  ],
+  "537345969": [
+    {
+      "version": "9.9.28.46928",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2362"
+    }
+  ],
+  "537345981": [
+    {
+      "version": "6.9.91.46928",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2363"
+    }
+  ],
+  "537345994": [
+    {
+      "version": "3.2.26.46928",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2364"
+    }
+  ],
+  "537345993": [
+    {
+      "version": "3.2.26.46928",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2366"
+    },
+    {
+      "version": "3.2.26.46928",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2368"
+    }
+  ],
+  "537345995": [
+    {
+      "version": "3.2.26.46928",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2370"
+    }
+  ],
+  "537345996": [
+    {
+      "version": "3.2.26.46928",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-03-19",
+      "source_url": "https://t.me/linqiqi_backup/2371"
+    }
+  ],
+  "537345854": [
+    {
+      "version": "9.9.28.46494",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2320"
+    }
+  ],
+  "537345855": [
+    {
+      "version": "9.9.28.46494",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2319"
+    }
+  ],
+  "537345867": [
+    {
+      "version": "9.9.28.46494",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2321"
+    }
+  ],
+  "537345879": [
+    {
+      "version": "6.9.90.46494",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2322"
+    }
+  ],
+  "537345891": [
+    {
+      "version": "3.2.26.46494",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2325?single"
+    },
+    {
+      "version": "3.2.26.46494",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2323?single"
+    },
+    {
+      "version": "3.2.26.46494",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2327?single"
+    }
+  ],
+  "537345893": [
+    {
+      "version": "3.2.26.46494",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2329"
+    }
+  ],
+  "537345894": [
+    {
+      "version": "3.2.26.46494",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-03-07",
+      "source_url": "https://t.me/linqiqi_backup/2330"
+    }
+  ],
+  "537345701": [
+    {
+      "version": "9.9.28.46345",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-03-03",
+      "source_url": "https://t.me/linqiqi_backup/2308"
+    }
+  ],
+  "537345702": [
+    {
+      "version": "9.9.28.46345",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-03-03",
+      "source_url": "https://t.me/linqiqi_backup/2307"
+    }
+  ],
+  "537345714": [
+    {
+      "version": "9.9.28.46345",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-03-03",
+      "source_url": "https://t.me/linqiqi_backup/2309"
+    }
+  ],
+  "537345726": [
+    {
+      "version": "6.9.90.46345",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-03-03",
+      "source_url": "https://t.me/linqiqi_backup/2310"
+    }
+  ],
+  "537340212": [
+    {
+      "version": "9.9.27.45758",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2269"
+    }
+  ],
+  "537340213": [
+    {
+      "version": "9.9.27.45758",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2268"
+    }
+  ],
+  "537340225": [
+    {
+      "version": "9.9.27.45758",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2270"
+    }
+  ],
+  "537340237": [
+    {
+      "version": "6.9.89.45758",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2271"
+    }
+  ],
+  "537340249": [
+    {
+      "version": "3.2.25.45758",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2274?single"
+    },
+    {
+      "version": "3.2.25.45758",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2272?single"
+    },
+    {
+      "version": "3.2.25.45758",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2276?single"
+    }
+  ],
+  "537340251": [
+    {
+      "version": "3.2.25.45758",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2278"
+    }
+  ],
+  "537340252": [
+    {
+      "version": "3.2.25.45758",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-02-03",
+      "source_url": "https://t.me/linqiqi_backup/2279"
+    }
+  ],
+  "537340059": [
+    {
+      "version": "9.9.27.45627",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-01-30",
+      "source_url": "https://t.me/linqiqi_backup/2261"
+    }
+  ],
+  "537340060": [
+    {
+      "version": "9.9.27.45627",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-01-30",
+      "source_url": "https://t.me/linqiqi_backup/2260"
+    }
+  ],
+  "537340072": [
+    {
+      "version": "9.9.27.45627",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-01-30",
+      "source_url": "https://t.me/linqiqi_backup/2262"
+    }
+  ],
+  "537340084": [
+    {
+      "version": "6.9.89.45627",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-01-30",
+      "source_url": "https://t.me/linqiqi_backup/2263"
+    }
+  ],
+  "537337568": [
+    {
+      "version": "9.9.26.44725",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-01-14",
+      "source_url": "https://t.me/linqiqi_backup/2241"
+    }
+  ],
+  "537337569": [
+    {
+      "version": "9.9.26.44725",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-01-14",
+      "source_url": "https://t.me/linqiqi_backup/2240"
+    }
+  ],
+  "537337581": [
+    {
+      "version": "9.9.26.44725",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-01-14",
+      "source_url": "https://t.me/linqiqi_backup/2242"
+    }
+  ],
+  "537337593": [
+    {
+      "version": "6.9.88.44725",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-01-14",
+      "source_url": "https://t.me/linqiqi_backup/2243"
+    }
+  ],
+  "537337415": [
+    {
+      "version": "9.9.26.44498",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-01-09",
+      "source_url": "https://t.me/linqiqi_backup/2232"
+    },
+    {
+      "version": "9.9.26.44563",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-01-12",
+      "source_url": "https://t.me/linqiqi_backup/2237"
+    }
+  ],
+  "537337416": [
+    {
+      "version": "9.9.26.44498",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-01-09",
+      "source_url": "https://t.me/linqiqi_backup/2231"
+    },
+    {
+      "version": "9.9.26.44563",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-01-12",
+      "source_url": "https://t.me/linqiqi_backup/2236"
+    }
+  ],
+  "537337428": [
+    {
+      "version": "9.9.26.44498",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-01-09",
+      "source_url": "https://t.me/linqiqi_backup/2233"
+    },
+    {
+      "version": "9.9.26.44563",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-01-12",
+      "source_url": "https://t.me/linqiqi_backup/2238"
+    }
+  ],
+  "537337440": [
+    {
+      "version": "6.9.88.44498",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-01-09",
+      "source_url": "https://t.me/linqiqi_backup/2234"
+    }
+  ],
+  "537336602": [
+    {
+      "version": "9.9.26.44343",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2220"
+    }
+  ],
+  "537336603": [
+    {
+      "version": "9.9.26.44343",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2219"
+    }
+  ],
+  "537336615": [
+    {
+      "version": "9.9.26.44343",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2221"
+    }
+  ],
+  "537336627": [
+    {
+      "version": "6.9.87.44343",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2222"
+    }
+  ],
+  "537336639": [
+    {
+      "version": "3.2.23.44343",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2225"
+    },
+    {
+      "version": "3.2.23.44343",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2223"
+    }
+  ],
+  "537336640": [
+    {
+      "version": "3.2.23.44343",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2227"
+    }
+  ],
+  "537336641": [
+    {
+      "version": "3.2.23.44343",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2229"
+    }
+  ],
+  "537336642": [
+    {
+      "version": "3.2.23.44343",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2026-01-06",
+      "source_url": "https://t.me/linqiqi_backup/2230"
+    }
+  ],
+  "537336449": [
+    {
+      "version": "9.9.26.44175",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-12-30",
+      "source_url": "https://t.me/linqiqi_backup/2212"
+    }
+  ],
+  "537336450": [
+    {
+      "version": "9.9.26.44175",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-12-30",
+      "source_url": "https://t.me/linqiqi_backup/2211"
+    }
+  ],
+  "537336462": [
+    {
+      "version": "9.9.26.44175",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-12-30",
+      "source_url": "https://t.me/linqiqi_backup/2213"
+    }
+  ],
+  "537336474": [
+    {
+      "version": "6.9.87.44175",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-12-30",
+      "source_url": "https://t.me/linqiqi_backup/2214"
+    }
+  ],
+  "537328622": [
+    {
+      "version": "9.9.25.42941",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2167"
+    }
+  ],
+  "537328623": [
+    {
+      "version": "9.9.25.42941",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2166"
+    }
+  ],
+  "537328635": [
+    {
+      "version": "9.9.25.42941",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2168"
+    }
+  ],
+  "537328647": [
+    {
+      "version": "6.9.86.42941",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2169"
+    }
+  ],
+  "537328659": [
+    {
+      "version": "3.2.22.42941",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2174"
+    },
+    {
+      "version": "3.2.22.42941",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2170"
+    },
+    {
+      "version": "3.2.22.42941",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2172"
+    }
+  ],
+  "537328661": [
+    {
+      "version": "3.2.22.42941",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2176"
+    }
+  ],
+  "537328662": [
+    {
+      "version": "3.2.22.42941",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-12-02",
+      "source_url": "https://t.me/linqiqi_backup/2177"
+    }
+  ],
+  "537328520": [
+    {
+      "version": "9.9.25.42905",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-11-29",
+      "source_url": "https://t.me/linqiqi_backup/2163"
+    }
+  ],
+  "537328521": [
+    {
+      "version": "9.9.25.42905",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-11-29",
+      "source_url": "https://t.me/linqiqi_backup/2162"
+    }
+  ],
+  "537328533": [
+    {
+      "version": "9.9.25.42905",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-11-29",
+      "source_url": "https://t.me/linqiqi_backup/2164"
+    }
+  ],
+  "537328545": [
+    {
+      "version": "6.9.86.42905",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-11-29",
+      "source_url": "https://t.me/linqiqi_backup/2165"
+    }
+  ],
+  "537328469": [
+    {
+      "version": "9.9.25.42744",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-11-26",
+      "source_url": "https://t.me/linqiqi_backup/2157"
+    }
+  ],
+  "537328470": [
+    {
+      "version": "9.9.25.42744",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-11-26",
+      "source_url": "https://t.me/linqiqi_backup/2156"
+    }
+  ],
+  "537328482": [
+    {
+      "version": "9.9.25.42744",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-11-26",
+      "source_url": "https://t.me/linqiqi_backup/2158"
+    }
+  ],
+  "537328494": [
+    {
+      "version": "6.9.86.42744",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-11-26",
+      "source_url": "https://t.me/linqiqi_backup/2159"
+    }
+  ],
+  "537320211": [
+    {
+      "version": "9.9.23.42086",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2129"
+    }
+  ],
+  "537320212": [
+    {
+      "version": "9.9.23.42086",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2128"
+    }
+  ],
+  "537320224": [
+    {
+      "version": "9.9.23.42086",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2130"
+    }
+  ],
+  "537320236": [
+    {
+      "version": "6.9.85.42086",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2131"
+    }
+  ],
+  "537320248": [
+    {
+      "version": "3.2.21.42086",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2136?single"
+    },
+    {
+      "version": "3.2.21.42086",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2132?single"
+    },
+    {
+      "version": "3.2.21.42086",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2134?single"
+    }
+  ],
+  "537320250": [
+    {
+      "version": "3.2.21.42086",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2138"
+    }
+  ],
+  "537320251": [
+    {
+      "version": "3.2.21.42086",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-11-12",
+      "source_url": "https://t.me/linqiqi_backup/2139"
+    }
+  ],
+  "537320160": [
+    {
+      "version": "9.9.23.41857",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2106"
+    }
+  ],
+  "537320161": [
+    {
+      "version": "9.9.23.41857",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2105"
+    }
+  ],
+  "537320173": [
+    {
+      "version": "9.9.23.41857",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2107"
+    }
+  ],
+  "537320185": [
+    {
+      "version": "6.9.83.41857",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2108"
+    }
+  ],
+  "537320197": [
+    {
+      "version": "3.2.21.41857",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2113"
+    },
+    {
+      "version": "3.2.21.41857",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2109"
+    },
+    {
+      "version": "3.2.21.41857",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2111"
+    }
+  ],
+  "537320199": [
+    {
+      "version": "3.2.21.41857",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2115"
+    }
+  ],
+  "537320200": [
+    {
+      "version": "3.2.21.41857",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-11-04",
+      "source_url": "https://t.me/linqiqi_backup/2116"
+    }
+  ],
+  "537320109": [
+    {
+      "version": "9.9.23.41679",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2086"
+    },
+    {
+      "version": "9.9.23.41785",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-11-01",
+      "source_url": "https://t.me/linqiqi_backup/2102"
+    }
+  ],
+  "537320110": [
+    {
+      "version": "9.9.23.41679",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2085"
+    },
+    {
+      "version": "9.9.23.41785",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-11-01",
+      "source_url": "https://t.me/linqiqi_backup/2101"
+    }
+  ],
+  "537320122": [
+    {
+      "version": "9.9.23.41679",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2087"
+    },
+    {
+      "version": "9.9.23.41785",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-11-01",
+      "source_url": "https://t.me/linqiqi_backup/2103"
+    }
+  ],
+  "537320134": [
+    {
+      "version": "6.9.83.41679",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2088"
+    },
+    {
+      "version": "6.9.83.41785",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-11-01",
+      "source_url": "https://t.me/linqiqi_backup/2104"
+    }
+  ],
+  "537319854": [
+    {
+      "version": "9.9.22.40990",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2066"
+    }
+  ],
+  "537319855": [
+    {
+      "version": "9.9.22.40990",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2065"
+    }
+  ],
+  "537319867": [
+    {
+      "version": "9.9.22.40990",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2067"
+    }
+  ],
+  "537319879": [
+    {
+      "version": "6.9.82.40990",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2068"
+    }
+  ],
+  "537319891": [
+    {
+      "version": "3.2.20.40990",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2073?single"
+    },
+    {
+      "version": "3.2.20.40990",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2069?single"
+    },
+    {
+      "version": "3.2.20.40990",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2071?single"
+    }
+  ],
+  "537319893": [
+    {
+      "version": "3.2.20.40990",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2075"
+    }
+  ],
+  "537319894": [
+    {
+      "version": "3.2.20.40990",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-10-20",
+      "source_url": "https://t.me/linqiqi_backup/2076"
+    }
+  ],
+  "537319803": [
+    {
+      "version": "9.9.22.40768",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2049"
+    },
+    {
+      "version": "9.9.22.40824",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-10-15",
+      "source_url": "https://t.me/linqiqi_backup/2061"
+    }
+  ],
+  "537319804": [
+    {
+      "version": "9.9.22.40768",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2048"
+    },
+    {
+      "version": "9.9.22.40824",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-10-15",
+      "source_url": "https://t.me/linqiqi_backup/2060"
+    }
+  ],
+  "537319816": [
+    {
+      "version": "9.9.22.40768",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2050"
+    },
+    {
+      "version": "9.9.22.40824",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-10-15",
+      "source_url": "https://t.me/linqiqi_backup/2062"
+    }
+  ],
+  "537319828": [
+    {
+      "version": "6.9.82.40768",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2051"
+    },
+    {
+      "version": "6.9.82.40824",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-10-15",
+      "source_url": "https://t.me/linqiqi_backup/2063"
+    }
+  ],
+  "537319840": [
+    {
+      "version": "3.2.20.40768",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2056?single"
+    },
+    {
+      "version": "3.2.20.40768",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2052?single"
+    },
+    {
+      "version": "3.2.20.40768",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2054?single"
+    }
+  ],
+  "537319842": [
+    {
+      "version": "3.2.20.40768",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2058"
+    }
+  ],
+  "537319843": [
+    {
+      "version": "3.2.20.40768",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-10-14",
+      "source_url": "https://t.me/linqiqi_backup/2059"
+    }
+  ],
+  "537314211": [
+    {
+      "version": "9.9.22.40362",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-09-28",
+      "source_url": "https://t.me/linqiqi_backup/2020"
+    }
+  ],
+  "537314212": [
+    {
+      "version": "9.9.22.40362",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-09-28",
+      "source_url": "https://t.me/linqiqi_backup/2019"
+    }
+  ],
+  "537314224": [
+    {
+      "version": "9.9.22.40362",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-09-28",
+      "source_url": "https://t.me/linqiqi_backup/2021"
+    }
+  ],
+  "537314236": [
+    {
+      "version": "6.9.82.40362",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-09-28",
+      "source_url": "https://t.me/linqiqi_backup/2022"
+    }
+  ],
+  "537314160": [
+    {
+      "version": "9.9.22.40111",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2008"
+    }
+  ],
+  "537314161": [
+    {
+      "version": "9.9.22.40111",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2007"
+    }
+  ],
+  "537314173": [
+    {
+      "version": "9.9.22.40111",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2009"
+    }
+  ],
+  "537314185": [
+    {
+      "version": "6.9.81.40111",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-09-23",
+      "source_url": "https://t.me/linqiqi_backup/2010"
+    }
+  ],
+  "537313905": [
+    {
+      "version": "9.9.21.39038",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1985"
+    }
+  ],
+  "537313906": [
+    {
+      "version": "9.9.21.39038",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1984"
+    }
+  ],
+  "537313918": [
+    {
+      "version": "9.9.21.39038",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1986"
+    }
+  ],
+  "537313930": [
+    {
+      "version": "6.9.80.39038",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1987"
+    }
+  ],
+  "537313942": [
+    {
+      "version": "3.2.19.39038",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1992?single"
+    },
+    {
+      "version": "3.2.19.39038",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1988?single"
+    },
+    {
+      "version": "3.2.19.39038",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1990?single"
+    }
+  ],
+  "537313944": [
+    {
+      "version": "3.2.19.39038",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1994"
+    }
+  ],
+  "537313945": [
+    {
+      "version": "3.2.19.39038",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-09-02",
+      "source_url": "https://t.me/linqiqi_backup/1995"
+    }
+  ],
+  "537313854": [
+    {
+      "version": "9.9.21.38960",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1970"
+    }
+  ],
+  "537313855": [
+    {
+      "version": "9.9.21.38960",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1969"
+    }
+  ],
+  "537313867": [
+    {
+      "version": "9.9.21.38960",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1971"
+    }
+  ],
+  "537395438": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-24",
+      "source_url": "https://t.me/linqiqi_backup/2903"
+    }
+  ],
+  "537395477": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-24",
+      "source_url": "https://t.me/linqiqi_backup/2903"
+    }
+  ],
+  "537393100": [
+    {
+      "version": "9.3.65.41500",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-15",
+      "source_url": "https://t.me/linqiqi_backup/2845"
+    }
+  ],
+  "537393139": [
+    {
+      "version": "9.3.65.41500",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-15",
+      "source_url": "https://t.me/linqiqi_backup/2845"
+    }
+  ],
+  "537389183": [
+    {
+      "version": "9.3.60.41075",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-08",
+      "source_url": "https://t.me/linqiqi_backup/2817"
+    }
+  ],
+  "537389222": [
+    {
+      "version": "9.3.60.41075",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-08",
+      "source_url": "https://t.me/linqiqi_backup/2817"
+    }
+  ],
+  "537386844": [
+    {
+      "version": "9.3.55.40650",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-08-27",
+      "source_url": "https://t.me/linqiqi_backup/2769"
+    }
+  ],
+  "537386883": [
+    {
+      "version": "9.3.55.40650",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-08-27",
+      "source_url": "https://t.me/linqiqi_backup/2769"
+    }
+  ],
+  "537384495": [
+    {
+      "version": "9.3.50.40225",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-08-18",
+      "source_url": "https://t.me/linqiqi_backup/2729"
+    }
+  ],
+  "537384534": [
+    {
+      "version": "9.3.50.40225",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-08-18",
+      "source_url": "https://t.me/linqiqi_backup/2729"
+    }
+  ],
+  "537380883": [
+    {
+      "version": "9.3.35.39800",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-08-07",
+      "source_url": "https://t.me/linqiqi_backup/2694"
+    }
+  ],
+  "537380922": [
+    {
+      "version": "9.3.35.39800",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-08-07",
+      "source_url": "https://t.me/linqiqi_backup/2694"
+    }
+  ],
+  "537378239": [
+    {
+      "version": "9.3.30.39375",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-07-28",
+      "source_url": "https://t.me/linqiqi_backup/2661"
+    }
+  ],
+  "537378278": [
+    {
+      "version": "9.3.30.39375",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-07-28",
+      "source_url": "https://t.me/linqiqi_backup/2661"
+    }
+  ],
+  "537375289": [
+    {
+      "version": "9.3.25.38950",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-07-17",
+      "source_url": "https://t.me/linqiqi_backup/2634"
+    }
+  ],
+  "537375328": [
+    {
+      "version": "9.3.25.38950",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-07-17",
+      "source_url": "https://t.me/linqiqi_backup/2634"
+    }
+  ],
+  "537372137": [
+    {
+      "version": "9.3.20.38525",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-07-08",
+      "source_url": "https://t.me/linqiqi_backup/2609"
+    }
+  ],
+  "537372176": [
+    {
+      "version": "9.3.20.38525",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-07-08",
+      "source_url": "https://t.me/linqiqi_backup/2609"
+    }
+  ],
+  "537369799": [
+    {
+      "version": "9.3.15.38100",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2579"
+    }
+  ],
+  "537369838": [
+    {
+      "version": "9.3.15.38100",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-06-30",
+      "source_url": "https://t.me/linqiqi_backup/2579"
+    }
+  ],
+  "537367461": [
+    {
+      "version": "9.3.10.37675",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-06-23",
+      "source_url": "https://t.me/linqiqi_backup/2567"
+    }
+  ],
+  "537367500": [
+    {
+      "version": "9.3.10.37675",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-06-23",
+      "source_url": "https://t.me/linqiqi_backup/2567"
+    }
+  ],
+  "537365123": [
+    {
+      "version": "9.3.5.37250",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-06-17",
+      "source_url": "https://t.me/linqiqi_backup/2565"
+    }
+  ],
+  "537365162": [
+    {
+      "version": "9.3.5.37250",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-06-17",
+      "source_url": "https://t.me/linqiqi_backup/2565"
+    }
+  ],
+  "537360567": [
+    {
+      "version": "9.3.1.36845",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-06-11",
+      "source_url": "https://t.me/linqiqi_backup/2554"
+    }
+  ],
+  "537360606": [
+    {
+      "version": "9.3.1.36845",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-06-11",
+      "source_url": "https://t.me/linqiqi_backup/2554"
+    }
+  ],
+  "537360255": [
+    {
+      "version": "9.3.0.36825",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-06-10",
+      "source_url": "https://t.me/linqiqi_backup/2552"
+    }
+  ],
+  "537360294": [
+    {
+      "version": "9.3.0.36825",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-06-10",
+      "source_url": "https://t.me/linqiqi_backup/2552"
+    }
+  ],
+  "537357471": [
+    {
+      "version": "9.2.95.36400",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-05-27",
+      "source_url": "https://t.me/linqiqi_backup/2517"
+    }
+  ],
+  "537357510": [
+    {
+      "version": "9.2.95.36400",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-05-27",
+      "source_url": "https://t.me/linqiqi_backup/2517"
+    }
+  ],
+  "537353946": [
+    {
+      "version": "9.2.90.35975",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-05-15",
+      "source_url": "https://t.me/linqiqi_backup/2488"
+    }
+  ],
+  "537353985": [
+    {
+      "version": "9.2.90.35975",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-05-15",
+      "source_url": "https://t.me/linqiqi_backup/2488"
+    }
+  ],
+  "537351302": [
+    {
+      "version": "9.2.85.35550",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-04-23",
+      "source_url": "https://t.me/linqiqi_backup/2450"
+    }
+  ],
+  "537351341": [
+    {
+      "version": "9.2.85.35550",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-04-23",
+      "source_url": "https://t.me/linqiqi_backup/2450"
+    }
+  ],
+  "537348293": [
+    {
+      "version": "9.2.80.35125",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-04-09",
+      "source_url": "https://t.me/linqiqi_backup/2420"
+    }
+  ],
+  "537348332": [
+    {
+      "version": "9.2.80.35125",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-04-09",
+      "source_url": "https://t.me/linqiqi_backup/2420"
+    }
+  ],
+  "537344683": [
+    {
+      "version": "9.2.75.34700",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-03-25",
+      "source_url": "https://t.me/linqiqi_backup/2376"
+    }
+  ],
+  "537344722": [
+    {
+      "version": "9.2.75.34700",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-03-25",
+      "source_url": "https://t.me/linqiqi_backup/2376"
+    }
+  ],
+  "537341685": [
+    {
+      "version": "9.2.70.34275",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-03-06",
+      "source_url": "https://t.me/linqiqi_backup/2318"
+    }
+  ],
+  "537341724": [
+    {
+      "version": "9.2.70.34275",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-03-06",
+      "source_url": "https://t.me/linqiqi_backup/2318"
+    }
+  ],
+  "537339353": [
+    {
+      "version": "9.2.66.33870",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-02-06",
+      "source_url": "https://t.me/linqiqi_backup/2289"
+    }
+  ],
+  "537339392": [
+    {
+      "version": "9.2.66.33870",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-02-06",
+      "source_url": "https://t.me/linqiqi_backup/2289"
+    }
+  ],
+  "537339041": [
+    {
+      "version": "9.2.65.33850",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-01-30",
+      "source_url": "https://t.me/linqiqi_backup/2258"
+    }
+  ],
+  "537339080": [
+    {
+      "version": "9.2.65.33850",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-01-30",
+      "source_url": "https://t.me/linqiqi_backup/2258"
+    }
+  ],
+  "537335431": [
+    {
+      "version": "9.2.60.33425",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-01-14",
+      "source_url": "https://t.me/linqiqi_backup/2239"
+    }
+  ],
+  "537335470": [
+    {
+      "version": "9.2.60.33425",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-01-14",
+      "source_url": "https://t.me/linqiqi_backup/2239"
+    }
+  ],
+  "537333093": [
+    {
+      "version": "9.2.55.33000",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-12-24",
+      "source_url": "https://t.me/linqiqi_backup/2207"
+    }
+  ],
+  "537333132": [
+    {
+      "version": "9.2.55.33000",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-12-24",
+      "source_url": "https://t.me/linqiqi_backup/2207"
+    }
+  ],
+  "537330095": [
+    {
+      "version": "9.2.50.32575",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-12-10",
+      "source_url": "https://t.me/linqiqi_backup/2193"
+    }
+  ],
+  "537330134": [
+    {
+      "version": "9.2.50.32575",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-12-10",
+      "source_url": "https://t.me/linqiqi_backup/2193"
+    }
+  ],
+  "537327451": [
+    {
+      "version": "9.2.35.32150",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-11-25",
+      "source_url": "https://t.me/linqiqi_backup/2155"
+    }
+  ],
+  "537327490": [
+    {
+      "version": "9.2.35.32150",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-11-25",
+      "source_url": "https://t.me/linqiqi_backup/2155"
+    }
+  ],
+  "537324431": [
+    {
+      "version": "9.2.30.31725",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-11-11",
+      "source_url": "https://t.me/linqiqi_backup/2125"
+    }
+  ],
+  "537324470": [
+    {
+      "version": "9.2.30.31725",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-11-11",
+      "source_url": "https://t.me/linqiqi_backup/2125"
+    }
+  ],
+  "537323303": [
+    {
+      "version": "9.2.27.31300",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-10-22",
+      "source_url": "https://t.me/linqiqi_backup/2080"
+    }
+  ],
+  "537323342": [
+    {
+      "version": "9.2.27.31300",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-10-22",
+      "source_url": "https://t.me/linqiqi_backup/2080"
+    }
+  ],
+  "537318125": [
+    {
+      "version": "9.2.25.30450",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-10-17",
+      "source_url": "https://t.me/linqiqi_backup/2064"
+    }
+  ],
+  "537318164": [
+    {
+      "version": "9.2.25.30450",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-10-17",
+      "source_url": "https://t.me/linqiqi_backup/2064"
+    }
+  ],
+  "537313891": [
+    {
+      "version": "3.2.19.38960",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1973"
+    },
+    {
+      "version": "3.2.19.38960",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1975"
+    },
+    {
+      "version": "3.2.19.38960",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1977"
+    }
+  ],
+  "537313893": [
+    {
+      "version": "3.2.19.38960",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1979"
+    }
+  ],
+  "537313894": [
+    {
+      "version": "3.2.19.38960",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-08-28",
+      "source_url": "https://t.me/linqiqi_backup/1980"
+    }
+  ],
+  "537307654": [
+    {
+      "version": "9.9.21.38711",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-08-21",
+      "source_url": "https://t.me/linqiqi_backup/1963"
+    },
+    {
+      "version": "9.9.21.38626",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1948"
+    }
+  ],
+  "537307655": [
+    {
+      "version": "9.9.21.38711",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-08-21",
+      "source_url": "https://t.me/linqiqi_backup/1962"
+    },
+    {
+      "version": "9.9.21.38626",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1947"
+    }
+  ],
+  "537307667": [
+    {
+      "version": "9.9.21.38711",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-08-21",
+      "source_url": "https://t.me/linqiqi_backup/1964"
+    },
+    {
+      "version": "9.9.21.38626",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1949"
+    }
+  ],
+  "537307679": [
+    {
+      "version": "6.9.79.38626",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1950"
+    }
+  ],
+  "537307691": [
+    {
+      "version": "3.2.19.38626",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1951"
+    },
+    {
+      "version": "3.2.19.38626",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1953"
+    },
+    {
+      "version": "3.2.19.38626",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1955"
+    }
+  ],
+  "537307693": [
+    {
+      "version": "3.2.19.38626",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1957"
+    }
+  ],
+  "537307694": [
+    {
+      "version": "3.2.19.38626",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-08-18",
+      "source_url": "https://t.me/linqiqi_backup/1958"
+    }
+  ],
+  "537307603": [
+    {
+      "version": "9.9.21.38503",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1932"
+    }
+  ],
+  "537307604": [
+    {
+      "version": "9.9.21.38503",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1931"
+    }
+  ],
+  "537307616": [
+    {
+      "version": "9.9.21.38503",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1933"
+    }
+  ],
+  "537307628": [
+    {
+      "version": "6.9.79.38503",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1934"
+    }
+  ],
+  "537307640": [
+    {
+      "version": "3.2.19.38503",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1935?single"
+    },
+    {
+      "version": "3.2.19.38503",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1937?single"
+    },
+    {
+      "version": "3.2.19.38503",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1939?single"
+    }
+  ],
+  "537307642": [
+    {
+      "version": "3.2.19.38503",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1941"
+    }
+  ],
+  "537307643": [
+    {
+      "version": "3.2.19.38503",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-08-14",
+      "source_url": "https://t.me/linqiqi_backup/1942"
+    }
+  ],
+  "537315786": [
+    {
+      "version": "9.2.20",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-09-24",
+      "source_url": "https://t.me/linqiqi_backup/2011"
+    }
+  ],
+  "537315825": [
+    {
+      "version": "9.2.20",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-09-24",
+      "source_url": "https://t.me/linqiqi_backup/2011"
+    }
+  ],
+  "537312176": [
+    {
+      "version": "9.2.15",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-09-10",
+      "source_url": "https://t.me/linqiqi_backup/2001"
+    }
+  ],
+  "537312215": [
+    {
+      "version": "9.2.15",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-09-10",
+      "source_url": "https://t.me/linqiqi_backup/2001"
+    }
+  ],
+  "537309838": [
+    {
+      "version": "9.2.10",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-08-19",
+      "source_url": "https://t.me/linqiqi_backup/1961"
+    }
+  ],
+  "537309877": [
+    {
+      "version": "9.2.10",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-08-19",
+      "source_url": "https://t.me/linqiqi_backup/1961"
+    }
+  ],
+  "537306534": [
+    {
+      "version": "9.2.5",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-07-29",
+      "source_url": "https://t.me/linqiqi_backup/1916"
+    }
+  ],
+  "537306573": [
+    {
+      "version": "9.2.5",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-07-29",
+      "source_url": "https://t.me/linqiqi_backup/1916"
+    }
+  ],
+  "537304223": [
+    {
+      "version": "9.9.20.37625",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1902"
+    }
+  ],
+  "537304224": [
+    {
+      "version": "9.9.20.37625",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1901"
+    }
+  ],
+  "537304236": [
+    {
+      "version": "9.9.20.37625",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1903"
+    }
+  ],
+  "537304248": [
+    {
+      "version": "6.9.77.37625",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1904"
+    }
+  ],
+  "537304260": [
+    {
+      "version": "3.2.18.37625",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1905"
+    },
+    {
+      "version": "3.2.18.37625",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1907"
+    },
+    {
+      "version": "3.2.18.37625",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1909"
+    }
+  ],
+  "537304262": [
+    {
+      "version": "3.2.18.37625",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1911"
+    }
+  ],
+  "537304263": [
+    {
+      "version": "3.2.18.37625",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1912"
+    }
+  ],
+  "537304172": [
+    {
+      "version": "9.9.20.37503",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1890"
+    },
+    {
+      "version": "9.9.20.37475",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1872"
+    }
+  ],
+  "537304173": [
+    {
+      "version": "9.9.20.37503",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1889"
+    },
+    {
+      "version": "9.9.20.37475",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1871"
+    }
+  ],
+  "537304185": [
+    {
+      "version": "9.9.20.37503",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1891"
+    },
+    {
+      "version": "9.9.20.37475",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1873"
+    }
+  ],
+  "537304197": [
+    {
+      "version": "6.9.75.37503",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1892"
+    },
+    {
+      "version": "6.9.75.37475",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1874"
+    }
+  ],
+  "537304209": [
+    {
+      "version": "3.2.18.37503",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1893"
+    },
+    {
+      "version": "3.2.18.37503",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1895"
+    },
+    {
+      "version": "3.2.18.37503",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1897"
+    },
+    {
+      "version": "3.2.18.37475",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1875"
+    },
+    {
+      "version": "3.2.18.37475",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1877"
+    },
+    {
+      "version": "3.2.18.37475",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1879"
+    }
+  ],
+  "537304211": [
+    {
+      "version": "3.2.18.37503",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1899"
+    },
+    {
+      "version": "3.2.18.37475",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1881"
+    }
+  ],
+  "537304212": [
+    {
+      "version": "3.2.18.37503",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-07-23",
+      "source_url": "https://t.me/linqiqi_backup/1900"
+    },
+    {
+      "version": "3.2.18.37475",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-07-19",
+      "source_url": "https://t.me/linqiqi_backup/1882"
+    }
+  ],
+  "537303052": [
+    {
+      "version": "9.2.0",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-07-11",
+      "source_url": "https://t.me/linqiqi_backup/1869"
+    }
+  ],
+  "537303091": [
+    {
+      "version": "9.2.0",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-07-11",
+      "source_url": "https://t.me/linqiqi_backup/1869"
+    }
+  ],
+  "537304121": [
+    {
+      "version": "9.9.20.37051",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1858"
+    }
+  ],
+  "537304122": [
+    {
+      "version": "9.9.20.37051",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1857"
+    }
+  ],
+  "537304134": [
+    {
+      "version": "9.9.20.37051",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1859"
+    }
+  ],
+  "537304146": [
+    {
+      "version": "6.9.75.37051",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1860"
+    }
+  ],
+  "537304159": [
+    {
+      "version": "3.2.18.37051",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1861"
+    }
+  ],
+  "537304158": [
+    {
+      "version": "3.2.18.37051",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1863"
+    },
+    {
+      "version": "3.2.18.37051",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1865"
+    }
+  ],
+  "537304160": [
+    {
+      "version": "3.2.18.37051",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1867"
+    }
+  ],
+  "537304161": [
+    {
+      "version": "3.2.18.37051",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-07-09",
+      "source_url": "https://t.me/linqiqi_backup/1868"
+    }
+  ],
+  "537304070": [
+    {
+      "version": "9.9.20.37012",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1846"
+    }
+  ],
+  "537304071": [
+    {
+      "version": "9.9.20.37012",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1845"
+    }
+  ],
+  "537304083": [
+    {
+      "version": "9.9.20.37012",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1847"
+    }
+  ],
+  "537304095": [
+    {
+      "version": "6.9.75.37012",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1848"
+    }
+  ],
+  "537304107": [
+    {
+      "version": "3.2.18.37012",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1849?single"
+    },
+    {
+      "version": "3.2.18.37012",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1851?single"
+    },
+    {
+      "version": "3.2.18.37012",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1853?single"
+    }
+  ],
+  "537304109": [
+    {
+      "version": "3.2.18.37012",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1855"
+    }
+  ],
+  "537304110": [
+    {
+      "version": "3.2.18.37012",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-07-05",
+      "source_url": "https://t.me/linqiqi_backup/1856"
+    }
+  ],
+  "537301750": [
+    {
+      "version": "9.1.97",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-07-01",
+      "source_url": "https://t.me/linqiqi_backup/1836"
+    }
+  ],
+  "537301789": [
+    {
+      "version": "9.1.97",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-07-01",
+      "source_url": "https://t.me/linqiqi_backup/1836"
+    }
+  ],
+  "537298472": [
+    {
+      "version": "9.9.20.36580",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1818"
+    },
+    {
+      "version": "9.9.20.36497",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1800"
+    }
+  ],
+  "537298473": [
+    {
+      "version": "9.9.20.36580",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1817"
+    },
+    {
+      "version": "9.9.20.36497",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1799"
+    }
+  ],
+  "537298485": [
+    {
+      "version": "9.9.20.36580",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1819"
+    },
+    {
+      "version": "9.9.20.36497",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1801"
+    }
+  ],
+  "537298497": [
+    {
+      "version": "6.9.75.36580",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1820"
+    },
+    {
+      "version": "6.9.75.36497",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1802"
+    }
+  ],
+  "537298509": [
+    {
+      "version": "3.2.18.36580",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1821?single"
+    },
+    {
+      "version": "3.2.18.36580",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1823?single"
+    },
+    {
+      "version": "3.2.18.36580",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1825?single"
+    },
+    {
+      "version": "3.2.18.36497",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1803?single"
+    },
+    {
+      "version": "3.2.18.36497",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1805?single"
+    },
+    {
+      "version": "3.2.18.36497",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1807?single"
+    }
+  ],
+  "537298511": [
+    {
+      "version": "3.2.18.36580",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1827"
+    },
+    {
+      "version": "3.2.18.36497",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1809"
+    }
+  ],
+  "537298512": [
+    {
+      "version": "3.2.18.36580",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-06-24",
+      "source_url": "https://t.me/linqiqi_backup/1828"
+    },
+    {
+      "version": "3.2.18.36497",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-06-20",
+      "source_url": "https://t.me/linqiqi_backup/1810"
+    }
+  ],
+  "537297272": [
+    {
+      "version": "9.1.95",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-06-17",
+      "source_url": "https://t.me/linqiqi_backup/1792"
+    }
+  ],
+  "537297311": [
+    {
+      "version": "9.1.95",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-06-17",
+      "source_url": "https://t.me/linqiqi_backup/1792"
+    }
+  ],
+  "537297350": [
+    {
+      "version": "9.1.95",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-06-17",
+      "source_url": "https://t.me/linqiqi_backup/1816"
+    }
+  ],
+  "537297389": [
+    {
+      "version": "9.1.95",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-06-17",
+      "source_url": "https://t.me/linqiqi_backup/1816"
+    }
+  ],
+  "537294996": [
+    {
+      "version": "9.1.92",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1790"
+    }
+  ],
+  "537295035": [
+    {
+      "version": "9.1.92",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1790"
+    }
+  ],
+  "537296027": [
+    {
+      "version": "9.9.20.36330",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1779"
+    }
+  ],
+  "537296028": [
+    {
+      "version": "9.9.20.36330",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1778"
+    }
+  ],
+  "537296052": [
+    {
+      "version": "6.9.75.36330",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1780"
+    }
+  ],
+  "537296064": [
+    {
+      "version": "3.2.18.36330",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1782?single"
+    },
+    {
+      "version": "3.2.18.36330",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1783?single"
+    },
+    {
+      "version": "3.2.18.36330",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1785?single"
+    }
+  ],
+  "537296066": [
+    {
+      "version": "3.2.18.36330",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1787"
+    }
+  ],
+  "537296067": [
+    {
+      "version": "3.2.18.36330",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-06-16",
+      "source_url": "https://t.me/linqiqi_backup/1788"
+    }
+  ],
+  "537295976": [
+    {
+      "version": "9.9.20.35951",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1758"
+    }
+  ],
+  "537295977": [
+    {
+      "version": "9.9.20.35951",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1757"
+    }
+  ],
+  "537296001": [
+    {
+      "version": "6.9.75.35951",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1759"
+    }
+  ],
+  "537296013": [
+    {
+      "version": "3.2.18.35951",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1763"
+    },
+    {
+      "version": "3.2.18.35951",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1765"
+    },
+    {
+      "version": "3.2.18.35951",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1767"
+    }
+  ],
+  "537296015": [
+    {
+      "version": "3.2.18.35951",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1769"
+    }
+  ],
+  "537296016": [
+    {
+      "version": "3.2.18.35951",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-06-07",
+      "source_url": "https://t.me/linqiqi_backup/1770"
+    }
+  ],
+  "537294918": [
+    {
+      "version": "9.1.91",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-06-05",
+      "source_url": "https://t.me/linqiqi_backup/1752"
+    }
+  ],
+  "537294957": [
+    {
+      "version": "9.1.91",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-06-05",
+      "source_url": "https://t.me/linqiqi_backup/1752"
+    }
+  ],
+  "537294606": [
+    {
+      "version": "9.1.90",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-05-28",
+      "source_url": "https://t.me/linqiqi_backup/1750"
+    }
+  ],
+  "537294645": [
+    {
+      "version": "9.1.90",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-05-28",
+      "source_url": "https://t.me/linqiqi_backup/1750"
+    }
+  ],
+  "537298353": [
+    {
+      "version": "4.1.0",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-05-27",
+      "source_url": "https://t.me/linqiqi_backup/1746"
+    }
+  ],
+  "537298411": [
+    {
+      "version": "4.1.0",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-05-27",
+      "source_url": "https://t.me/linqiqi_backup/1746"
+    }
+  ],
+  "537288619": [
+    {
+      "version": "9.1.76",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-05-18",
+      "source_url": "https://t.me/linqiqi_backup/1720"
+    }
+  ],
+  "537288658": [
+    {
+      "version": "9.1.76",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-05-18",
+      "source_url": "https://t.me/linqiqi_backup/1720"
+    }
+  ],
+  "537288307": [
+    {
+      "version": "9.1.75",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-05-13",
+      "source_url": "https://t.me/linqiqi_backup/1699"
+    }
+  ],
+  "537288346": [
+    {
+      "version": "9.1.75",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-05-13",
+      "source_url": "https://t.me/linqiqi_backup/1699"
+    }
+  ],
+  "537286259": [
+    {
+      "version": "9.1.71",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-05-12",
+      "source_url": "https://t.me/linqiqi_backup/1694"
+    }
+  ],
+  "537286298": [
+    {
+      "version": "9.1.71",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-05-12",
+      "source_url": "https://t.me/linqiqi_backup/1694"
+    }
+  ],
+  "537285947": [
+    {
+      "version": "9.1.70",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1668"
+    }
+  ],
+  "537285986": [
+    {
+      "version": "9.1.70",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1668"
+    }
+  ],
+  "537284101": [
+    {
+      "version": "9.1.67",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-04-25",
+      "source_url": "https://t.me/linqiqi_backup/1667"
+    }
+  ],
+  "537284140": [
+    {
+      "version": "9.1.67",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-04-25",
+      "source_url": "https://t.me/linqiqi_backup/1667"
+    }
+  ],
+  "537291397": [
+    {
+      "version": "9.9.19.35469",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-05-23",
+      "source_url": "https://t.me/linqiqi_backup/1740"
+    }
+  ],
+  "537291398": [
+    {
+      "version": "9.9.19.35469",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-05-23",
+      "source_url": "https://t.me/linqiqi_backup/1739"
+    }
+  ],
+  "537291410": [
+    {
+      "version": "9.9.19.35469",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-05-23",
+      "source_url": "https://t.me/linqiqi_backup/1741"
+    }
+  ],
+  "537291423": [
+    {
+      "version": "6.9.73.35469",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-05-23",
+      "source_url": "https://t.me/linqiqi_backup/1742"
+    }
+  ],
+  "537291346": [
+    {
+      "version": "9.9.19.35341",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1724"
+    }
+  ],
+  "537291347": [
+    {
+      "version": "9.9.19.35341",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1723"
+    }
+  ],
+  "537291359": [
+    {
+      "version": "9.9.19.35341",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1725"
+    }
+  ],
+  "537291372": [
+    {
+      "version": "6.9.73.35341",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1726"
+    }
+  ],
+  "537291383": [
+    {
+      "version": "3.2.17.35341",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1727"
+    },
+    {
+      "version": "3.2.17.35341",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1729"
+    },
+    {
+      "version": "3.2.17.35341",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1731"
+    }
+  ],
+  "537291385": [
+    {
+      "version": "3.2.17.35341",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1733"
+    }
+  ],
+  "537291386": [
+    {
+      "version": "3.2.17.35341",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-05-20",
+      "source_url": "https://t.me/linqiqi_backup/1734"
+    }
+  ],
+  "537291047": [
+    {
+      "version": "9.9.19.35184",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1706"
+    }
+  ],
+  "537291048": [
+    {
+      "version": "9.9.19.35184",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1705"
+    }
+  ],
+  "537291060": [
+    {
+      "version": "9.9.19.35184",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1707"
+    }
+  ],
+  "537291073": [
+    {
+      "version": "6.9.72.35184",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1708"
+    }
+  ],
+  "537291084": [
+    {
+      "version": "3.2.17.35184",
+      "platform": "Linux",
+      "arch": "Deb",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1709?single"
+    },
+    {
+      "version": "3.2.17.35184",
+      "platform": "Linux",
+      "arch": "Rpm",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1711?single"
+    },
+    {
+      "version": "3.2.17.35184",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1713?single"
+    }
+  ],
+  "537291086": [
+    {
+      "version": "3.2.17.35184",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1715"
+    }
+  ],
+  "537291087": [
+    {
+      "version": "3.2.17.35184",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-05-16",
+      "source_url": "https://t.me/linqiqi_backup/1716"
+    }
+  ],
+  "537290741": [
+    {
+      "version": "9.9.19.34958",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-05-10",
+      "source_url": "https://t.me/linqiqi_backup/1690"
+    }
+  ],
+  "537290742": [
+    {
+      "version": "9.9.19.34958",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-05-10",
+      "source_url": "https://t.me/linqiqi_backup/1689"
+    }
+  ],
+  "537290754": [
+    {
+      "version": "9.9.19.34958",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-05-10",
+      "source_url": "https://t.me/linqiqi_backup/1691"
+    }
+  ],
+  "537290767": [
+    {
+      "version": "6.9.71.34958",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-05-10",
+      "source_url": "https://t.me/linqiqi_backup/1692"
+    }
+  ],
+  "537290690": [
+    {
+      "version": "9.9.19.34740",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1670"
+    }
+  ],
+  "537290691": [
+    {
+      "version": "9.9.19.34740",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1669"
+    }
+  ],
+  "537290703": [
+    {
+      "version": "9.9.19.34740",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1671"
+    }
+  ],
+  "537290716": [
+    {
+      "version": "6.9.70.34740",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1672"
+    }
+  ],
+  "537290727": [
+    {
+      "version": "3.2.17.34740",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1673?single"
+    },
+    {
+      "version": "3.2.17.34740",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1675?single"
+    },
+    {
+      "version": "3.2.17.34740",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1677?single"
+    }
+  ],
+  "537290729": [
+    {
+      "version": "3.2.17.34740",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1679"
+    }
+  ],
+  "537290730": [
+    {
+      "version": "3.2.17.34740",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-04-28",
+      "source_url": "https://t.me/linqiqi_backup/1680"
+    }
+  ],
+  "537282306": [
+    {
+      "version": "9.9.19.34606",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1654"
+    },
+    {
+      "version": "9.9.19.34566",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1642"
+    }
+  ],
+  "537282307": [
+    {
+      "version": "9.9.19.34606",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1653"
+    },
+    {
+      "version": "9.9.19.34566",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1641"
+    }
+  ],
+  "537282319": [
+    {
+      "version": "9.9.19.34606",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1655"
+    },
+    {
+      "version": "9.9.19.34566",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1643"
+    }
+  ],
+  "537282332": [
+    {
+      "version": "6.9.69.34606",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1656"
+    },
+    {
+      "version": "6.9.69.34566",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1644"
+    }
+  ],
+  "537282343": [
+    {
+      "version": "3.2.17.34606",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1657?single"
+    },
+    {
+      "version": "3.2.17.34566",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1645?single"
+    },
+    {
+      "version": "3.2.17.34566",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1647?single"
+    },
+    {
+      "version": "3.2.17.34566",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1649?single"
+    }
+  ],
+  "537282344": [
+    {
+      "version": "3.2.17.34606",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1659?single"
+    },
+    {
+      "version": "3.2.17.34606",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1661?single"
+    }
+  ],
+  "537282345": [
+    {
+      "version": "3.2.17.34606",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-24",
+      "source_url": "https://t.me/linqiqi_backup/1663"
+    },
+    {
+      "version": "3.2.17.34566",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1651"
+    }
+  ],
+  "537282346": [
+    {
+      "version": "3.2.17.34566",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-04-22",
+      "source_url": "https://t.me/linqiqi_backup/1652"
+    }
+  ],
+  "537282255": [
+    {
+      "version": "9.9.19.34467",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1623"
+    }
+  ],
+  "537282256": [
+    {
+      "version": "9.9.19.34467",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1622"
+    }
+  ],
+  "537282268": [
+    {
+      "version": "9.9.19.34467",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1624"
+    }
+  ],
+  "537282281": [
+    {
+      "version": "6.9.69.34467",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1625"
+    }
+  ],
+  "537282292": [
+    {
+      "version": "3.2.17.34467",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1626?single"
+    },
+    {
+      "version": "3.2.17.34467",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1628?single"
+    },
+    {
+      "version": "3.2.17.34467",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1630?single"
+    }
+  ],
+  "537282294": [
+    {
+      "version": "3.2.17.34467",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1632"
+    }
+  ],
+  "537282295": [
+    {
+      "version": "3.2.17.34467",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1633"
+    }
+  ],
+  "537279259": [
+    {
+      "version": "9.9.19.34362",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1608"
+    }
+  ],
+  "537279260": [
+    {
+      "version": "9.9.19.34362",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1607"
+    }
+  ],
+  "537279272": [
+    {
+      "version": "9.9.19.34362",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1609"
+    }
+  ],
+  "537279285": [
+    {
+      "version": "6.9.69.34362",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1610"
+    }
+  ],
+  "537279296": [
+    {
+      "version": "3.2.17.34362",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1611?single"
+    },
+    {
+      "version": "3.2.17.34362",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1613?single"
+    },
+    {
+      "version": "3.2.17.34362",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1615?single"
+    }
+  ],
+  "537279298": [
+    {
+      "version": "3.2.17.34362",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1617"
+    }
+  ],
+  "537279299": [
+    {
+      "version": "3.2.17.34362",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-04-18",
+      "source_url": "https://t.me/linqiqi_backup/1618"
+    }
+  ],
+  "537278302": [
+    {
+      "version": "9.1.65",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-04-14",
+      "source_url": "https://t.me/linqiqi_backup/1597"
+    }
+  ],
+  "537278341": [
+    {
+      "version": "9.1.65",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-04-14",
+      "source_url": "https://t.me/linqiqi_backup/1597"
+    }
+  ],
+  "537279208": [
+    {
+      "version": "9.9.19.34231",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1583"
+    }
+  ],
+  "537279209": [
+    {
+      "version": "9.9.19.34231",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1582"
+    }
+  ],
+  "537279221": [
+    {
+      "version": "9.9.19.34231",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1584"
+    }
+  ],
+  "537279234": [
+    {
+      "version": "6.9.69.34231",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1585"
+    }
+  ],
+  "537279245": [
+    {
+      "version": "3.2.17.34231",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1586?single"
+    },
+    {
+      "version": "3.2.17.34231",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1588?single"
+    },
+    {
+      "version": "3.2.17.34231",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1590?single"
+    }
+  ],
+  "537279247": [
+    {
+      "version": "3.2.17.34231",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1592"
+    }
+  ],
+  "537279248": [
+    {
+      "version": "3.2.17.34231",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-04-10",
+      "source_url": "https://t.me/linqiqi_backup/1593"
+    }
+  ],
+  "537282136": [
+    {
+      "version": "4.0.99",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-04-08",
+      "source_url": "https://t.me/linqiqi_backup/1570"
+    }
+  ],
+  "537282194": [
+    {
+      "version": "4.0.99",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-04-08",
+      "source_url": "https://t.me/linqiqi_backup/1570"
+    }
+  ],
+  "537273973": [
+    {
+      "version": "9.9.18.33800",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1553"
+    }
+  ],
+  "537273974": [
+    {
+      "version": "9.9.18.33800",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1552"
+    },
+    {
+      "version": "9.9.18.33800",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1554"
+    }
+  ],
+  "537273998": [
+    {
+      "version": "6.9.68.33800",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1555"
+    }
+  ],
+  "537274009": [
+    {
+      "version": "3.2.16.33800",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1556?single"
+    },
+    {
+      "version": "3.2.16.33800",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1558?single"
+    },
+    {
+      "version": "3.2.16.33800",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1560?single"
+    }
+  ],
+  "537274011": [
+    {
+      "version": "3.2.16.33800",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1562"
+    }
+  ],
+  "537274012": [
+    {
+      "version": "3.2.16.33800",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-04-01",
+      "source_url": "https://t.me/linqiqi_backup/1563"
+    }
+  ],
+  "537273873": [
+    {
+      "version": "9.9.18.33139",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1525"
+    }
+  ],
+  "537273874": [
+    {
+      "version": "9.9.18.33139",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1524"
+    },
+    {
+      "version": "9.9.18.33139",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1526"
+    }
+  ],
+  "537273898": [
+    {
+      "version": "6.9.67.33259",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1527"
+    }
+  ],
+  "537273909": [
+    {
+      "version": "3.2.16.33139",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1528"
+    },
+    {
+      "version": "3.2.16.33139",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1530"
+    },
+    {
+      "version": "3.2.16.33139",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1532"
+    }
+  ],
+  "537273911": [
+    {
+      "version": "3.2.16.33139",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1534"
+    }
+  ],
+  "537273912": [
+    {
+      "version": "3.2.16.33139",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1535"
+    }
+  ],
+  "537275636": [
+    {
+      "version": "9.1.60",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1522"
+    }
+  ],
+  "537275675": [
+    {
+      "version": "9.1.60",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-03-19",
+      "source_url": "https://t.me/linqiqi_backup/1522"
+    }
+  ],
+  "537272835": [
+    {
+      "version": "9.1.55",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-03-11",
+      "source_url": "https://t.me/linqiqi_backup/1517"
+    }
+  ],
+  "537272874": [
+    {
+      "version": "9.1.55",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-03-11",
+      "source_url": "https://t.me/linqiqi_backup/1517"
+    }
+  ],
+  "537271293": [
+    {
+      "version": "9.9.18.32869",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1505"
+    }
+  ],
+  "537271294": [
+    {
+      "version": "9.9.18.32869",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1504"
+    },
+    {
+      "version": "9.9.18.32869",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1506"
+    }
+  ],
+  "537271318": [
+    {
+      "version": "6.9.66.32869",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1507"
+    }
+  ],
+  "537271329": [
+    {
+      "version": "3.2.16.32869",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1508"
+    },
+    {
+      "version": "3.2.16.32869",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1510"
+    },
+    {
+      "version": "3.2.16.32869",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1512"
+    }
+  ],
+  "537271331": [
+    {
+      "version": "3.2.16.32869",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1514"
+    }
+  ],
+  "537271332": [
+    {
+      "version": "3.2.16.32869",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-03-09",
+      "source_url": "https://t.me/linqiqi_backup/1515"
+    }
+  ],
+  "537271243": [
+    {
+      "version": "9.9.18.32793",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1492"
+    }
+  ],
+  "537271244": [
+    {
+      "version": "9.9.18.32793",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1491"
+    },
+    {
+      "version": "9.9.18.32793",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1493"
+    }
+  ],
+  "537271268": [
+    {
+      "version": "6.9.66.32793",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1494"
+    }
+  ],
+  "537271279": [
+    {
+      "version": "3.2.16.32793",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1495?single"
+    },
+    {
+      "version": "3.2.16.32793",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1497?single"
+    },
+    {
+      "version": "3.2.16.32793",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1499?single"
+    }
+  ],
+  "537271281": [
+    {
+      "version": "3.2.16.32793",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1501"
+    }
+  ],
+  "537271282": [
+    {
+      "version": "3.2.16.32793",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-03-05",
+      "source_url": "https://t.me/linqiqi_backup/1502"
+    }
+  ],
+  "537271193": [
+    {
+      "version": "9.9.18.32690",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1469"
+    }
+  ],
+  "537271194": [
+    {
+      "version": "9.9.18.32690",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1468"
+    },
+    {
+      "version": "9.9.18.32690",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1470"
+    }
+  ],
+  "537271218": [
+    {
+      "version": "6.9.66.32690",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1471"
+    }
+  ],
+  "537271229": [
+    {
+      "version": "3.2.16.32690",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1472"
+    },
+    {
+      "version": "3.2.16.32690",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1474"
+    },
+    {
+      "version": "3.2.16.32690",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1476"
+    }
+  ],
+  "537271231": [
+    {
+      "version": "3.2.16.32690",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1478"
+    }
+  ],
+  "537271232": [
+    {
+      "version": "3.2.16.32690",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-02-27",
+      "source_url": "https://t.me/linqiqi_backup/1479"
+    }
+  ],
+  "537270265": [
+    {
+      "version": "9.1.52",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-02-23",
+      "source_url": "https://t.me/linqiqi_backup/1461"
+    }
+  ],
+  "537270304": [
+    {
+      "version": "9.1.52",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-02-23",
+      "source_url": "https://t.me/linqiqi_backup/1461"
+    }
+  ],
+  "537270031": [
+    {
+      "version": "9.1.50",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-02-19",
+      "source_url": "https://t.me/linqiqi_backup/1459"
+    }
+  ],
+  "537270070": [
+    {
+      "version": "9.1.50",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-02-19",
+      "source_url": "https://t.me/linqiqi_backup/1459"
+    }
+  ],
+  "537266499": [
+    {
+      "version": "9.9.17.31363",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1416"
+    }
+  ],
+  "537266500": [
+    {
+      "version": "9.9.17.31363",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1415"
+    },
+    {
+      "version": "9.9.17.31363",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1417"
+    }
+  ],
+  "537266524": [
+    {
+      "version": "6.9.65.31363",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1418"
+    }
+  ],
+  "537266535": [
+    {
+      "version": "3.2.15.31363",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1419?single"
+    },
+    {
+      "version": "3.2.15.31363",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1421?single"
+    },
+    {
+      "version": "3.2.15.31363",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1423?single"
+    }
+  ],
+  "537266537": [
+    {
+      "version": "3.2.15.31363",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1425"
+    }
+  ],
+  "537266538": [
+    {
+      "version": "3.2.15.31363",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1426"
+    }
+  ],
+  "537265576": [
+    {
+      "version": "9.1.35",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1413"
+    }
+  ],
+  "537265615": [
+    {
+      "version": "9.1.35",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2025-01-10",
+      "source_url": "https://t.me/linqiqi_backup/1413"
+    }
+  ],
+  "537266449": [
+    {
+      "version": "9.9.17.31245",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1398"
+    },
+    {
+      "version": "9.9.17.31219",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1385"
+    }
+  ],
+  "537266450": [
+    {
+      "version": "9.9.17.31245",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1397"
+    },
+    {
+      "version": "9.9.17.31245",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1399"
+    },
+    {
+      "version": "9.9.17.31219",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1384"
+    },
+    {
+      "version": "9.9.17.31219",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1386"
+    }
+  ],
+  "537266474": [
+    {
+      "version": "6.9.63.31245",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1400"
+    },
+    {
+      "version": "6.9.63.31219",
+      "platform": "macOS",
+      "arch": "Dmg",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1387"
+    }
+  ],
+  "537266485": [
+    {
+      "version": "3.2.15.31245",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1401?single"
+    },
+    {
+      "version": "3.2.15.31245",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1403?single"
+    },
+    {
+      "version": "3.2.15.31245",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1405?single"
+    },
+    {
+      "version": "3.2.15.31219",
+      "platform": "Linux",
+      "arch": "DEB",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1388"
+    },
+    {
+      "version": "3.2.15.31219",
+      "platform": "Linux",
+      "arch": "RPM",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1390"
+    },
+    {
+      "version": "3.2.15.31219",
+      "platform": "Linux",
+      "arch": "Appimage",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1392"
+    }
+  ],
+  "537266487": [
+    {
+      "version": "3.2.15.31245",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1407"
+    },
+    {
+      "version": "3.2.15.31219",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1394"
+    }
+  ],
+  "537266488": [
+    {
+      "version": "3.2.15.31245",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-01-07",
+      "source_url": "https://t.me/linqiqi_backup/1408"
+    },
+    {
+      "version": "3.2.15.31219",
+      "platform": "Linux",
+      "arch": "Mips",
+      "date": "2025-01-06",
+      "source_url": "https://t.me/linqiqi_backup/1395"
+    }
+  ],
+  "537395449": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-29",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/09/29/8/110_7f1c36fc2af6b3dd952c277aa39739ef.apk",
+      "channel": "豌豆荚"
+    }
+  ],
+  "537395488": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-29",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/09/29/8/110_7f1c36fc2af6b3dd952c277aa39739ef.apk",
+      "channel": "豌豆荚"
+    }
+  ],
+  "537397776": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-13",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.75.42350_8b979832d5b7a366.apk",
+      "channel": "官方"
+    }
+  ],
+  "537397815": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-13",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.75.42350_8b979832d5b7a366.apk",
+      "channel": "官方"
+    }
+  ],
+  "537395440": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-28",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo"
+    }
+  ],
+  "537395479": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-28",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo"
+    }
+  ],
+  "537395441": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-09-24",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/2e/2e96dfefcc8d4471876814e786eaa146/com.tencent.mobileqq.2609232243.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537395480": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-09-24",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/2e/2e96dfefcc8d4471876814e786eaa146/com.tencent.mobileqq.2609232243.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537397777": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-13",
+      "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "应用宝"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-23",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "三星"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-01",
+      "source_url": "http://mobile.d.appchina.com/McDonald/e/7715444/0/0/0/1792311122118/package_16580.1792311122118",
+      "channel": "应用汇"
+    }
+  ],
+  "537397816": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-13",
+      "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "应用宝"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-23",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/5F654F93E51F0E20441A70A7347B6820.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "三星"
+    },
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-01",
+      "source_url": "http://mobile.d.appchina.com/McDonald/e/7715444/0/0/0/1792311122118/package_16580.1792311122118",
+      "channel": "应用汇"
+    }
+  ],
+  "537395444": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-17",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202609/23/2b9d503b14496add9a5285f3d39a94cf.apk?sign=8169cebc278468c2ff55e972d92a7c4d&t=6AD3403F&m=1f184f2e893929ff261fa3452458ea42&hm=8cfca7a4c77e9b8f5220bdc945fa3535",
+      "channel": "OPPO"
+    }
+  ],
+  "537395483": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-17",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202609/23/2b9d503b14496add9a5285f3d39a94cf.apk?sign=8169cebc278468c2ff55e972d92a7c4d&t=6AD3403F&m=1f184f2e893929ff261fa3452458ea42&hm=8cfca7a4c77e9b8f5220bdc945fa3535",
+      "channel": "OPPO"
+    }
+  ],
+  "537395443": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-14",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/04f462173a5534179b5e2de3d2e59434397355bb1",
+      "channel": "小米"
+    }
+  ],
+  "537395482": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-14",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/04f462173a5534179b5e2de3d2e59434397355bb1",
+      "channel": "小米"
+    }
+  ],
+  "537395442": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-15",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_7908d3a45c6e463fa2bb4d3645460559.apk",
+      "channel": "荣耀"
+    }
+  ],
+  "537395481": [
+    {
+      "version": "9.3.70.41925",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-15",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_7908d3a45c6e463fa2bb4d3645460559.apk",
+      "channel": "荣耀"
+    }
+  ],
+  "537397780": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
+      "channel": "荣耀"
+    }
+  ],
+  "537397819": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_455dbccc89e34476955fbbf7a5a22ee3.apk",
+      "channel": "荣耀"
+    }
+  ],
+  "537397779": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-14",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/77/774956643fef459a8542279fe29d8bcc/com.tencent.mobileqq.2610132201.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537397818": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-14",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/77/774956643fef459a8542279fe29d8bcc/com.tencent.mobileqq.2610132201.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为"
+    }
+  ],
+  "537397782": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-20",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
+      "channel": "OPPO"
+    }
+  ],
+  "537397821": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-20",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/13/ce4acb579d70148471ff19f77b2e1ba9.apk?sign=7316af987bae2e0bcc9f892229d519d1&t=6AD6D9A0&m=8c08c5a6780cf300378ab82db44a5e67&hm=7e8f0604cea38ade149a1c05b7be9492",
+      "channel": "OPPO"
+    }
+  ],
+  "537397781": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/06196f382921b430c807287fc0cdd5c7b818f3238",
+      "channel": "小米"
+    }
+  ],
+  "537397820": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/06196f382921b430c807287fc0cdd5c7b818f3238",
+      "channel": "小米"
+    }
+  ],
+  "537397787": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-20",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/10/20/5/110_b8222d739466f86b718e6336cb66d419.apk",
+      "channel": "豌豆荚"
+    }
+  ],
+  "537397826": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-20",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/10/20/5/110_b8222d739466f86b718e6336cb66d419.apk",
+      "channel": "豌豆荚"
+    }
+  ],
+  "537397792": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792601968932/package_16580.1792601968932",
+      "channel": "应用汇"
+    }
+  ],
+  "537397831": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://mobile.d.appchina.com/McDonald/e/7716898/0/0/0/1792601968932/package_16580.1792601968932",
+      "channel": "应用汇"
+    }
+  ],
+  "537397778": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-19",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo"
+    }
+  ],
+  "537397817": [
+    {
+      "version": "9.3.75.42350",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-19",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo"
+    }
+  ],
+  "537403569": [
+    {
+      "version": "9.9.37.54276",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2950",
+      "channel": "官方"
+    }
+  ],
+  "537403570": [
+    {
+      "version": "9.9.37.54276",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2949",
+      "channel": "官方"
+    }
+  ],
+  "537403582": [
+    {
+      "version": "9.9.37.54276",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2952",
+      "channel": "官方"
+    }
+  ],
+  "537399652": [
+    {
+      "version": "9.3.80.42670",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-23",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/7340cd19264a8c763d0b32e176ed6f7d.apk",
+      "channel": "官方"
+    }
+  ],
+  "537399663": [
+    {
+      "version": "9.3.80.42670",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-23",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/7340cd19264a8c763d0b32e176ed6f7d.apk",
+      "channel": "官方"
+    }
+  ],
+  "537403594": [
+    {
+      "version": "7.0.3.54276",
+      "platform": "macOS",
+      "arch": "Universal",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2951",
+      "channel": "官方"
+    }
+  ],
+  "537391665": [
+    {
+      "version": "3.2.34.53644",
+      "platform": "Linux",
+      "arch": "Arm",
+      "date": "2026-09-23",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.36/beta/9ee04bef/linuxqq_3.2.34-53644_arm64.deb",
+      "channel": "官方"
+    }
+  ]
+}
