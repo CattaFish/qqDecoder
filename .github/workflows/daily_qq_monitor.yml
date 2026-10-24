@@ -56,7 +56,7 @@ jobs:
           python scripts/daily_monitor.py
 
       # ==========================================
-      # 智能提交：只要有新包或数据有变动（含水位线补齐/自愈），必定落盘并推送
+      # 智能提交：安全拉取合并，杜绝 ours 强行覆盖
       # ==========================================
       - name: 提交更新后的数据字典与水位线到仓库
         if: steps.monitor_step.outputs.has_new_version == 'true' || steps.monitor_step.outputs.has_changes == 'true'
@@ -80,8 +80,15 @@ jobs:
                   break
                 fi
               else
+                echo "[策略切换] 变基遇阻，执行拉取并重新运行聚合自愈..."
                 git rebase --abort 2>/dev/null || true
-                git merge origin/main -m "Merge remote [skip ci]" --strategy-option ours || true
+                git stash || true
+                git pull --rebase origin main || true
+                git stash pop || true
+                # 重新执行自愈与字典编译，确保合并后无损
+                python -c "import json, sys; sys.path.insert(0, 'scripts'); from daily_monitor import sanitize_and_deduplicate_map, save_database_and_runtime; from pathlib import Path; f=Path('data/qq_subid_map.json'); d=json.loads(f.read_text('utf-8')) if f.exists() else {}; d, _ = sanitize_and_deduplicate_map(d); save_database_and_runtime(d)" || true
+                git add data/
+                git commit -m "Auto-database: merge and sync SubID [skip ci]" || true
                 if git push origin main; then
                   echo "[成功] 数据已合并推送到远程仓库！"
                   break
