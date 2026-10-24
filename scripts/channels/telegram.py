@@ -13,8 +13,11 @@ def clean_version_str(v_str: str) -> str:
     v = re.sub(r"\s*\(\d+\)", "", str(v_str)).strip()
     return v
 
-def get_recent_messages(limit: int = 15):
-    """抓取 Telegram 频道近期的多条有效消息（按时间正序排列）"""
+def get_recent_messages(limit: int = 5):
+    """
+    抓取 Telegram 频道最新发布的增量消息（按时间/ID 正序排列）
+    默认仅看最新 5 条，既能覆盖多端连续发布，又彻底杜绝翻出数月前的历史包
+    """
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
         resp = requests.get(TG_CHANNEL_URL, headers=headers, timeout=30)
@@ -30,7 +33,6 @@ def get_recent_messages(limit: int = 15):
         if not msg_divs:
             return []
 
-        # 选取最近 limit 条消息，按时间/ID 正序排队处理
         selected_divs = msg_divs[-limit:] if len(msg_divs) > limit else msg_divs
         messages = []
         for m in selected_divs:
@@ -54,10 +56,11 @@ def get_recent_messages(limit: int = 15):
 
 def parse_single_message_tasks(msg: dict):
     """
-    单条消息解析核心：
+    单条消息解析核心（全端自适应兼顾）：
     1. 精准区分各平台独立版本号；
     2. 按 (platform, arch) 链接聚合；
-    3. ★ 核心改进：严格实行【备份优先（Backup-First）】，绝不重复生成多余任务。
+    3. 严格备份优先（Backup-First），绝不重复下载；
+    4. 消除 Desktop 与 Android 互斥遗漏隐患。
     """
     text = msg["text"]
     html = msg["html"]
@@ -65,7 +68,6 @@ def parse_single_message_tasks(msg: dict):
     post_id = msg["post_id"]
     is_beta = bool(re.search(r"#Beta\b", text, re.IGNORECASE))
 
-    # 1. 分别提取各系统平台版本号
     win_ver, mac_ver, linux_ver, android_ver = "", "", "", ""
 
     m_win = re.search(r"Windows(?:\s+QQ(?:_NT)?)?\s+([0-9]+(?:\.[0-9]+)+)", text, re.IGNORECASE)
@@ -77,17 +79,15 @@ def parse_single_message_tasks(msg: dict):
     m_linux = re.search(r"Linux(?:\s+QQ(?:_NT)?)?\s+([0-9]+(?:\.[0-9]+)+)", text, re.IGNORECASE)
     if m_linux: linux_ver = m_linux.group(1)
 
-    # Android 版本提取（支持 731 等纯文本格式）
+    # Android 版本提取（精确匹配纯 Android 格式，如 731）
     m_android = re.search(r"QQ(?:_NT)?\s*[:：]?\s*([0-9]+(?:\.[0-9]+)+(?:\([0-9]+\))?)", text, re.IGNORECASE)
     if m_android:
-        # 若是桌面消息，避免将开头的 QQ_NT 误判为 Android
         matched_str = m_android.group(0)
         pos = text.find(matched_str)
         prefix = text[max(0, pos - 15):pos].lower()
         if not any(k in prefix for k in ["windows", "mac", "linux"]):
             android_ver = m_android.group(1)
 
-    # 兜底提取首行版本号
     lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
     if lines:
         m_top = re.search(r"^([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\))?)", lines[0])
@@ -103,67 +103,71 @@ def parse_single_message_tasks(msg: dict):
     linux_ver = clean_version_str(linux_ver)
     android_ver = clean_version_str(android_ver)
 
-    # 2. 判断消息类型并收集 candidate 链接字典: { (platform, arch): [ {"url":..., "is_backup": bool, "text":...} ] }
     cand_map = {}
-    has_desktop = any(p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"])
 
-    if has_desktop:
-        current_platform = "Windows"
-        for line in re.split(r"<br\s*/?>|\n", html):
-            line_soup = BeautifulSoup(line, "html.parser")
-            line_text = line_soup.get_text()
+    # 1. 解析桌面端链接（按段落/行追踪所属平台和架构）
+    current_platform = "Windows"
+    for line in re.split(r"<br\s*/?>|\n", html):
+        line_soup = BeautifulSoup(line, "html.parser")
+        line_text = line_soup.get_text()
 
-            if "Windows" in line_text: current_platform = "Windows"
-            elif "MacOS" in line_text or "Mac" in line_text: current_platform = "macOS"
-            elif "Linux" in line_text: current_platform = "Linux"
+        if "Windows" in line_text: current_platform = "Windows"
+        elif "MacOS" in line_text or "Mac" in line_text: current_platform = "macOS"
+        elif "Linux" in line_text: current_platform = "Linux"
+        elif "Android" in line_text or "Phone" in line_text: current_platform = "Android"
 
-            line_a_tags = line_soup.find_all("a", href=True)
-            if not line_a_tags:
-                continue
+        line_a_tags = line_soup.find_all("a", href=True)
+        if not line_a_tags:
+            continue
 
-            for a in line_a_tags:
-                href = a["href"].strip()
-                a_txt = a.get_text().strip()
-                if "t.me/s/" in href or "t.me/qq_updatelog" in href:
-                    continue
-
-                # 架构提取
-                arch = a_txt.replace("官网链接", "").replace("频道备份", "").replace("官网", "").replace("备份", "").strip()
-                if not arch:
-                    m_arch = re.search(r"\b(x64|x86|arm64|arm|loongarch|mips)\b", line_text + " " + href, re.IGNORECASE)
-                    arch = m_arch.group(1).upper() if m_arch else "Package"
-
-                # 统一规整架构别名
-                if arch.lower() in ("arm64", "arm"): arch = "Arm"
-                elif arch.lower() == "x64": arch = "X64"
-                elif arch.lower() == "x86": arch = "X86"
-
-                is_backup = ("t.me/linqiqi_backup" in href) or ("备份" in a_txt)
-                key = (current_platform, arch)
-                cand_map.setdefault(key, []).append({"url": href, "is_backup": is_backup, "text": a_txt})
-
-    else:
-        # 纯 Android 消息（如 731）
-        soup = BeautifulSoup(html, "html.parser")
-        raw_urls = []
-        for a in soup.find_all("a", href=True):
-            raw_urls.append((a["href"].strip(), a.get_text().strip()))
-
-        # 兼容正文中直接出现的裸链接（例如 731）
-        naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
-        naked_urls += re.findall(r'https?://t.me/linqiqi_backup/\d+', text)
-        for u in naked_urls:
-            raw_urls.append((u.strip(), "下载"))
-
-        for href, a_txt in raw_urls:
+        for a in line_a_tags:
+            href = a["href"].strip()
+            a_txt = a.get_text().strip()
             if "t.me/s/" in href or "t.me/qq_updatelog" in href:
                 continue
+
+            # 若明确为 APK 链接，直接归属为 Android
+            if ".apk" in href.lower() or "android_apk" in href.lower():
+                is_backup = ("t.me/linqiqi_backup" in href) or ("备份" in a_txt)
+                cand_map.setdefault(("Android", "Package"), []).append({
+                    "url": href, "is_backup": is_backup, "text": a_txt
+                })
+                continue
+
+            # 桌面端架构推断
+            arch = a_txt.replace("官网链接", "").replace("频道备份", "").replace("官网", "").replace("备份", "").strip()
+            if not arch:
+                m_arch = re.search(r"\b(x64|x86|arm64|arm|loongarch|mips)\b", line_text + " " + href, re.IGNORECASE)
+                arch = m_arch.group(1).upper() if m_arch else "Package"
+
+            if arch.lower() in ("arm64", "arm"): arch = "Arm"
+            elif arch.lower() == "x64": arch = "X64"
+            elif arch.lower() == "x86": arch = "X86"
+
             is_backup = ("t.me/linqiqi_backup" in href) or ("备份" in a_txt)
-            cand_map.setdefault(("Android", "Package"), []).append({
+            target_plat = current_platform
+            if ".exe" in href.lower(): target_plat = "Windows"
+            elif ".dmg" in href.lower() or ".pkg" in href.lower(): target_plat = "macOS"
+            elif any(ext in href.lower() for ext in [".deb", ".rpm", ".appimage"]): target_plat = "Linux"
+
+            cand_map.setdefault((target_plat, arch), []).append({
                 "url": href, "is_backup": is_backup, "text": a_txt
             })
 
-    # 3. ★ 核心执行【备份优先（Backup-First）】去重选择
+    # 2. 解析正文中可能出现的裸链接（如 731 中纯文本 APK 链接）
+    naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
+    naked_urls += re.findall(r'https?://t.me/linqiqi_backup/\d+', text)
+    for u in naked_urls:
+        if "t.me/s/" in u or "t.me/qq_updatelog" in u:
+            continue
+        is_backup = "t.me/linqiqi_backup" in u
+        # 若是 APK 链接，补充进 Android 候选池
+        if ".apk" in u.lower() or "android_apk" in u.lower() or (not cand_map and is_backup):
+            cand_map.setdefault(("Android", "Package"), []).append({
+                "url": u.strip(), "is_backup": is_backup, "text": "下载"
+            })
+
+    # 3. 严格备份优先（Backup-First）选取
     final_tasks = []
     for (plat, arch), candidates in cand_map.items():
         ver = (
@@ -176,7 +180,6 @@ def parse_single_message_tasks(msg: dict):
         backup_cands = [c for c in candidates if c["is_backup"]]
         official_cands = [c for c in candidates if not c["is_backup"]]
 
-        # 备份优先选择：有备份链接选备份链接，无备份链接选官方链接
         chosen = backup_cands[0] if backup_cands else (official_cands[0] if official_cands else None)
         if not chosen:
             continue
@@ -197,14 +200,15 @@ def parse_single_message_tasks(msg: dict):
 
     return final_tasks
 
-def get_telegram_tasks():
-    """获取 Telegram 频道近期全部有效下载任务（支持多条消息穿透，备份优先）"""
-    messages = get_recent_messages(limit=15)
+def get_telegram_tasks(*args, **kwargs):
+    """获取 Telegram 频道近期最新有效下载任务（支持自适应参数，避免 TypeError）"""
+    limit = kwargs.get("limit", 5)
+    messages = get_recent_messages(limit=limit)
     if not messages:
-        print("[TG 监控] 未获取到频道有效消息")
+        print("[TG 监控] 近期无有效消息。")
         return []
 
-    print(f"[TG 监控] 成功检索到线上近期消息 {len(messages)} 条 (ID 范围: {messages[0]['post_id']} -> {messages[-1]['post_id']})")
+    print(f"[TG 监控] 检索到线上最新增量消息 {len(messages)} 条 (范围: {messages[0]['post_id']} -> {messages[-1]['post_id']})")
     all_tasks = []
     for msg in messages:
         tasks = parse_single_message_tasks(msg)
