@@ -64,7 +64,7 @@ jobs:
           input_beta = "${{ inputs.is_beta }}".strip().lower()
           github_output = os.environ.get('GITHUB_OUTPUT')
 
-          # 容错拦截：若外部传入了 TG 备份链接，自动在频道页面中反查该版本的官方直链
+          # 容错拦截：若外部传入了 TG 备份链接，优先尝试在频道页面中反查官方直链
           if input_apk_url and "t.me/" in input_apk_url:
               print(f"[直链纠偏] 外部传入了 Telegram 备份链接 ({input_apk_url})，正在尝试反查官方直链...")
               try:
@@ -186,12 +186,17 @@ jobs:
               f.write("has_update=true\n")
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
+          print(f"本次待处理版本: {version_short}")
+          print(f"解析到官方直链: {target_url}")
+          print(f"队列是否还有后续未处理版本: {has_more} (剩余待处理: {len(pending_entries) - 1})")
+
       # ==========================================
       # 3. 深度清理磁盘并选定工作空间
       # ==========================================
       - name: Free Disk Space & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
         run: |
+          echo "正在执行深度磁盘清理..."
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY" 2>/dev/null || true
           sudo rm -rf /mnt/docker 2>/dev/null || true
@@ -210,24 +215,38 @@ jobs:
           fi
 
       # ==========================================
-      # 4. 创建动态自适应 Swap 空间
+      # 4. 创建动态超大 Swap 并解除系统级 OOM 限制
       # ==========================================
-      - name: Create Dynamic Swap Space
+      - name: Create Dynamic Swap Space & Disable systemd-oomd
         if: steps.check_update.outputs.has_update == 'true'
         run: |
+          # 1. 彻底禁用导致进程被静默杀死的 systemd-oomd 守护进程
+          echo "正在禁用 systemd-oomd 内存杀手..."
+          sudo systemctl disable --now systemd-oomd || true
+          sudo systemctl mask systemd-oomd || true
+
+          # 2. 优化 Linux 内核虚拟内存调度参数，允许百万级内存映射与平滑换页
+          echo "优化内核内存参数..."
+          sudo sysctl -w vm.max_map_count=2621440 || true
+          sudo sysctl -w vm.swappiness=100 || true
+          sudo sysctl -w vm.vfs_cache_pressure=50 || true
+          sudo sysctl -w vm.overcommit_memory=1 || true
+
+          # 3. 动态开辟高达 48GB 的超大虚拟内存空间
           SWAP_PATH="${{ env.TARGET_DIR }}/swapfile"
           [ -z "${{ env.TARGET_DIR }}" ] && SWAP_PATH="/swapfile"
           
           AVAIL_GB=$(( ${{ env.BEST_AVAIL_KB }} / 1024 / 1024 ))
-          CALC_SWAP=$(( AVAIL_GB - 16 ))
-          if [ "$CALC_SWAP" -gt 40 ]; then
-            ALLOC_SWAP=40
+          CALC_SWAP=$(( AVAIL_GB - 15 ))
+          if [ "$CALC_SWAP" -gt 48 ]; then
+            ALLOC_SWAP=48
           elif [ "$CALC_SWAP" -lt 16 ]; then
             ALLOC_SWAP=16
           else
             ALLOC_SWAP=$CALC_SWAP
           fi
           
+          echo "分配 Swap 大小: ${ALLOC_SWAP} GB 到 ${SWAP_PATH}"
           sudo swapoff -a || true
           sudo fallocate -l "${ALLOC_SWAP}G" $SWAP_PATH
           sudo chmod 600 $SWAP_PATH
@@ -256,7 +275,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       # ==========================================
-      # ★ 核心修复：安装 tdl 并恢复 TG 会话 (应对 t.me 直链下载)
+      # 5.5 安装 tdl 并恢复 TG 会话 (保障备份直链下载韧性)
       # ==========================================
       - name: Setup tdl Client & Telegram Session
         if: steps.check_update.outputs.has_update == 'true'
@@ -269,7 +288,7 @@ jobs:
           fi
 
       # ==========================================
-      # 6. 下载 APK 并提取当前 DEX (协议自适应)
+      # 6. 下载 APK 并提取当前 DEX (协议自适应分流)
       # ==========================================
       - name: Download APK and Extract DEX
         if: steps.check_update.outputs.has_update == 'true'
@@ -290,7 +309,7 @@ jobs:
           TARGET_URL="${{ steps.check_update.outputs.apk_url }}"
           echo "正在下载 APK: ${TARGET_URL}"
           
-          # ★ 智能分流：如果是 t.me 链接，调用 tdl；否则使用 curl
+          # 智能分流：如果是 t.me 链接调用 tdl，否则调用 curl
           if [[ "$TARGET_URL" =~ t\.me/ ]]; then
             echo "[下载协议] 识别为 Telegram 备份直链，使用 tdl 下载..."
             tdl dl -u "$TARGET_URL" -d .
@@ -495,7 +514,7 @@ jobs:
           curl -L -s https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -o bin/baksmali.jar
 
       # ==========================================
-      # 10. 执行 Twinflame 与 Baksmali 反编译比对
+      # 10. 执行 Twinflame 高品质去混淆与 Baksmali 反编译
       # ==========================================
       - name: Run Twinflame Analysis & Baksmali
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -505,7 +524,8 @@ jobs:
           twinflame prepare old_dex/ -o old.tfr
           twinflame prepare new_dex/ -o new.tfr
 
-          echo "阶段二: 语义混淆比对..."
+          echo "阶段二: 语义混淆比对 (保持全量最高品质去混淆参数)..."
+          export PYTHONMALLOC=malloc
           twinflame old.tfr new.tfr \
             --find-obfuscated \
             --skip-external \
@@ -866,7 +886,7 @@ jobs:
                 fi
               else
                 git rebase --abort 2>/dev/null || true
-                git pull --rebase origin main || true
+                git pull origin main --no-edit || true
                 if git push origin main; then
                   echo "[成功] 版本记录已合并推送到 main 分支！"
                   break
