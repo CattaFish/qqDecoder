@@ -54,6 +54,24 @@ def fetch_page_html():
     return None
 
 
+def find_qq_node(node):
+    """深度优先递归搜索属于 com.tencent.mobileqq 的数据字典"""
+    if isinstance(node, dict):
+        if node.get("package") == "com.tencent.mobileqq":
+            if node.get("download_url") or node.get("downloadUrl") or node.get("shouzhuDownloadUrl"):
+                return node
+        for v in node.values():
+            res = find_qq_node(v)
+            if res:
+                return res
+    elif isinstance(node, list):
+        for it in node:
+            res = find_qq_node(it)
+            if res:
+                return res
+    return None
+
+
 def get_baidu_info():
     """获取百度手机助手 QQ 的版本信息与真实普通下载直链"""
     print("[百度监控] 正在抓取百度手机助手详情页...")
@@ -66,50 +84,56 @@ def get_baidu_info():
     date_str = None
     download_url = None
 
-    # 方案 A: 从 window.__INITIAL_STATE__ 原生 SSR JSON 结构树中提取（最权威、无损）
+    # 方案 A: 针对 window.__INITIAL_STATE__ 执行切片精准解析 (免疫分号与转义干扰)
     try:
-        m_state = re.search(r"window\.__INITIAL_STATE__\s*=\s*({.*?});\s*</script>", html_text, re.DOTALL)
-        if m_state:
-            state_json = json.loads(m_state.group(1))
-            res_list = state_json.get("appDoc", {}).get("resList", {})
-            for _, val in res_list.items():
-                data_wrap = val.get("data", {})
-                app_doc = data_wrap.get("appDoc", {}) or data_wrap.get("appDocNew", {})
-                if app_doc.get("package") == "com.tencent.mobileqq":
-                    version = str(app_doc.get("versionname") or app_doc.get("versionNum") or "").strip()
-                    raw_date = str(app_doc.get("updatetime") or app_doc.get("appUpdateDate") or "").strip()
+        anchor = "window.__INITIAL_STATE__"
+        idx = html_text.find(anchor)
+        if idx != -1:
+            start_json = html_text.find("{", idx)
+            end_script = html_text.find("</script>", start_json)
+            if start_json != -1 and end_script != -1:
+                raw_json = html_text[start_json:end_script].strip()
+                if raw_json.endswith(";"):
+                    raw_json = raw_json[:-1].strip()
+
+                state_json = json.loads(raw_json)
+                qq_node = find_qq_node(state_json)
+                if qq_node:
+                    version = str(qq_node.get("versionname") or qq_node.get("versionNum") or qq_node.get("version") or "").strip()
+                    raw_date = str(qq_node.get("updatetime") or qq_node.get("appUpdateDate") or qq_node.get("buildtime") or "").strip()
                     date_str = validate_date_str(raw_date)
 
-                    # 提取纯净普通下载直链（排除百度的 appsearch）
-                    dl_cand = app_doc.get("download_url") or app_doc.get("downloadUrl") or app_doc.get("shouzhuDownloadUrl")
-                    if dl_cand and "gdown.baidu.com" in dl_cand:
-                        download_url = dl_cand
-                    break
+                    cand_url = qq_node.get("download_url") or qq_node.get("downloadUrl") or qq_node.get("shouzhuDownloadUrl")
+                    if cand_url and "gdown.baidu.com" in cand_url:
+                        download_url = cand_url
     except Exception as e:
-        print(f"[百度监控] 解析 SSR JSON 状态树微调，启用备用正则匹配: {e}")
+        print(f"[百度监控] 解析状态树微调，启动备用正则提取: {e}")
 
-    # 方案 B: DOM 与正则兜底提取
+    # 方案 B: 字符流与正则兜底
     if not version or not download_url:
         soup = BeautifulSoup(html_text, "html.parser")
         text_content = soup.get_text()
 
-        # 版本提取
         if not version:
             m_ver = re.search(r"版本[：:\s]*\s*([0-9]+(?:\.[0-9]+)+)", text_content)
             if m_ver: version = m_ver.group(1).strip()
 
-        # 日期提取
         if not date_str:
             m_date = re.search(r"更新时间[：:\s]*\s*([0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2})", text_content)
             if m_date: date_str = validate_date_str(m_date.group(1))
 
-        # 真实 APK 直链提取（排除百度助手的 9197c4deaac0b93a3df17edf7d05969e）
         if not download_url:
-            cands = re.findall(r'https?://gdown\.baidu\.com/appcenter/pkg/upload/[a-f0-9]{32}\?prodid=\d+', html_text)
-            # 过滤排除百度手机助手自身安装包
-            pure_cands = [u for u in cands if "9197c4deaac0b93a3df17edf7d05969e" not in u]
-            if pure_cands:
-                download_url = pure_cands[0]
+            # 兼容带有 \u002F 转义的 URL
+            cand_matches = re.findall(
+                r'https?(?:://|:\\u002F\\u002F)gdown\.baidu\.com(?:/|\\u002F)appcenter(?:/|\\u002F)pkg(?:/|\\u002F)upload(?:/|\\u002F)[a-f0-9]{32}(?:\?prodid=\d+)?',
+                html_text
+            )
+            for c in cand_matches:
+                cleaned = c.replace(r"\u002F", "/").replace(r"\/", "/")
+                # 排除百度助手自身的包
+                if "9197c4deaac0b93a3df17edf7d05969e" not in cleaned:
+                    download_url = cleaned
+                    break
 
     if not date_str:
         date_str = time.strftime("%Y-%m-%d")
@@ -118,8 +142,7 @@ def get_baidu_info():
         print(f"[百度监控] 解析异常: 版本={version}, 下载URL={download_url}")
         return None
 
-    # 清理并转义 URL
-    download_url = download_url.replace("\\/", "/")
+    download_url = download_url.replace(r"\u002F", "/").replace(r"\/", "/")
 
     return {
         "version": version,
