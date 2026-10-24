@@ -252,7 +252,7 @@ jobs:
           echo "BEST_AVAIL_GB=${BEST_GB}" >> $GITHUB_ENV
 
       # ==========================================
-      # 4. 创建动态自适应 Swap 并显示内存配置
+      # 4. 创建动态 60GB Swap 并显示内存配置
       # ==========================================
       - name: Create Dynamic Swap Space & Disable systemd-oomd
         if: steps.check_update.outputs.has_update == 'true'
@@ -273,12 +273,10 @@ jobs:
 
           TOTAL_AVAIL_GB=${{ env.BEST_AVAIL_GB }}
           
-          # 保留至少 15GB 磁盘作为解包和系统运行安全垫，其余给 Swap
-          CALC_SWAP=$(( TOTAL_AVAIL_GB - 15 ))
-          if [ "$CALC_SWAP" -gt 48 ]; then
-            ALLOC_SWAP=48
-          elif [ "$CALC_SWAP" -lt 4 ]; then
-            ALLOC_SWAP=$CALC_SWAP
+          # 只要磁盘可用空间允许，直接开辟 60GB 极限 Swap
+          CALC_SWAP=$(( TOTAL_AVAIL_GB - 20 ))
+          if [ "$CALC_SWAP" -ge 60 ]; then
+            ALLOC_SWAP=60
           else
             ALLOC_SWAP=$CALC_SWAP
           fi
@@ -286,7 +284,7 @@ jobs:
           echo ""
           echo "💾 Swap 分配规划详情："
           echo "   • 目标盘总可用: ${TOTAL_AVAIL_GB} GB"
-          echo "   • 强制预留磁盘: 15 GB"
+          echo "   • 强制预留磁盘: 20 GB"
           echo "   • 最终分配 Swap: ${ALLOC_SWAP} GB"
           echo "   • Swap 放置路径: ${SWAP_PATH}"
           echo "=========================================================="
@@ -307,6 +305,7 @@ jobs:
           echo ""
           echo "📈 当前磁盘剩余状态报告："
           df -hT
+          
       # ==========================================
       # 5. 配置基础编译与运行环境
       # ==========================================
