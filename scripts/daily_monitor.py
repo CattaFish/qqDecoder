@@ -149,10 +149,7 @@ def save_database_and_runtime(subid_map: dict):
 
 
 def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
-    """
-    获取指定平台的水位线（版本、URL、文件路径）。
-    ★ 移除 channel=='官方' 限制，从数据库提炼最新版本作为安全底座，彻底杜绝历史旧包重跑！
-    """
+    """获取指定平台的水位线（版本、URL、文件路径）"""
     v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/telegram_{plat.lower()}_latest_version.txt"))
     rec_ver, rec_url = "", ""
 
@@ -174,7 +171,6 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
             if is_newer_version(pv, db_highest_ver):
                 db_highest_ver = pv
 
-    # 若独立水位线文件不存在或落后于数据库，以数据库最高版本为安全基准
     if db_highest_ver and (not rec_ver or is_newer_version(db_highest_ver, rec_ver)):
         rec_ver = db_highest_ver
         v_file.parent.mkdir(parents=True, exist_ok=True)
@@ -201,7 +197,7 @@ def main():
         except Exception:
             subid_map = {}
 
-    # ★ 核心防线：提取库中所有已处理过的直链指纹
+    # 提取库中所有已处理过的直链指纹
     processed_url_fps = set()
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
@@ -209,17 +205,25 @@ def main():
             if u:
                 processed_url_fps.add(get_url_fingerprint(u))
 
-    # 2. 采集 Telegram 官方更新（直接安全调用）
+    # 2. 采集 Telegram 官方更新（严格备份优先与版本递增判定）
     tg_tasks = get_telegram_tasks()
+    seen_platform_tasks = set()
+
     for t in tg_tasks:
         plat = t["platform"]
+        arch = t["arch"]
         cur_ver = t["version"]
         cur_url = t["url"]
         fp_cur = get_url_fingerprint(cur_url)
 
-        # ★ 第一道绝对防线：如果该 URL 指纹已经在数据库中，说明早已录入，绝对跳过！
+        # 彻底拦截：URL 已经在数据库中，直接跳过
         if fp_cur in processed_url_fps:
-            print(f"[TG 监控 - {plat}] {cur_ver} (链接已在库中)，跳过。")
+            print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
+            continue
+
+        # 彻底拦截：本次运行已收录过同平台、同架构、同版本的任务
+        task_dedup_key = (plat, arch, cur_ver)
+        if task_dedup_key in seen_platform_tasks:
             continue
 
         recorded_tg_ver, recorded_tg_url, tg_ver_file = get_platform_watermark(plat, subid_map)
@@ -233,20 +237,18 @@ def main():
         elif is_newer_version(cur_ver, recorded_tg_ver):
             should_update = True
             update_reason = f"版本升级 ({recorded_tg_ver} -> {cur_ver})"
-        elif cur_ver == recorded_tg_ver:
-            # 只有当版本相同且该 URL 在库里完全没见过时，才判定为静默换包
-            should_update = True
-            update_reason = "同版本静默换包 (新下载链接)"
         else:
-            print(f"[TG 监控 - {plat}] 线上版本 ({cur_ver}) 落后于本地最高记录 ({recorded_tg_ver})，跳过。")
+            # ★ 彻底杜绝假换包：若版本号落后或等于本地最高记录，直接跳过，绝不下旧包
+            print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}) <= 本地最高记录 ({recorded_tg_ver})，跳过。")
 
         if should_update:
-            print(f"[TG 监控 - {plat}] ★ 触发更新: [{update_reason}]！加入待处理任务。")
+            print(f"[TG 监控 - {plat}] ★ 触发更新: [{update_reason}]！加入待处理任务: {arch} -> {cur_url}")
             t["mark_channel_name"] = f"官方TG({plat})"
             t["mark_version_val"] = cur_ver
             t["mark_url_val"] = cur_url
             t["ver_file_path"] = tg_ver_file
             pending_tasks.append(t)
+            seen_platform_tasks.add(task_dedup_key)
 
     # 3. 九大厂商应用市场比对
     for name, fetch_func, ver_file in MARKET_CHANNELS:
@@ -267,7 +269,6 @@ def main():
 
         print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
 
-        # 若直链已在库，无需重复下载
         if fp_cur in processed_url_fps:
             print(f"[{name}监控] 安装包链接已在库中，无需下载。")
             continue
@@ -342,7 +343,7 @@ def main():
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
-    # 5. 执行真正的增量下载、解包与 SubID 抽取
+    # 5. 执行增量下载、解包与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
@@ -416,7 +417,6 @@ def main():
                         else:
                             subid_map[s_id].append(new_item)
 
-                # 记录真实提取的版本号更新水位线
                 real_v_clean = clean_ver.replace("-Beta", "").strip()
                 if t.get("mark_channel_name"):
                     versions_to_record[t["ver_file_path"]] = (
