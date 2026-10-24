@@ -19,6 +19,7 @@ from subid_compiler import compile_subid_map_to_runtime_dict
 
 from channels import (
     get_appchina_info,
+    get_baidu_info,
     get_honor_info,
     get_huawei_info,
     get_oppo_info,
@@ -55,6 +56,7 @@ MARKET_CHANNELS = [
     ("荣耀", get_honor_info, Path("data/honor_latest_version.txt")),
     ("三星", get_samsung_info, Path("data/samsung_latest_version.txt")),
     ("应用汇", get_appchina_info, Path("data/appchina_latest_version.txt")),
+    ("百度", get_baidu_info, Path("data/baidu_latest_version.txt")),
 ]
 
 
@@ -67,6 +69,9 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
     if "appchina" in clean or channel == "应用汇":
         clean = re.sub(r"/\d{10,}/package_(\d+)\.\d+", r"/package_\1", clean)
         clean = re.sub(r"/\d{10,}/", "/", clean)
+        return clean.split("?")[0]
+
+    if "gdown.baidu.com" in clean or channel == "百度":  # 百度直链指纹按包体 MD5 归一
         return clean.split("?")[0]
 
     if "heytap" in clean or "oppo" in clean or channel == "OPPO":
