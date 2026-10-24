@@ -1,0 +1,319 @@
+name: Test APKHound Obfuscated Diff
+
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: '新版 QQ APK 直链 (留空则自动从频道抓取最新版)'
+        required: false
+        type: string
+        default: ''
+      prev_tag:
+        description: '对比基准 Release Tag (如 v9.3.70，留空自动取上一版本)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  test-apkhound:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      # ==========================================
+      # 1. 检出仓库
+      # ==========================================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # ==========================================
+      # 2. 配置 Python 与 Rust 编译环境
+      # ==========================================
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # 缓存 Cargo 编译产物，避免每次重复编译 APKHound
+      - name: Cache APKHound Cargo Build
+        uses: actions/cache@v4
+        id: cache-apkhound
+        with:
+          path: bin/apkhound
+          key: ${{ runner.os }}-apkhound-bin-v1
+
+      # ==========================================
+      # 3. 编译 APKHound 原生二进制
+      # ==========================================
+      - name: Build APKHound from Source
+        if: steps.cache-apkhound.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p bin
+          echo "正在拉取 APKHound 源码并执行 Rust release 编译..."
+          git clone --depth 1 https://github.com/ChowChowSonic/apkhound.git _apkhound_src
+          cd _apkhound_src
+          cargo build --release
+          cp target/release/apkhound $GITHUB_WORKSPACE/bin/apkhound
+          chmod +x $GITHUB_WORKSPACE/bin/apkhound
+          cd ..
+          rm -rf _apkhound_src
+          echo "APKHound 编译完成！"
+
+      - name: Verify APKHound CLI
+        run: |
+          chmod +x bin/apkhound
+          bin/apkhound --help
+
+      # ==========================================
+      # 4. 下载与准备新旧对比 APK
+      # ==========================================
+      - name: Prepare New & Previous APKs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p workspace
+          cd workspace
+
+          # 1. 准备新版 APK
+          INPUT_URL="${{ inputs.apk_url }}"
+          if [ -z "$INPUT_URL" ]; then
+            echo "未输入新版直链，自动探测官方更新频道..."
+            NEW_URL=$(curl -sL "https://t.me/s/qq_updatelog" | grep -o 'https://[^"]*qq\.com[^"]*\.apk[^"]*' | head -n 1 || true)
+          else
+            NEW_URL="$INPUT_URL"
+          fi
+
+          if [ -z "$NEW_URL" ]; then
+            echo "::error::无法解析到有效的新版 APK 下载链接！"
+            exit 1
+          fi
+
+          echo "正在下载新版 APK: $NEW_URL"
+          curl -L "$NEW_URL" -o new_target.apk
+          ls -lh new_target.apk
+
+          # 2. 准备旧版 APK (从历史 Release 获取 dex_archive.zip 并封装为临时测试 APK)
+          SPEC_PREV_TAG="${{ inputs.prev_tag }}"
+          if [ -z "$SPEC_PREV_TAG" ]; then
+            PREV_TAG=$(gh release list --limit 10 --json tagName,isPrerelease -q '.[] | select(.isPrerelease == false) | .tagName' | head -n 1 || true)
+          else
+            PREV_TAG="$SPEC_PREV_TAG"
+          fi
+
+          echo "比对基准版本 Tag: $PREV_TAG"
+          mkdir -p prev_download old_dex_tmp
+          if gh release download "$PREV_TAG" -p "dex_archive.zip" -D prev_download 2>/dev/null; then
+            unzip -q prev_download/dex_archive.zip -d old_dex_tmp/
+            # 提取新版的 Manifest 注入旧包，形成合规完整的 APK 容器
+            unzip -q new_target.apk "AndroidManifest.xml" -d old_dex_tmp/ 2>/dev/null || true
+            (cd old_dex_tmp && zip -q -0 ../old_target.apk classes*.dex AndroidManifest.xml)
+            echo "旧版测试 APK 构建完成: $(ls -lh old_target.apk | awk '{print $5}')"
+          else
+            echo "::error::未能成功拉取基准版本的 DEX 文件！"
+            exit 1
+          fi
+
+      # ==========================================
+      # 5. APKHound 混淆对齐比对与内存压测 (重点监控)
+      # ==========================================
+      - name: Run APKHound Obfuscation Match & Benchmark
+        run: |
+          cd workspace
+          export PATH="$GITHUB_WORKSPACE/bin:$PATH"
+
+          echo "=========================================================="
+          echo "🚀 启动 APKHound 混淆图核全量匹配 (--match-obfuscated)..."
+          echo "（不限制任何包名，覆盖所有根目录 a/b/c 混淆类）"
+          echo "=========================================================="
+
+          # 使用 Linux 原生 /usr/bin/time -v 追踪进程物理内存与 CPU
+          /usr/bin/time -v apkhound compare old_target.apk new_target.apk \
+            --match-obfuscated > compare_report.txt 2> apkhound_compare_time.txt || true
+
+          echo "比对统计概览 (前 30 行):"
+          head -n 30 compare_report.txt || true
+
+          # 抓取内存峰值
+          MAX_RSS_KB=$(grep "Maximum resident set size" apkhound_compare_time.txt | awk '{print $6}')
+          MAX_RSS_MB=$(( MAX_RSS_KB / 1024 ))
+          ELAPSED=$(grep "Elapsed (wall clock) time" apkhound_compare_time.txt | awk '{print $8}')
+
+          echo "----------------------------------------------------------"
+          echo "📊 APKHound 比对峰值内存: ${MAX_RSS_MB} MB | 耗时: ${ELAPSED}"
+          echo "----------------------------------------------------------"
+
+      # ==========================================
+      # 6. 按需抽取变动类的 Smali (Selective Extraction)
+      # ==========================================
+      - name: Extract Changed Smali via APKHound
+        run: |
+          cd workspace
+          export PATH="$GITHUB_WORKSPACE/bin:$PATH"
+
+          echo "=========================================================="
+          echo "🚀 执行变动类按需 Smali 抽取 (只解压修改类，不解压 32 万个文件)..."
+          echo "=========================================================="
+
+          mkdir -p extracted_out
+
+          /usr/bin/time -v apkhound extract old_target.apk new_target.apk extracted_out \
+            --match-obfuscated 2> apkhound_extract_time.txt || true
+
+          EXTRACT_RSS_KB=$(grep "Maximum resident set size" apkhound_extract_time.txt | awk '{print $6}')
+          EXTRACT_RSS_MB=$(( EXTRACT_RSS_KB / 1024 ))
+          EXTRACT_ELAPSED=$(grep "Elapsed (wall clock) time" apkhound_extract_time.txt | awk '{print $8}')
+
+          echo "----------------------------------------------------------"
+          echo "📊 提取阶段峰值内存: ${EXTRACT_RSS_MB} MB | 耗时: ${EXTRACT_ELAPSED}"
+          echo "提取输出目录结构统计:"
+          find extracted_out -maxdepth 3 -type d || true
+          echo "抽取出的 Smali 文件数: $(find extracted_out -name "*.smali" 2>/dev/null | wc -l)"
+          echo "----------------------------------------------------------"
+
+      # ==========================================
+      # 7. 原生 Python 生成标准完整 Diff 补丁
+      # ==========================================
+      - name: Generate Unified Diff Patch & Structure
+        shell: python
+        run: |
+          import os, difflib, shutil
+
+          os.chdir("workspace")
+          DIR_MODIFIED = 'diff_output/1_MODIFIED'
+          DIR_REMOVED  = 'diff_output/2_REMOVED'
+          DIR_ADDED    = 'diff_output/3_ADDED'
+          os.makedirs(f'{DIR_MODIFIED}/classes', exist_ok=True)
+          os.makedirs(f'{DIR_REMOVED}/classes', exist_ok=True)
+          os.makedirs(f'{DIR_ADDED}/classes', exist_ok=True)
+          os.makedirs('changed_smali/old', exist_ok=True)
+          os.makedirs('changed_smali/new', exist_ok=True)
+
+          old_base = 'extracted_out/old'
+          new_base = 'extracted_out/new'
+
+          def collect_smalis(base):
+              files = {}
+              if not os.path.exists(base): return files
+              for root, _, fs in os.walk(base):
+                  for f in fs:
+                      if f.endswith('.smali'):
+                          full = os.path.join(root, f)
+                          rel = os.path.relpath(full, base).replace('\\', '/')
+                          files[rel] = full
+              return files
+
+          old_files = collect_smalis(old_base)
+          new_files = collect_smalis(new_base)
+
+          common = set(old_files.keys()) & set(new_files.keys())
+          only_old = set(old_files.keys()) - common
+          only_new = set(new_files.keys()) - common
+
+          print(f"[Diff处理] 双方修改匹配类: {len(common)}, 纯删除: {len(only_old)}, 纯新增: {len(only_new)}")
+
+          mod_count = 0
+          rem_count = 0
+          add_count = 0
+
+          with open(f"{DIR_MODIFIED}/all_modified.diff", 'w', encoding='utf-8') as f_all_mod, \
+               open(f"{DIR_REMOVED}/all_removed.diff", 'w', encoding='utf-8') as f_all_rem, \
+               open(f"{DIR_ADDED}/all_added.diff", 'w', encoding='utf-8') as f_all_add:
+
+              for rel in common:
+                  old_p = old_files[rel]
+                  new_p = new_files[rel]
+
+                  with open(old_p, 'r', encoding='utf-8', errors='ignore') as f1, \
+                       open(new_p, 'r', encoding='utf-8', errors='ignore') as f2:
+                      l1 = f1.readlines()
+                      l2 = f2.readlines()
+
+                  diff = list(difflib.unified_diff(l1, l2, fromfile=f"old/{rel}", tofile=f"new/{rel}", n=3))
+                  if diff:
+                      diff_text = "".join(diff)
+                      safe_name = rel.replace('/', '.').replace('.smali', '')
+                      with open(f"{DIR_MODIFIED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                          out.write(diff_text)
+                      f_all_mod.write(diff_text + "\n")
+                      mod_count += 1
+
+                      dest_old = os.path.join('changed_smali/old', rel)
+                      dest_new = os.path.join('changed_smali/new', rel)
+                      os.makedirs(os.path.dirname(dest_old), exist_ok=True)
+                      os.makedirs(os.path.dirname(dest_new), exist_ok=True)
+                      shutil.copyfile(old_p, dest_old)
+                      shutil.copyfile(new_p, dest_new)
+
+              for rel in only_old:
+                  old_p = old_files[rel]
+                  with open(old_p, 'r', encoding='utf-8', errors='ignore') as f:
+                      lines = f.readlines()
+                  diff_text = f"--- old/{rel}\n+++ /dev/null\n@@ -1,{len(lines)} +0,0 @@\n" + "".join(f"-{l}" for l in lines)
+                  safe_name = rel.replace('/', '.').replace('.smali', '')
+                  with open(f"{DIR_REMOVED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                      out.write(diff_text)
+                  f_all_rem.write(diff_text + "\n")
+                  rem_count += 1
+
+              for rel in only_new:
+                  new_p = new_files[rel]
+                  with open(new_p, 'r', encoding='utf-8', errors='ignore') as f:
+                      lines = f.readlines()
+                  diff_text = f"--- /dev/null\n+++ new/{rel}\n@@ -0,0 +1,{len(lines)} @@\n" + "".join(f"+{l}" for l in lines)
+                  safe_name = rel.replace('/', '.').replace('.smali', '')
+                  with open(f"{DIR_ADDED}/classes/{safe_name}.diff", 'w', encoding='utf-8') as out:
+                      out.write(diff_text)
+                  f_all_add.write(diff_text + "\n")
+                  add_count += 1
+
+          print(f"Diff 产物生成完毕: 修改 {mod_count} | 删除 {rem_count} | 新增 {add_count}")
+
+      # ==========================================
+      # 8. 打包测试产物并输出 Step Summary
+      # ==========================================
+      - name: Package Artifacts & Summary
+        run: |
+          cd workspace
+          zip -q -r diff_output.zip diff_output/ changed_smali/
+
+          MAX_COMP_MB=$(grep "Maximum resident set size" apkhound_compare_time.txt 2>/dev/null | awk '{print int($6/1024)}' || echo "N/A")
+          TIME_COMP=$(grep "Elapsed (wall clock) time" apkhound_compare_time.txt 2>/dev/null | awk '{print $8}' || echo "N/A")
+
+          MAX_EXT_MB=$(grep "Maximum resident set size" apkhound_extract_time.txt 2>/dev/null | awk '{print int($6/1024)}' || echo "N/A")
+          TIME_EXT=$(grep "Elapsed (wall clock) time" apkhound_extract_time.txt 2>/dev/null | awk '{print $8}' || echo "N/A")
+
+          MOD_COUNT=$(find diff_output/1_MODIFIED/classes -name "*.diff" 2>/dev/null | wc -l)
+          REM_COUNT=$(find diff_output/2_REMOVED/classes -name "*.diff" 2>/dev/null | wc -l)
+          ADD_COUNT=$(find diff_output/3_ADDED/classes -name "*.diff" 2>/dev/null | wc -l)
+
+          {
+            echo "### 🚀 APKHound 混淆 Diff 测试实测报告"
+            echo ""
+            echo "#### 1. 资源与内存占用指标："
+            echo "- **全量比对 (Compare) 峰值物理内存**: \`${MAX_COMP_MB} MB\` (耗时: \`${TIME_COMP}\`)"
+            echo "- **按需抽取 (Extract) 峰值物理内存**: \`${MAX_EXT_MB} MB\` (耗时: \`${TIME_EXT}\`)"
+            echo ""
+            echo "#### 2. Diff 成果指标："
+            echo "- 真正修改的业务类 (Modified): \`${MOD_COUNT}\` 个"
+            echo "- 移除类 (Removed): \`${REM_COUNT}\` 个"
+            echo "- 新增类 (Added): \`${ADD_COUNT}\` 个"
+            echo "- 产物包大小: \`$(du -sh diff_output.zip | awk '{print $1}')\`"
+            echo ""
+            echo "> 注：本测试完全覆盖所有根目录下的单字母/短路径混淆类，无任何 package 限制。"
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Test Diff Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: APKHound_Diff_Output
+          path: |
+            workspace/diff_output.zip
+            workspace/compare_report.txt
+            workspace/apkhound_compare_time.txt
+            workspace/apkhound_extract_time.txt
+          retention-days: 5
