@@ -56,7 +56,7 @@ jobs:
           python scripts/daily_monitor.py
 
       # ==========================================
-      # 智能提交：安全拉取合并，杜绝 ours 强行覆盖
+      # 智能提交：完整收录数据与 .bak 容灾备份，纯净化推送
       # ==========================================
       - name: 提交更新后的数据字典与水位线到仓库
         if: steps.monitor_step.outputs.has_new_version == 'true' || steps.monitor_step.outputs.has_changes == 'true'
@@ -65,39 +65,46 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
+
+          # 1. 暂存 data/ 目录下所有核心成果（包含主库、运行时字典、水位线与 .bak 容灾备份）
           git add data/
-          
+
           if git diff --staged --quiet; then
             echo "[状态] 没有新数据生成，跳过提交。"
           else
             git commit -m "Auto-database: update QQ SubID mapping and watermarks [skip ci]"
+
+            # 2. ★ 核心保障：清理工作区除 data/ 外的一切未跟踪杂质，确保工作区绝对纯净，杜绝 rebase 误判
+            git checkout -- . 2>/dev/null || true
+            find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+            git clean -fd
+
+            # 3. 稳健推送重试（最多重试 5 次）
             for i in {1..5}; do
-              echo "[同步] 尝试拉取并推送最新数据 ($i/5)..."
+              echo "[同步] 尝试推送到远程仓库 ($i/5)..."
+              if git push origin main; then
+                echo "[成功] 数据与 .bak 容灾备份已顺利推送到远程仓库！"
+                break
+              fi
+
+              echo "[重试] 推送遇阻（远程有新提交），拉取最新分支进行变基合并..."
               git fetch origin main
               if git rebase origin/main 2>/dev/null; then
                 if git push origin main; then
-                  echo "[成功] 数据已推送到远程仓库！"
+                  echo "[成功] 变基后数据已顺利推送到远程仓库！"
                   break
                 fi
               else
-                echo "[策略切换] 变基遇阻，执行拉取并重新运行聚合自愈..."
                 git rebase --abort 2>/dev/null || true
-                git stash || true
-                git pull --rebase origin main || true
-                git stash pop || true
-                # 重新执行自愈与字典编译，确保合并后无损
-                python -c "import json, sys; sys.path.insert(0, 'scripts'); from daily_monitor import sanitize_and_deduplicate_map, save_database_and_runtime; from pathlib import Path; f=Path('data/qq_subid_map.json'); d=json.loads(f.read_text('utf-8')) if f.exists() else {}; d, _ = sanitize_and_deduplicate_map(d); save_database_and_runtime(d)" || true
-                git add data/
-                git commit -m "Auto-database: merge and sync SubID [skip ci]" || true
+                git pull origin main --no-edit || true
                 if git push origin main; then
-                  echo "[成功] 数据已合并推送到远程仓库！"
+                  echo "[成功] 合并后数据已顺利推送到远程仓库！"
                   break
                 fi
               fi
               sleep 2
             done
           fi
-
       # ==========================================
       # 联动步骤：仅在检测到 Android 新版本时唤起全量反编译
       # ==========================================
