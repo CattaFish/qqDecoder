@@ -5861,5 +5861,35 @@
       "source_url": "https://t.me/linqiqi_backup/2952",
       "channel": "官方"
     }
+  ],
+  "537399652": [
+    {
+      "version": "9.3.80.42670",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-23",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/7340cd19264a8c763d0b32e176ed6f7d.apk",
+      "channel": "官方"
+    }
+  ],
+  "537399663": [
+    {
+      "version": "9.3.80.42670",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-23",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/7340cd19264a8c763d0b32e176ed6f7d.apk",
+      "channel": "官方"
+    }
+  ],
+  "537403594": [
+    {
+      "version": "7.0.3.54276",
+      "platform": "macOS",
+      "arch": "Universal",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2951",
+      "channel": "官方"
+    }
   ]
 }

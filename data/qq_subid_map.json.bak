@@ -5831,5 +5831,35 @@
       "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
       "channel": "vivo"
     }
+  ],
+  "537403569": [
+    {
+      "version": "9.9.37.54276",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2950",
+      "channel": "官方"
+    }
+  ],
+  "537403570": [
+    {
+      "version": "9.9.37.54276",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2949",
+      "channel": "官方"
+    }
+  ],
+  "537403582": [
+    {
+      "version": "9.9.37.54276",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-10-23",
+      "source_url": "https://t.me/linqiqi_backup/2952",
+      "channel": "官方"
+    }
   ]
 }
