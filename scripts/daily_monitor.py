@@ -78,27 +78,49 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
     return clean.split("?")[0]
 
 
-def is_newer_version(new_ver: str, old_ver: str) -> bool:
-    """严格判断 new_ver 是否大于 old_ver"""
+def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_old_beta: bool = None) -> bool:
+    """
+    严格版本单调性判断（全面兼顾 Beta 测试版晋级到正式版的情形）
+    彻底避免 9.3.80 正式版被 9.3.80.42670-Beta 降维拦截！
+    """
     if not old_ver:
         return True
     if not new_ver:
         return False
-    if new_ver.strip() == old_ver.strip():
+    if new_ver.strip() == old_ver.strip() and is_new_beta == is_old_beta:
         return False
-    try:
-        v1_clean = new_ver.split("-")[0].strip()
-        v2_clean = old_ver.split("-")[0].strip()
-        p1 = [int(x) for x in re.findall(r"\d+", v1_clean)]
-        p2 = [int(x) for x in re.findall(r"\d+", v2_clean)]
-        for a, b in zip(p1, p2):
-            if a > b:
-                return True
-            if a < b:
-                return False
+
+    if is_old_beta is None:
+        is_old_beta = ("-beta" in old_ver.lower() or "beta" in old_ver.lower())
+    is_new_b = is_new_beta or ("-beta" in new_ver.lower() or "beta" in new_ver.lower())
+
+    v1_clean = new_ver.split("-")[0].strip()
+    v2_clean = old_ver.split("-")[0].strip()
+    p1 = [int(x) for x in re.findall(r"\d+", v1_clean)]
+    p2 = [int(x) for x in re.findall(r"\d+", v2_clean)]
+
+    # 1. 逐段前缀数值比较
+    for a, b in zip(p1, p2):
+        if a > b:
+            return True
+        if a < b:
+            return False
+
+    # 2. ★ 核心突破：前 3 段主版本完全相同时（如 9.3.80 vs 9.3.80.42670）
+    # 若历史记录为 Beta 测试版，而线上迎来了正式版（非 Beta），正式版绝对晋级胜出！
+    if len(p1) >= 3 and len(p2) >= 3 and p1[:3] == p2[:3]:
+        if is_old_beta and not is_new_b:
+            return True
+
+    # 3. 常规长度段数比较（如 9.3.80.42670 > 9.3.80）
+    if len(p1) != len(p2):
         return len(p1) > len(p2)
-    except Exception:
-        return new_ver != old_ver
+
+    # 4. 段数与数字完全相同：若老版本是 Beta，新版本为正式版，正式版胜出
+    if is_old_beta and not is_new_b:
+        return True
+
+    return False
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
@@ -197,15 +219,21 @@ def main():
         except Exception:
             subid_map = {}
 
-    # 提取库中所有已处理过的直链指纹
     processed_url_fps = set()
+    platform_version_arches = {}  # (plat, version) -> set(arch)
+
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
             u = item.get("source_url")
+            p = item.get("platform")
+            v = item.get("version", "").replace("-Beta", "").strip()
+            a = item.get("arch")
             if u:
                 processed_url_fps.add(get_url_fingerprint(u))
+            if p and v and a:
+                platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 2. 采集 Telegram 官方更新（严格备份优先与版本递增判定）
+    # 2. 采集 Telegram 官方更新
     tg_tasks = get_telegram_tasks()
     seen_platform_tasks = set()
 
@@ -214,19 +242,20 @@ def main():
         arch = t["arch"]
         cur_ver = t["version"]
         cur_url = t["url"]
+        is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
-        # 彻底拦截：URL 已经在数据库中，直接跳过
+        # 绝对拦截：直链早已在库中
         if fp_cur in processed_url_fps:
             print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
             continue
 
-        # 彻底拦截：本次运行已收录过同平台、同架构、同版本的任务
         task_dedup_key = (plat, arch, cur_ver)
         if task_dedup_key in seen_platform_tasks:
             continue
 
         recorded_tg_ver, recorded_tg_url, tg_ver_file = get_platform_watermark(plat, subid_map)
+        is_old_beta = ("-beta" in recorded_tg_ver.lower())
 
         should_update = False
         update_reason = ""
@@ -234,12 +263,20 @@ def main():
         if not recorded_tg_ver:
             should_update = True
             update_reason = "首次收录"
-        elif is_newer_version(cur_ver, recorded_tg_ver):
+        elif is_newer_version(cur_ver, recorded_tg_ver, is_new_beta=is_beta, is_old_beta=is_old_beta):
             should_update = True
             update_reason = f"版本升级 ({recorded_tg_ver} -> {cur_ver})"
         else:
-            # ★ 彻底杜绝假换包：若版本号落后或等于本地最高记录，直接跳过，绝不下旧包
-            print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}) <= 本地最高记录 ({recorded_tg_ver})，跳过。")
+            # ★ 核心自愈：若版本号等于本地记录，但该架构在此版本中未曾录入，判定为架构漏包补齐！
+            clean_cur = cur_ver.replace("-Beta", "").strip()
+            clean_rec = recorded_tg_ver.replace("-Beta", "").strip()
+            known_arches = platform_version_arches.get((plat, clean_cur), set())
+
+            if clean_cur == clean_rec and arch not in known_arches:
+                should_update = True
+                update_reason = f"同版本缺失架构自愈补全 ({arch})"
+            else:
+                print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}) <= 本地记录 ({recorded_tg_ver})，跳过。")
 
         if should_update:
             print(f"[TG 监控 - {plat}] ★ 触发更新: [{update_reason}]！加入待处理任务: {arch} -> {cur_url}")
@@ -311,7 +348,7 @@ def main():
                 "ver_file_path": ver_file,
             })
 
-    # 4. 二次精细去重
+    # 4. 二次精细去重与水位线补齐
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
@@ -427,6 +464,7 @@ def main():
 
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
+                    # 优先传递官方直链供反编译，若只有备份链接则透传
                     decompile_apk_url = t.get("official_url") or t["url"]
                     android_info = {
                         "url": decompile_apk_url,
