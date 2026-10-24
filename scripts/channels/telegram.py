@@ -13,7 +13,7 @@ def clean_version_str(v_str: str) -> str:
     return re.sub(r"\s*\(\d+\)", "", str(v_str)).strip()
 
 def normalize_arch_name(raw_text: str) -> str:
-    """统一规范化硬件架构名称，绝不允许出现 DEB_x64 等非规范架构"""
+    """统一规范化硬件架构名称"""
     low = raw_text.lower()
     if any(k in low for k in ["arm64", "aarch64"]): return "Arm"
     if any(k in low for k in ["armv7", "arm"]): return "Arm"
@@ -21,6 +21,7 @@ def normalize_arch_name(raw_text: str) -> str:
     if any(k in low for k in ["x86", "ia32", "i386", "32位", "32"]): return "X86"
     if "loongarch" in low: return "LoongArch"
     if "mips" in low: return "Mips"
+    if any(k in low for k in ["dmg", "pkg"]): return "Universal"
     return "Package"
 
 def get_recent_messages(limit: int = 5):
@@ -63,8 +64,8 @@ def get_recent_messages(limit: int = 5):
 
 def parse_single_message_tasks(msg: dict):
     """
-    单条消息解析核心（行内备份强制优先）：
-    在每一行中，只要检测到备份链接，坚决丢弃官方直链，100% 选用备份链接！
+    单条消息解析核心（绝对备份优先原则）：
+    只要消息中存在 t.me/linqiqi_backup，坚决无视并丢弃所有官方链接，100% 只提取备份链接！
     """
     text = msg["text"]
     html = msg["html"]
@@ -106,104 +107,117 @@ def parse_single_message_tasks(msg: dict):
     linux_ver = clean_version_str(linux_ver)
     android_ver = clean_version_str(android_ver)
 
-    # 2. 行内原子聚合字典: { (platform, arch): { "url": 最终选定URL, "official_url": 官方URL } }
-    row_tasks = {}
+    # 2. 检查本消息是否含有任何备份链接
+    has_backup = ("t.me/linqiqi_backup" in html) or ("t.me/linqiqi_backup" in text)
+
+    # 提取官方备用 APK（仅供下游反编译工作流应急备用）
+    official_apk_url = None
+    all_apks = re.findall(r'href="(https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"]+\.apk[^"]*)"', html)
+    if not all_apks:
+        all_apks = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
+    if all_apks:
+        official_apk_url = all_apks[0]
+
+    tasks_map = {} # (plat, arch) -> task
     current_platform = "Windows"
+    in_backup_section = False
 
     for line in re.split(r"<br\s*/?>|\n", html):
         line_soup = BeautifulSoup(line, "html.parser")
-        line_text = line_soup.get_text()
+        line_text = line_soup.get_text().strip()
+        if not line_text and not line_soup.find("a"):
+            continue
 
-        if "Windows" in line_text: current_platform = "Windows"
-        elif "MacOS" in line_text or "Mac" in line_text: current_platform = "macOS"
-        elif "Linux" in line_text: current_platform = "Linux"
-        elif "Android" in line_text or "Phone" in line_text: current_platform = "Android"
+        # 区块追踪
+        if "备份" in line_text:
+            in_backup_section = True
+        elif "下载" in line_text or "官网" in line_text:
+            in_backup_section = False
+
+        # 平台追踪
+        if any(k in line_text for k in ["Windows", "- Windows"]): current_platform = "Windows"
+        elif any(k in line_text for k in ["MacOS", "Mac", "- MacOS", "- Mac"]): current_platform = "macOS"
+        elif any(k in line_text for k in ["Linux", "- Linux"]): current_platform = "Linux"
+        elif any(k in line_text for k in ["Android", "Phone", "- Android"]): current_platform = "Android"
 
         line_a_tags = line_soup.find_all("a", href=True)
         if not line_a_tags:
             continue
 
-        backup_urls = []
-        official_urls = []
-
+        # ★ 核心原则：如果本消息含有备份链接，但当前行不在备份区且不是备份链接，直接忽略！
         for a in line_a_tags:
             href = a["href"].strip()
             a_txt = a.get_text().strip()
             if "t.me/s/" in href or "t.me/qq_updatelog" in href:
                 continue
 
-            if "t.me/linqiqi_backup" in href or "备份" in a_txt:
-                backup_urls.append(href)
-            elif any(ext in href.lower() for ext in [".exe", ".dmg", ".pkg", ".deb", ".rpm", ".appimage", ".apk"]) or "官网" in a_txt or "downv6" in href or "qqdl" in href:
-                official_urls.append(href)
+            is_this_backup = "t.me/linqiqi_backup" in href or "备份" in a_txt
 
-        if not backup_urls and not official_urls:
-            continue
+            # 如果消息有备份，绝对抛弃任何非备份链接！
+            if has_backup and not is_this_backup:
+                continue
 
-        # ★ 核心改动：行内强制备份优先！有备份就绝对不用官方直链
-        chosen_url = backup_urls[0] if backup_urls else official_urls[0]
-        off_url = official_urls[0] if official_urls else chosen_url
+            # 平台确定
+            target_plat = current_platform
+            if ".apk" in href.lower() or "android" in href.lower():
+                target_plat = "Android"
+            elif ".exe" in href.lower():
+                target_plat = "Windows"
+            elif ".dmg" in href.lower() or ".pkg" in href.lower():
+                target_plat = "macOS"
+            elif any(ext in href.lower() for ext in [".deb", ".rpm", ".appimage"]):
+                target_plat = "Linux"
 
-        # 判断平台
-        target_plat = current_platform
-        if ".apk" in off_url.lower() or "android" in off_url.lower():
-            target_plat = "Android"
-        elif ".exe" in off_url.lower():
-            target_plat = "Windows"
-        elif ".dmg" in off_url.lower() or ".pkg" in off_url.lower():
-            target_plat = "macOS"
-        elif any(ext in off_url.lower() for ext in [".deb", ".rpm", ".appimage"]):
-            target_plat = "Linux"
+            # 架构确定（结合 <a> 文字与所在行文本精准提炼）
+            if target_plat == "Android":
+                target_arch = "Package"
+            elif target_plat == "macOS":
+                target_arch = "Universal"
+            else:
+                target_arch = normalize_arch_name(a_txt)
+                if target_arch == "Package":
+                    target_arch = normalize_arch_name(line_text + " " + href)
 
-        # 判断架构
-        if target_plat == "Android":
-            target_arch = "Package"
-        elif target_plat == "macOS":
-            target_arch = "Universal"
-        else:
-            target_arch = normalize_arch_name(line_text + " " + off_url)
+            key = (target_plat, target_arch)
 
-        key = (target_plat, target_arch)
-        # 若已有记录且当前是备份链接，则覆盖升级
-        if key not in row_tasks or ("t.me/linqiqi_backup" in chosen_url and "t.me/linqiqi_backup" not in row_tasks[key]["url"]):
-            row_tasks[key] = {"url": chosen_url, "official_url": off_url}
+            # 同一平台同一架构下，优先保留备份链接
+            if key not in tasks_map or (is_this_backup and "t.me/linqiqi_backup" not in tasks_map[key]["url"]):
+                ver = (
+                    win_ver if target_plat == "Windows"
+                    else mac_ver if target_plat == "macOS"
+                    else linux_ver if target_plat == "Linux"
+                    else android_ver
+                ) or "Unknown"
 
-    # 3. 兼容处理纯文本中直接给出的裸链接（如 731 中的 Android 官方包）
-    naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
-    naked_urls += re.findall(r'https?://t.me/linqiqi_backup/\d+', text)
-    if naked_urls:
-        b_cands = [u for u in naked_urls if "t.me/linqiqi_backup" in u]
-        o_cands = [u for u in naked_urls if "t.me/linqiqi_backup" not in u]
-        chosen_apk = b_cands[0] if b_cands else o_cands[0]
-        off_apk = o_cands[0] if o_cands else chosen_apk
+                tasks_map[key] = {
+                    "platform": target_plat,
+                    "arch": target_arch,
+                    "version": ver,
+                    "date": date,
+                    "url": href,
+                    "official_url": official_apk_url or href,
+                    "is_beta": is_beta,
+                    "channel": "官方",
+                    "post_id": post_id,
+                }
 
-        # 仅在尚未解析出 Android 时补全
-        if ("Android", "Package") not in row_tasks:
-            row_tasks[("Android", "Package")] = {"url": chosen_apk, "official_url": off_apk}
+    # 3. 兼容处理纯文本中裸露的 APK 链接（如消息 731，完全没有备份链接的情况）
+    if not has_backup and ("Android", "Package") not in tasks_map:
+        naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
+        if naked_urls:
+            tasks_map[("Android", "Package")] = {
+                "platform": "Android",
+                "arch": "Package",
+                "version": android_ver or "Unknown",
+                "date": date,
+                "url": naked_urls[0].strip(),
+                "official_url": naked_urls[0].strip(),
+                "is_beta": is_beta,
+                "channel": "官方",
+                "post_id": post_id,
+            }
 
-    # 4. 生成规范任务
-    tasks = []
-    for (plat, arch), data in row_tasks.items():
-        ver = (
-            win_ver if plat == "Windows"
-            else mac_ver if plat == "macOS"
-            else linux_ver if plat == "Linux"
-            else android_ver
-        ) or "Unknown"
-
-        tasks.append({
-            "platform": plat,
-            "arch": arch,
-            "version": ver,
-            "date": date,
-            "url": data["url"],
-            "official_url": data["official_url"],
-            "is_beta": is_beta,
-            "channel": "官方",
-            "post_id": post_id,
-        })
-
-    return tasks
+    return list(tasks_map.values())
 
 def get_telegram_tasks(*args, **kwargs):
     """获取 Telegram 频道近期最新有效下载任务"""
