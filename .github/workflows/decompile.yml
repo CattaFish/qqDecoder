@@ -187,7 +187,7 @@ jobs:
               f.write(f"has_more={'true' if has_more else 'false'}\n")
 
       # ==========================================
-      # 3. 深度清理磁盘并选定工作空间
+      # 3. 深度清理磁盘并选定最佳分区
       # ==========================================
       - name: Free Disk Space & Detect Best Drive
         if: steps.check_update.outputs.has_update == 'true'
@@ -210,7 +210,7 @@ jobs:
           fi
 
       # ==========================================
-      # 4. 创建轻量安全的 Swap 空间
+      # 4. 创建最高 64GB 动态自适应 Swap 空间
       # ==========================================
       - name: Create Dynamic Swap Space
         if: steps.check_update.outputs.has_update == 'true'
@@ -219,15 +219,17 @@ jobs:
           [ -z "${{ env.TARGET_DIR }}" ] && SWAP_PATH="/swapfile"
           
           AVAIL_GB=$(( ${{ env.BEST_AVAIL_KB }} / 1024 / 1024 ))
-          CALC_SWAP=$(( AVAIL_GB - 20 ))
-          if [ "$CALC_SWAP" -gt 32 ]; then
-            ALLOC_SWAP=32
+          # 保留 16GB 物理磁盘作为基本写盘安全垫，其余尽可能全部拉满 Swap，最高到 64GB
+          CALC_SWAP=$(( AVAIL_GB - 16 ))
+          if [ "$CALC_SWAP" -gt 64 ]; then
+            ALLOC_SWAP=64
           elif [ "$CALC_SWAP" -lt 16 ]; then
             ALLOC_SWAP=16
           else
             ALLOC_SWAP=$CALC_SWAP
           fi
           
+          echo "根据当前分区容量 ($AVAIL_GB GB)，动态开辟 Swap 虚拟内存: ${ALLOC_SWAP}GB"
           sudo swapoff -a || true
           sudo fallocate -l "${ALLOC_SWAP}G" $SWAP_PATH
           sudo chmod 600 $SWAP_PATH
@@ -474,12 +476,11 @@ jobs:
           fi
 
       # ==========================================
-      # 9. 安装优化版 Twinflame (CattaFish fork) 与 Baksmali
+      # 9. 安装 Twinflame (指向 CattaFish fork) 与 Baksmali
       # ==========================================
       - name: Install Twinflame & Baksmali
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
         run: |
-          # ★ 核心改动：拉取 CattaFish fork 的优化版 Twinflame
           git clone --depth 1 https://github.com/CattaFish/twinflame.git _tf_src
           pip install maturin
           cd _tf_src/native
@@ -495,7 +496,7 @@ jobs:
           curl -L -s https://bitbucket.org/JesusFreke/smali/downloads/baksmali-2.5.2.jar -o bin/baksmali.jar
 
       # ==========================================
-      # 10. 执行 Twinflame 与 Baksmali 增量反编译
+      # 10. 执行 Twinflame 与 Baksmali 反编译
       # ==========================================
       - name: Run Twinflame Analysis & Baksmali
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -506,7 +507,6 @@ jobs:
           twinflame prepare new_dex/ -o new.tfr
 
           echo "阶段二: 结构语义混淆全量比对 (优化版 Twinflame)..."
-          # ★ 保留 --find-obfuscated，覆盖根目录所有 a.b.c 混淆类，不加任何包名前缀限制！
           twinflame old.tfr new.tfr \
             --find-obfuscated \
             --skip-external \
@@ -515,10 +515,9 @@ jobs:
             --deobfuscation-map diff_mapping.txt \
             -o report.json
 
-          echo "阶段三: 内存安全模式反编译 Smali..."
+          echo "阶段三: 反编译 Smali..."
           mkdir -p old_smali new_smali
           BAKSMALI_BIN="$GITHUB_WORKSPACE/bin/baksmali.jar"
-          # ★ 约束单次 JVM 堆上限为 1.5GB，使用多核并发加速，杜绝 Swap 暴增
           JAVA_CMD="java -Xms256m -Xmx1536m -XX:+UseParallelGC -jar $BAKSMALI_BIN"
           THREADS=$(nproc || echo 4)
 
@@ -530,7 +529,7 @@ jobs:
           done
 
       # ==========================================
-      # 11. 原生 Python 处理 Smali 差异 (流式零内存版)
+      # 11. 原生 Python 处理 Smali 差异
       # ==========================================
       - name: Process Smali Diff Results
         if: steps.check_update.outputs.has_update == 'true' && steps.prepare_prev.outputs.has_prev_dex == 'true'
@@ -583,7 +582,6 @@ jobs:
           rem_count = 0
           add_count = 0
 
-          # ★ 核心改动：采用流式写入，禁止在内存中维护数万个 diff 文本大列表
           with open(f"{DIR_MODIFIED}/all_modified.diff", 'w', encoding='utf-8') as f_all_mod, \
                open(f"{DIR_REMOVED}/all_removed.diff", 'w', encoding='utf-8') as f_all_rem, \
                open(f"{DIR_ADDED}/all_added.diff", 'w', encoding='utf-8') as f_all_add:
@@ -592,7 +590,6 @@ jobs:
                   old_p = old_files[rel]
                   new_p = new_files[rel]
 
-                  # 尺寸完全相同时先读字节流快速跳过未改动文件
                   s_old = os.path.getsize(old_p)
                   s_new = os.path.getsize(new_p)
                   if s_old == s_new:
@@ -695,7 +692,6 @@ jobs:
           cd workspace
           zip -q -r diff_output.zip diff_output/ changed_smali/
           
-          # ★ 使用 find 避免文件数量过多时 ls 触发参数列表过长 (ARG_MAX) 崩溃
           MOD_COUNT=$(find diff_output/1_MODIFIED/classes -name "*.diff" 2>/dev/null | wc -l)
           REM_COUNT=$(find diff_output/2_REMOVED/classes -name "*.diff" 2>/dev/null | wc -l)
           ADD_COUNT=$(find diff_output/3_ADDED/classes -name "*.diff" 2>/dev/null | wc -l)
@@ -715,7 +711,7 @@ jobs:
           rm -rf old_dex old_smali new_smali prev_download
 
       # ==========================================
-      # 13. 安装 JADX 并执行全量反编译
+      # 13. 安装 JADX 并执行全量反编译 (复用大 Swap 内存拉满)
       # ==========================================
       - name: Install JADX and Decompile Java Source
         if: steps.check_update.outputs.has_update == 'true'
@@ -738,16 +734,24 @@ jobs:
           DECOMPILE_ALL="${{ inputs.decompile_all }}"
           [ -z "$DECOMPILE_ALL" ] && DECOMPILE_ALL="true"
           
-          # ★ 适配物理 RAM 12GB 安全区并加速软引用释放，杜绝 Swap 颠簸
-          export JAVA_OPTS="-Xms2g -Xmx12g -XX:+UseG1GC -XX:SoftRefLRUPolicyMSPerMB=1"
+          # ★ 核心改动：复用系统当前开辟的全部 Swap，动态计算总容量并把 JADX 堆内存拉满（最高 60GB）
+          TOTAL_MEM_GB=$(free -g | awk '/^Mem:/{m=$2} /^Swap:/{s=$2} END{print m+s}')
+          JADX_HEAP=$(( TOTAL_MEM_GB - 8 ))
+          if [ "$JADX_HEAP" -gt 60 ]; then
+            JADX_HEAP=60
+          elif [ "$JADX_HEAP" -lt 28 ]; then
+            JADX_HEAP=28
+          fi
+          
+          echo "=========================================="
+          echo "🚀 正在执行【全量反编译】所有 DEX 字节码..."
+          echo "检测到虚拟总容量: ${TOTAL_MEM_GB}GB | 联动为 JADX 分配最大堆内存: ${JADX_HEAP}GB"
+          echo "=========================================="
+          
+          export JAVA_OPTS="-Xms4g -Xmx${JADX_HEAP}g -XX:+UseG1GC"
           THREADS=$(nproc || echo 4)
           
           if [ "$DECOMPILE_ALL" = "true" ]; then
-            echo "=========================================="
-            echo "🚀 正在执行【全量反编译】所有 DEX 字节码..."
-            echo "线程数: $THREADS | JVM 最大堆内存: 12GB (物理内存安全版)"
-            echo "=========================================="
-            
             set +e
             "$GITHUB_WORKSPACE/bin/jadx/bin/jadx" \
               -d java_final \
