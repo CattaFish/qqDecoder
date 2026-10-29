@@ -84,7 +84,7 @@ def is_bad_item(s_id, item):
 
 
 def load_and_sanitize_database():
-    """读取已有数据，平滑升级并自动补齐 is_beta 标记，清理残缺数据"""
+    """读取已有数据，平滑升级为列表结构，清理残缺数据，保持历史数据绝对纯净"""
     raw_map = {}
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -94,9 +94,7 @@ def load_and_sanitize_database():
                 raw_map = json.loads(f.read_text(encoding="utf-8"))
                 break
             except Exception as e:
-                print(
-                    f"[警告] 读取 {f.name} 失败 ({e})，尝试备用文件...", flush=True
-                )
+                print(f"[警告] 读取 {f.name} 失败 ({e})，尝试备用文件...", flush=True)
 
     if not raw_map:
         return {}
@@ -116,25 +114,17 @@ def load_and_sanitize_database():
                     flush=True,
                 )
             else:
-                # 自动为存量历史记录补齐 is_beta 标记
-                if "is_beta" not in item:
-                    v = str(item.get("version", ""))
-                    u = str(item.get("source_url", ""))
-                    item["is_beta"] = bool("-beta" in v.lower() or "beta" in v.lower() or "beta" in u.lower())
                 valid_items.append(item)
 
         if valid_items:
             cleaned_map[s_id] = valid_items
 
     if purged_count > 0:
-        print(
-            f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条数据进入重跑队列。\n",
-            flush=True,
-        )
+        print(f"[自愈完成] 历史数据体检完毕，已清理 {purged_count} 条数据进入重跑队列。\n", flush=True)
         save_database_atomically(cleaned_map)
 
     return cleaned_map
-
+    
 
 def save_database_atomically(data_map):
     """原子写盘与备份，并同步派生编译 subid.json"""
