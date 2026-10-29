@@ -16,19 +16,15 @@ REAL_HW_ARCHES = {
 }
 
 PACKAGE_FORMATS = {"rpm", "deb", "appimage", "dmg", "pkg", "apk"}
-# 将 is_beta 列为标准字段，防止被当作 extra 键错误拼接
 STANDARD_RAW_KEYS = {"platform", "arch", "version", "date", "source_url", "is_beta"}
 
 
 def is_item_beta(item: dict) -> bool:
-    """精准判断单个实体是否包含 Beta 测试版特征"""
+    """仅当条目明确被标记或明确包含 -Beta 时才认定为测试版"""
     if item.get("is_beta") is True or str(item.get("is_beta", "")).lower() == "true":
         return True
-    ver = str(item.get("version", "")).lower()
-    url = str(item.get("source_url", "")).lower()
-    if "-beta" in ver or "beta" in ver:
-        return True
-    if "-beta" in url or "beta" in url:
+    ver = str(item.get("version", ""))
+    if "-Beta" in ver or "-beta" in ver.lower():
         return True
     return False
 
@@ -60,13 +56,12 @@ def build_single_entry(subid: str, items: list) -> dict:
 
     arch_display = hw_arches[0] if len(hw_arches) == 1 else None
 
-    # 识别当前 SubID 关联实体是否属于测试版
+    # 仅检测是否明确是 Beta
     is_beta = any(is_item_beta(it) for it in items)
 
     ver_str = " / ".join(versions) if versions else "未知版本"
     plat_low = platform.lower()
 
-    # 保持原版 summary 前缀逻辑，不做任何改动
     if "win" in plat_low:
         prefix = f"QQ(Win-{arch_display})" if arch_display else "QQ(Win)"
     elif "mac" in plat_low:
@@ -87,9 +82,13 @@ def build_single_entry(subid: str, items: list) -> dict:
     entry = {
         "summary": summary,
         "platform": platform,
-        "version": ver_str,
-        "is_beta": is_beta,  # 打上运行时 is_beta 布尔标记
+        "version": ver_str
     }
+
+    # ★ 稀疏原则：只有确认为测试版时才写入，未标注或正式版绝不强塞
+    if is_beta:
+        entry["is_beta"] = True
+
     if arch_display:
         entry["arch"] = arch_display
     elif hw_arches:
@@ -104,7 +103,6 @@ def build_single_entry(subid: str, items: list) -> dict:
         if len(dates) > 1:
             entry["dates"] = dates
 
-    # 仅透传 channel 等新增键
     all_extra_keys = set()
     for it in items:
         all_extra_keys.update(k for k in it.keys() if k not in STANDARD_RAW_KEYS)
