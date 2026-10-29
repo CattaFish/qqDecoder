@@ -16,7 +16,21 @@ REAL_HW_ARCHES = {
 }
 
 PACKAGE_FORMATS = {"rpm", "deb", "appimage", "dmg", "pkg", "apk"}
-STANDARD_RAW_KEYS = {"platform", "arch", "version", "date", "source_url"}
+# 将 is_beta 列为标准字段，防止被当作 extra 键错误拼接
+STANDARD_RAW_KEYS = {"platform", "arch", "version", "date", "source_url", "is_beta"}
+
+
+def is_item_beta(item: dict) -> bool:
+    """精准判断单个实体是否包含 Beta 测试版特征"""
+    if item.get("is_beta") is True or str(item.get("is_beta", "")).lower() == "true":
+        return True
+    ver = str(item.get("version", "")).lower()
+    url = str(item.get("source_url", "")).lower()
+    if "-beta" in ver or "beta" in ver:
+        return True
+    if "-beta" in url or "beta" in url:
+        return True
+    return False
 
 
 def build_single_entry(subid: str, items: list) -> dict:
@@ -46,6 +60,9 @@ def build_single_entry(subid: str, items: list) -> dict:
 
     arch_display = hw_arches[0] if len(hw_arches) == 1 else None
 
+    # 识别当前 SubID 关联实体是否属于测试版
+    is_beta = any(is_item_beta(it) for it in items)
+
     ver_str = " / ".join(versions) if versions else "未知版本"
     plat_low = platform.lower()
 
@@ -70,7 +87,8 @@ def build_single_entry(subid: str, items: list) -> dict:
     entry = {
         "summary": summary,
         "platform": platform,
-        "version": ver_str
+        "version": ver_str,
+        "is_beta": is_beta,  # 打上运行时 is_beta 布尔标记
     }
     if arch_display:
         entry["arch"] = arch_display
@@ -86,9 +104,7 @@ def build_single_entry(subid: str, items: list) -> dict:
         if len(dates) > 1:
             entry["dates"] = dates
 
-    # -------------------------------------------------------------
-    # 仅在此处保留新增键（例如 channel / 渠道 等扩展键）
-    # -------------------------------------------------------------
+    # 仅透传 channel 等新增键
     all_extra_keys = set()
     for it in items:
         all_extra_keys.update(k for k in it.keys() if k not in STANDARD_RAW_KEYS)
