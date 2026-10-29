@@ -124,7 +124,10 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
-    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，优先保留官方直链，补齐 is_beta 标记"""
+    """
+    全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，优先保留官方直链。
+    ★ 遵循不可变历史账本原则：保持历史存量条目绝对纯净，绝不强行批量注入 is_beta 字段！
+    """
     cleaned_map = {}
     purged_count = 0
     for s_id, val in raw_map.items():
@@ -136,14 +139,6 @@ def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
             a = item.get("arch", "").strip()
             c = item.get("channel", "").strip()
             url = item.get("source_url", "").strip()
-
-            # 自动自愈补齐历史遗留条目的 is_beta 标记
-            if "is_beta" not in item:
-                item["is_beta"] = bool(
-                    "-beta" in v.lower()
-                    or "beta" in v.lower()
-                    or "beta" in url.lower()
-                )
 
             key = (p, a, c, v)
             if key not in unique_entities:
@@ -213,7 +208,7 @@ def main():
     versions_to_record = {}
     has_synced_watermark = False
 
-    # 1. 预载数据库
+    # 1. 预载数据库（历史数据去重自愈，绝不注水污染已有字段）
     subid_map = {}
     purged_count = 0
     if DATA_FILE.exists():
@@ -221,7 +216,7 @@ def main():
             subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
             subid_map, purged_count = sanitize_and_deduplicate_map(subid_map)
             if purged_count > 0:
-                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录并补齐 Beta 标记: {purged_count} 条！立即持久化落盘...")
+                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录: {purged_count} 条！立即持久化落盘...")
                 save_database_and_runtime(subid_map)
         except Exception:
             subid_map = {}
@@ -240,7 +235,7 @@ def main():
             if p and v and a:
                 platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 2. 采集 Telegram 官方更新（保持原样）
+    # 2. 采集 Telegram 官方更新（严格备份独占）
     tg_tasks = get_telegram_tasks()
     seen_platform_tasks = set()
 
@@ -309,13 +304,13 @@ def main():
         cur_url = info["download_url"]
         fp_cur = get_url_fingerprint(cur_url, name)
 
-        # 感知应用市场渠道包是否为测试版
+        # 动态感知应用市场渠道包是否为测试版
         is_market_beta = bool(
             re.search(r"beta|内测|体验|preview|rc", cur_ver, re.IGNORECASE)
             or re.search(r"beta|内测|体验", cur_url, re.IGNORECASE)
         )
 
-        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'} | Beta: {is_market_beta}")
+        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
 
         if fp_cur in processed_url_fps:
             print(f"[{name}监控] 安装包链接已在库中，无需下载。")
@@ -433,14 +428,12 @@ def main():
             if subid_pairs:
                 has_subid_extracted = True
 
-                # 识别当前 SubID 是否为 Beta 测试版
+                # 判定当前下载的包是否属于测试版
                 is_beta_flag = bool(
                     t.get("is_beta")
                     or "-beta" in clean_ver.lower()
-                    or "beta" in clean_ver.lower()
-                    or "beta" in base_ver.lower()
-                    or "beta" in fname.lower()
-                    or "beta" in t.get("url", "").lower()
+                    or "-beta" in base_ver.lower()
+                    or "-beta" in fname.lower()
                 )
                 if is_beta_flag and not clean_ver.endswith("-Beta"):
                     clean_ver = f"{clean_ver}-Beta"
@@ -449,10 +442,17 @@ def main():
                     ch_label = t.get("channel", "官方")
                     print(f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {ch_label} | Beta: {is_beta_flag} | SubID: {s_id}")
                     new_item = {
-                        "version": clean_ver, "platform": plat, "arch": a_val,
-                        "date": t["date"], "source_url": t["url"], "channel": ch_label,
-                        "is_beta": is_beta_flag,  # 显式打标写入主数据库
+                        "version": clean_ver, 
+                        "platform": plat, 
+                        "arch": a_val,
+                        "date": t["date"], 
+                        "source_url": t["url"], 
+                        "channel": ch_label,
                     }
+
+                    # ★ 稀疏原则：仅确认为测试版时打上 is_beta 属性，非测试版保持字段干净，不强塞 false
+                    if is_beta_flag:
+                        new_item["is_beta"] = True
 
                     if s_id not in subid_map:
                         subid_map[s_id] = [new_item]
