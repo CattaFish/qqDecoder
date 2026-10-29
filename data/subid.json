@@ -3,6 +3,7 @@
     "summary": "QQ(Mac) 7.0.3.54276",
     "platform": "macOS",
     "version": "7.0.3.54276",
+    "is_beta": false,
     "date": "2026-10-23",
     "channel": "官方"
   },
@@ -10,6 +11,7 @@
     "summary": "QQ(Win-Arm) 9.9.37.54276",
     "platform": "Windows",
     "version": "9.9.37.54276",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-10-23",
     "channel": "官方"
@@ -18,6 +20,7 @@
     "summary": "QQ(Win-X64) 9.9.37.54276",
     "platform": "Windows",
     "version": "9.9.37.54276",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-10-23",
     "channel": "官方"
@@ -26,22 +29,25 @@
     "summary": "QQ(Win-X86) 9.9.37.54276",
     "platform": "Windows",
     "version": "9.9.37.54276",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-10-23",
     "channel": "官方"
   },
   "537399663": {
-    "summary": "QQ(Pad) 9.3.80.42670",
+    "summary": "QQ(Pad) 9.3.80.42670-Beta",
     "platform": "Android",
-    "version": "9.3.80.42670",
+    "version": "9.3.80.42670-Beta",
+    "is_beta": true,
     "arch": "Pad",
     "date": "2026-10-23",
     "channel": "官方"
   },
   "537399652": {
-    "summary": "QQ 9.3.80.42670",
+    "summary": "QQ 9.3.80.42670-Beta",
     "platform": "Android",
-    "version": "9.3.80.42670",
+    "version": "9.3.80.42670-Beta",
+    "is_beta": true,
     "date": "2026-10-23",
     "channel": "官方"
   },
@@ -49,6 +55,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-19",
     "channel": "应用汇"
@@ -57,6 +64,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-24",
     "channel": "百度"
@@ -65,6 +73,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-20",
     "channel": "豌豆荚"
@@ -73,6 +82,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-20",
     "channel": "OPPO"
@@ -81,6 +91,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-19",
     "channel": "小米"
@@ -89,6 +100,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-19",
     "channel": "荣耀"
@@ -97,6 +109,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-14",
     "channel": "华为"
@@ -105,6 +118,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-19",
     "channel": "vivo"
@@ -113,6 +127,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-13 / 2026-10-23 / 2026-10-01",
     "dates": [
@@ -131,6 +146,7 @@
     "summary": "QQ(Pad) 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-13",
     "channel": "官方"
@@ -139,6 +155,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-19",
     "channel": "应用汇"
   },
@@ -146,6 +163,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-24",
     "channel": "百度"
   },
@@ -153,6 +171,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-20",
     "channel": "豌豆荚"
   },
@@ -160,6 +179,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-20",
     "channel": "OPPO"
   },
@@ -167,6 +187,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-19",
     "channel": "小米"
   },
@@ -174,6 +195,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-19",
     "channel": "荣耀"
   },
@@ -181,6 +203,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-14",
     "channel": "华为"
   },
@@ -188,6 +211,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-19",
     "channel": "vivo"
   },
@@ -195,6 +219,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-13 / 2026-10-23 / 2026-10-01",
     "dates": [
       "2026-10-13",
@@ -212,6 +237,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "is_beta": false,
     "date": "2026-10-13",
     "channel": "官方"
   },
@@ -219,6 +245,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-09-29",
     "channel": "豌豆荚"
@@ -227,6 +254,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-17",
     "channel": "OPPO"
@@ -235,6 +263,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-14",
     "channel": "小米"
@@ -243,6 +272,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-10-15",
     "channel": "荣耀"
@@ -251,6 +281,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-09-24",
     "channel": "华为"
@@ -259,6 +290,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-09-28",
     "channel": "vivo"
@@ -267,6 +299,7 @@
     "summary": "QQ(Pad) 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-09-24"
   },
@@ -274,6 +307,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-09-29",
     "channel": "豌豆荚"
   },
@@ -281,6 +315,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-10-17",
     "channel": "OPPO"
   },
@@ -288,6 +323,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-10-14",
     "channel": "小米"
   },
@@ -295,6 +331,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-10-15",
     "channel": "荣耀"
   },
@@ -302,6 +339,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-09-24",
     "channel": "华为"
   },
@@ -309,6 +347,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-09-28",
     "channel": "vivo"
   },
@@ -316,12 +355,14 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "is_beta": false,
     "date": "2026-09-24"
   },
   "537393139": {
     "summary": "QQ(Pad) 9.3.65.41500",
     "platform": "Android",
     "version": "9.3.65.41500",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-09-15"
   },
@@ -329,12 +370,14 @@
     "summary": "QQ 9.3.65.41500",
     "platform": "Android",
     "version": "9.3.65.41500",
+    "is_beta": false,
     "date": "2026-09-15"
   },
   "537391666": {
     "summary": "QQ(Linux-LoongArch) 3.2.34.53644",
     "platform": "Linux",
     "version": "3.2.34.53644",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-09-23"
   },
@@ -342,6 +385,7 @@
     "summary": "QQ(Linux-Arm) 3.2.34.53644",
     "platform": "Linux",
     "version": "3.2.34.53644",
+    "is_beta": true,
     "arch": "Arm",
     "date": "2026-09-23",
     "channel": "官方"
@@ -350,6 +394,7 @@
     "summary": "QQ(Linux-X64) 3.2.34.53644",
     "platform": "Linux",
     "version": "3.2.34.53644",
+    "is_beta": true,
     "arch": "X64",
     "packages": [
       "RPM",
@@ -363,6 +408,7 @@
     "summary": "QQ(Mac) 7.0.2.53644",
     "platform": "macOS",
     "version": "7.0.2.53644",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -372,6 +418,7 @@
     "summary": "QQ(Win-Arm) 9.9.36.53644",
     "platform": "Windows",
     "version": "9.9.36.53644",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-09-23"
   },
@@ -379,6 +426,7 @@
     "summary": "QQ(Win-X64) 9.9.36.53644",
     "platform": "Windows",
     "version": "9.9.36.53644",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-09-23"
   },
@@ -386,6 +434,7 @@
     "summary": "QQ(Win-X86) 9.9.36.53644",
     "platform": "Windows",
     "version": "9.9.36.53644",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-09-23"
   },
@@ -393,6 +442,7 @@
     "summary": "QQ(Mac) 7.0.2.53489",
     "platform": "macOS",
     "version": "7.0.2.53489",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -402,6 +452,7 @@
     "summary": "QQ(Win-Arm) 9.9.36.53489",
     "platform": "Windows",
     "version": "9.9.36.53489",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-09-20"
   },
@@ -409,6 +460,7 @@
     "summary": "QQ(Win-X64) 9.9.36.53489",
     "platform": "Windows",
     "version": "9.9.36.53489",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-09-20"
   },
@@ -416,6 +468,7 @@
     "summary": "QQ(Win-X86) 9.9.36.53489",
     "platform": "Windows",
     "version": "9.9.36.53489",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-09-20"
   },
@@ -423,6 +476,7 @@
     "summary": "QQ(Pad) 9.3.60.41075",
     "platform": "Android",
     "version": "9.3.60.41075",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-09-08"
   },
@@ -430,12 +484,14 @@
     "summary": "QQ 9.3.60.41075",
     "platform": "Android",
     "version": "9.3.60.41075",
+    "is_beta": false,
     "date": "2026-09-08"
   },
   "537386883": {
     "summary": "QQ(Pad) 9.3.55.40650",
     "platform": "Android",
     "version": "9.3.55.40650",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-08-27"
   },
@@ -443,12 +499,14 @@
     "summary": "QQ 9.3.55.40650",
     "platform": "Android",
     "version": "9.3.55.40650",
+    "is_beta": false,
     "date": "2026-08-27"
   },
   "537384534": {
     "summary": "QQ(Pad) 9.3.50.40225",
     "platform": "Android",
     "version": "9.3.50.40225",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-08-18"
   },
@@ -456,12 +514,14 @@
     "summary": "QQ 9.3.50.40225",
     "platform": "Android",
     "version": "9.3.50.40225",
+    "is_beta": false,
     "date": "2026-08-18"
   },
   "537382858": {
     "summary": "QQ(Linux-Mips) 3.2.33.52892",
     "platform": "Linux",
     "version": "3.2.33.52892",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-08-28"
   },
@@ -469,6 +529,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.33.52892",
     "platform": "Linux",
     "version": "3.2.33.52892",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-08-28"
   },
@@ -476,6 +537,7 @@
     "summary": "QQ(Linux) 3.2.33.52892",
     "platform": "Linux",
     "version": "3.2.33.52892",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -487,6 +549,7 @@
     "summary": "QQ(Mac) 7.0.1.52892",
     "platform": "macOS",
     "version": "7.0.1.52892",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -496,6 +559,7 @@
     "summary": "QQ(Win-Arm) 9.9.35.52892",
     "platform": "Windows",
     "version": "9.9.35.52892",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-08-28"
   },
@@ -503,6 +567,7 @@
     "summary": "QQ(Win-X64) 9.9.35.52892",
     "platform": "Windows",
     "version": "9.9.35.52892",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-08-28"
   },
@@ -510,6 +575,7 @@
     "summary": "QQ(Win-X86) 9.9.35.52892",
     "platform": "Windows",
     "version": "9.9.35.52892",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-08-28"
   },
@@ -517,6 +583,7 @@
     "summary": "QQ(Mac) 7.0.1.52804",
     "platform": "macOS",
     "version": "7.0.1.52804",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -526,6 +593,7 @@
     "summary": "QQ(Win-Arm) 9.9.35.52804",
     "platform": "Windows",
     "version": "9.9.35.52804",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-08-26"
   },
@@ -533,6 +601,7 @@
     "summary": "QQ(Win-X64) 9.9.35.52804",
     "platform": "Windows",
     "version": "9.9.35.52804",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-08-26"
   },
@@ -540,6 +609,7 @@
     "summary": "QQ(Win-X86) 9.9.35.52804",
     "platform": "Windows",
     "version": "9.9.35.52804",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-08-26"
   },
@@ -547,6 +617,7 @@
     "summary": "QQ(Pad) 9.3.35.39800",
     "platform": "Android",
     "version": "9.3.35.39800",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-08-07"
   },
@@ -554,12 +625,14 @@
     "summary": "QQ 9.3.35.39800",
     "platform": "Android",
     "version": "9.3.35.39800",
+    "is_beta": false,
     "date": "2026-08-07"
   },
   "537379450": {
     "summary": "QQ(Linux-Mips) 3.2.32.52194",
     "platform": "Linux",
     "version": "3.2.32.52194",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-08-11"
   },
@@ -567,6 +640,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.32.52194",
     "platform": "Linux",
     "version": "3.2.32.52194",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-08-11"
   },
@@ -574,6 +648,7 @@
     "summary": "QQ(Linux) 3.2.32.52194",
     "platform": "Linux",
     "version": "3.2.32.52194",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -585,6 +660,7 @@
     "summary": "QQ(Mac) 7.0.0.52194",
     "platform": "macOS",
     "version": "7.0.0.52194",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -594,6 +670,7 @@
     "summary": "QQ(Win-Arm) 9.9.33.52230",
     "platform": "Windows",
     "version": "9.9.33.52230",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-08-11"
   },
@@ -601,6 +678,7 @@
     "summary": "QQ(Win-X64) 9.9.33.52230",
     "platform": "Windows",
     "version": "9.9.33.52230",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-08-11"
   },
@@ -608,6 +686,7 @@
     "summary": "QQ(Win-X86) 9.9.33.52230",
     "platform": "Windows",
     "version": "9.9.33.52230",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-08-11"
   },
@@ -615,6 +694,7 @@
     "summary": "QQ(Linux-Mips) 3.2.32.52074",
     "platform": "Linux",
     "version": "3.2.32.52074",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-08-06"
   },
@@ -622,6 +702,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.32.52074",
     "platform": "Linux",
     "version": "3.2.32.52074",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-08-06"
   },
@@ -629,6 +710,7 @@
     "summary": "QQ(Linux) 3.2.32.52074",
     "platform": "Linux",
     "version": "3.2.32.52074",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -640,6 +722,7 @@
     "summary": "QQ(Mac) 7.0.0.52074",
     "platform": "macOS",
     "version": "7.0.0.52074",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -649,6 +732,7 @@
     "summary": "QQ(Win-Arm) 9.9.33.52074",
     "platform": "Windows",
     "version": "9.9.33.52074",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-08-06"
   },
@@ -656,6 +740,7 @@
     "summary": "QQ(Win-X64) 9.9.33.52074",
     "platform": "Windows",
     "version": "9.9.33.52074",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-08-06"
   },
@@ -663,6 +748,7 @@
     "summary": "QQ(Win-X86) 9.9.33.52074",
     "platform": "Windows",
     "version": "9.9.33.52074",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-08-06"
   },
@@ -670,6 +756,7 @@
     "summary": "QQ(Pad) 9.3.30.39375",
     "platform": "Android",
     "version": "9.3.30.39375",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-07-28"
   },
@@ -677,12 +764,14 @@
     "summary": "QQ 9.3.30.39375",
     "platform": "Android",
     "version": "9.3.30.39375",
+    "is_beta": false,
     "date": "2026-07-28"
   },
   "537376857": {
     "summary": "QQ(Linux-Mips) 3.2.32.51802",
     "platform": "Linux",
     "version": "3.2.32.51802",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-07-29"
   },
@@ -690,6 +779,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.32.51802",
     "platform": "Linux",
     "version": "3.2.32.51802",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-07-29"
   },
@@ -697,6 +787,7 @@
     "summary": "QQ(Linux) 3.2.32.51802",
     "platform": "Linux",
     "version": "3.2.32.51802",
+    "is_beta": false,
     "packages": [
       "RPM"
     ],
@@ -706,6 +797,7 @@
     "summary": "QQ(Linux) 3.2.32.51802",
     "platform": "Linux",
     "version": "3.2.32.51802",
+    "is_beta": false,
     "packages": [
       "DEB",
       "APPIMAGE"
@@ -716,6 +808,7 @@
     "summary": "QQ(Mac) 6.9.99.51802",
     "platform": "macOS",
     "version": "6.9.99.51802",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -725,6 +818,7 @@
     "summary": "QQ(Win-Arm) 9.9.33.51802",
     "platform": "Windows",
     "version": "9.9.33.51802",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-07-29"
   },
@@ -732,6 +826,7 @@
     "summary": "QQ(Win-X64) 9.9.33.51802",
     "platform": "Windows",
     "version": "9.9.33.51802",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-07-29"
   },
@@ -739,6 +834,7 @@
     "summary": "QQ(Win-X86) 9.9.33.51802",
     "platform": "Windows",
     "version": "9.9.33.51802",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-07-29"
   },
@@ -746,6 +842,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.32.51728",
     "platform": "Linux",
     "version": "3.2.32.51728",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-07-25"
   },
@@ -753,6 +850,7 @@
     "summary": "QQ(Linux) 3.2.32.51728",
     "platform": "Linux",
     "version": "3.2.32.51728",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -764,6 +862,7 @@
     "summary": "QQ(Mac) 6.9.99.51728",
     "platform": "macOS",
     "version": "6.9.99.51728",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -773,6 +872,7 @@
     "summary": "QQ(Win-Arm) 9.9.33.51728",
     "platform": "Windows",
     "version": "9.9.33.51728",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-07-25"
   },
@@ -780,6 +880,7 @@
     "summary": "QQ(Win-X64) 9.9.33.51728",
     "platform": "Windows",
     "version": "9.9.33.51728",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-07-25"
   },
@@ -787,6 +888,7 @@
     "summary": "QQ(Win-X86) 9.9.33.51728",
     "platform": "Windows",
     "version": "9.9.33.51728",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-07-25"
   },
@@ -794,6 +896,7 @@
     "summary": "QQ(Mac) 6.9.99.51552",
     "platform": "macOS",
     "version": "6.9.99.51552",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -803,6 +906,7 @@
     "summary": "QQ(Win-Arm) 9.9.33.51552",
     "platform": "Windows",
     "version": "9.9.33.51552",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-07-21"
   },
@@ -810,6 +914,7 @@
     "summary": "QQ(Win-X64) 9.9.33.51552",
     "platform": "Windows",
     "version": "9.9.33.51552",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-07-21"
   },
@@ -817,6 +922,7 @@
     "summary": "QQ(Win-X86) 9.9.33.51552",
     "platform": "Windows",
     "version": "9.9.33.51552",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-07-21"
   },
@@ -824,6 +930,7 @@
     "summary": "QQ(Linux-Mips) 3.2.30.50969",
     "platform": "Linux",
     "version": "3.2.30.50969",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-07-04"
   },
@@ -831,6 +938,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.30.50969",
     "platform": "Linux",
     "version": "3.2.30.50969",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-07-04"
   },
@@ -838,6 +946,7 @@
     "summary": "QQ(Linux) 3.2.30.50969",
     "platform": "Linux",
     "version": "3.2.30.50969",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -849,6 +958,7 @@
     "summary": "QQ(Mac) 6.9.98.50969",
     "platform": "macOS",
     "version": "6.9.98.50969",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -858,6 +968,7 @@
     "summary": "QQ(Win-Arm) 9.9.32.50969",
     "platform": "Windows",
     "version": "9.9.32.50969",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-07-04"
   },
@@ -865,6 +976,7 @@
     "summary": "QQ(Win-X64) 9.9.32.50969",
     "platform": "Windows",
     "version": "9.9.32.50969",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-07-04"
   },
@@ -872,6 +984,7 @@
     "summary": "QQ(Win-X86) 9.9.32.50969",
     "platform": "Windows",
     "version": "9.9.32.50969",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-07-04"
   },
@@ -879,6 +992,7 @@
     "summary": "QQ(Pad) 9.3.25.38950",
     "platform": "Android",
     "version": "9.3.25.38950",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-07-17"
   },
@@ -886,12 +1000,14 @@
     "summary": "QQ 9.3.25.38950",
     "platform": "Android",
     "version": "9.3.25.38950",
+    "is_beta": false,
     "date": "2026-07-17"
   },
   "537372176": {
     "summary": "QQ(Pad) 9.3.20.38525",
     "platform": "Android",
     "version": "9.3.20.38525",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-07-08"
   },
@@ -899,12 +1015,14 @@
     "summary": "QQ 9.3.20.38525",
     "platform": "Android",
     "version": "9.3.20.38525",
+    "is_beta": false,
     "date": "2026-07-08"
   },
   "537369838": {
     "summary": "QQ(Pad) 9.3.15.38100",
     "platform": "Android",
     "version": "9.3.15.38100",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-06-30"
   },
@@ -912,12 +1030,14 @@
     "summary": "QQ 9.3.15.38100",
     "platform": "Android",
     "version": "9.3.15.38100",
+    "is_beta": false,
     "date": "2026-06-30"
   },
   "537367500": {
     "summary": "QQ(Pad) 9.3.10.37675",
     "platform": "Android",
     "version": "9.3.10.37675",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-06-23"
   },
@@ -925,12 +1045,14 @@
     "summary": "QQ 9.3.10.37675",
     "platform": "Android",
     "version": "9.3.10.37675",
+    "is_beta": false,
     "date": "2026-06-23"
   },
   "537365162": {
     "summary": "QQ(Pad) 9.3.5.37250",
     "platform": "Android",
     "version": "9.3.5.37250",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-06-17"
   },
@@ -938,12 +1060,14 @@
     "summary": "QQ 9.3.5.37250",
     "platform": "Android",
     "version": "9.3.5.37250",
+    "is_beta": false,
     "date": "2026-06-17"
   },
   "537360606": {
     "summary": "QQ(Pad) 9.3.1.36845",
     "platform": "Android",
     "version": "9.3.1.36845",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-06-11"
   },
@@ -951,12 +1075,14 @@
     "summary": "QQ 9.3.1.36845",
     "platform": "Android",
     "version": "9.3.1.36845",
+    "is_beta": false,
     "date": "2026-06-11"
   },
   "537360294": {
     "summary": "QQ(Pad) 9.3.0.36825",
     "platform": "Android",
     "version": "9.3.0.36825",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-06-10"
   },
@@ -964,12 +1090,14 @@
     "summary": "QQ 9.3.0.36825",
     "platform": "Android",
     "version": "9.3.0.36825",
+    "is_beta": false,
     "date": "2026-06-10"
   },
   "537358778": {
     "summary": "QQ(Linux-Mips) 3.2.30.50828",
     "platform": "Linux",
     "version": "3.2.30.50828",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-06-30"
   },
@@ -977,6 +1105,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.30.50828",
     "platform": "Linux",
     "version": "3.2.30.50828",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-06-30"
   },
@@ -984,6 +1113,7 @@
     "summary": "QQ(Linux) 3.2.30.50828",
     "platform": "Linux",
     "version": "3.2.30.50828",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -995,6 +1125,7 @@
     "summary": "QQ(Mac) 6.9.97.50828",
     "platform": "macOS",
     "version": "6.9.97.50828",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1004,6 +1135,7 @@
     "summary": "QQ(Win-Arm) 9.9.32.50828",
     "platform": "Windows",
     "version": "9.9.32.50828",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-06-30"
   },
@@ -1011,6 +1143,7 @@
     "summary": "QQ(Win-X64) 9.9.32.50828",
     "platform": "Windows",
     "version": "9.9.32.50828",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-06-30"
   },
@@ -1018,6 +1151,7 @@
     "summary": "QQ(Win-X86) 9.9.32.50828",
     "platform": "Windows",
     "version": "9.9.32.50828",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-06-30"
   },
@@ -1025,6 +1159,7 @@
     "summary": "QQ(Mac) 6.9.97.50776",
     "platform": "macOS",
     "version": "6.9.97.50776",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1034,6 +1169,7 @@
     "summary": "QQ(Win-Arm) 9.9.32.50776",
     "platform": "Windows",
     "version": "9.9.32.50776",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-06-29"
   },
@@ -1041,6 +1177,7 @@
     "summary": "QQ(Win-X64) 9.9.32.50776",
     "platform": "Windows",
     "version": "9.9.32.50776",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-06-29"
   },
@@ -1048,6 +1185,7 @@
     "summary": "QQ(Win-X86) 9.9.32.50776",
     "platform": "Windows",
     "version": "9.9.32.50776",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-06-29"
   },
@@ -1055,6 +1193,7 @@
     "summary": "QQ(Pad) 9.2.95.36400",
     "platform": "Android",
     "version": "9.2.95.36400",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-05-27"
   },
@@ -1062,12 +1201,14 @@
     "summary": "QQ 9.2.95.36400",
     "platform": "Android",
     "version": "9.2.95.36400",
+    "is_beta": false,
     "date": "2026-05-27"
   },
   "537355869": {
     "summary": "QQ(Linux-Mips) 3.2.29.49738",
     "platform": "Linux",
     "version": "3.2.29.49738",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-05-26"
   },
@@ -1075,6 +1216,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.29.49738",
     "platform": "Linux",
     "version": "3.2.29.49738",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-05-26"
   },
@@ -1082,6 +1224,7 @@
     "summary": "QQ(Linux) 3.2.29.49738",
     "platform": "Linux",
     "version": "3.2.29.49738",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -1093,6 +1236,7 @@
     "summary": "QQ(Mac) 6.9.96.49738",
     "platform": "macOS",
     "version": "6.9.96.49738",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1102,6 +1246,7 @@
     "summary": "QQ(Win-Arm) 9.9.31.49738",
     "platform": "Windows",
     "version": "9.9.31.49738",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-05-26"
   },
@@ -1109,6 +1254,7 @@
     "summary": "QQ(Win-X64) 9.9.31.49738",
     "platform": "Windows",
     "version": "9.9.31.49738",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-05-26"
   },
@@ -1116,6 +1262,7 @@
     "summary": "QQ(Win-X86) 9.9.31.49738",
     "platform": "Windows",
     "version": "9.9.31.49738",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-05-26"
   },
@@ -1123,6 +1270,7 @@
     "summary": "QQ(Mac) 6.9.96.49599",
     "platform": "macOS",
     "version": "6.9.96.49599",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1132,6 +1280,7 @@
     "summary": "QQ(Win-Arm) 9.9.31.49599",
     "platform": "Windows",
     "version": "9.9.31.49599",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-05-22"
   },
@@ -1139,6 +1288,7 @@
     "summary": "QQ(Win-X64) 9.9.31.49599",
     "platform": "Windows",
     "version": "9.9.31.49599",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-05-22"
   },
@@ -1146,6 +1296,7 @@
     "summary": "QQ(Win-X86) 9.9.31.49599",
     "platform": "Windows",
     "version": "9.9.31.49599",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-05-22"
   },
@@ -1153,6 +1304,7 @@
     "summary": "QQ(Pad) 9.2.90.35975",
     "platform": "Android",
     "version": "9.2.90.35975",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-05-15"
   },
@@ -1160,12 +1312,14 @@
     "summary": "QQ 9.2.90.35975",
     "platform": "Android",
     "version": "9.2.90.35975",
+    "is_beta": false,
     "date": "2026-05-15"
   },
   "537352537": {
     "summary": "QQ(Win-Arm) 9.9.30.48762",
     "platform": "Windows",
     "version": "9.9.30.48762",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-05-08"
   },
@@ -1173,6 +1327,7 @@
     "summary": "QQ(Win-X64) 9.9.30.48762",
     "platform": "Windows",
     "version": "9.9.30.48762",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-05-08"
   },
@@ -1180,6 +1335,7 @@
     "summary": "QQ(Win-X86) 9.9.30.48762",
     "platform": "Windows",
     "version": "9.9.30.48762",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-05-08"
   },
@@ -1187,6 +1343,7 @@
     "summary": "QQ(Linux-Mips) 3.2.28.48517",
     "platform": "Linux",
     "version": "3.2.28.48517",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-04-24"
   },
@@ -1194,6 +1351,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.28.48517",
     "platform": "Linux",
     "version": "3.2.28.48517",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-04-24"
   },
@@ -1201,6 +1359,7 @@
     "summary": "QQ(Linux) 3.2.28.48517",
     "platform": "Linux",
     "version": "3.2.28.48517",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -1212,6 +1371,7 @@
     "summary": "QQ(Mac) 6.9.95.48517",
     "platform": "macOS",
     "version": "6.9.95.48517",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1221,6 +1381,7 @@
     "summary": "QQ(Win-Arm) 9.9.30.48517",
     "platform": "Windows",
     "version": "9.9.30.48517",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-04-24"
   },
@@ -1228,6 +1389,7 @@
     "summary": "QQ(Win-X64) 9.9.30.48517",
     "platform": "Windows",
     "version": "9.9.30.48517",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-04-24"
   },
@@ -1235,6 +1397,7 @@
     "summary": "QQ(Win-X86) 9.9.30.48517",
     "platform": "Windows",
     "version": "9.9.30.48517",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-04-24"
   },
@@ -1242,6 +1405,7 @@
     "summary": "QQ(Mac) 6.9.95.48303",
     "platform": "macOS",
     "version": "6.9.95.48303",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1251,6 +1415,7 @@
     "summary": "QQ(Win-Arm) 9.9.30.48303",
     "platform": "Windows",
     "version": "9.9.30.48303",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-04-21"
   },
@@ -1258,6 +1423,7 @@
     "summary": "QQ(Win-X64) 9.9.30.48303",
     "platform": "Windows",
     "version": "9.9.30.48303",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-04-21"
   },
@@ -1265,6 +1431,7 @@
     "summary": "QQ(Win-X86) 9.9.30.48303",
     "platform": "Windows",
     "version": "9.9.30.48303",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-04-21"
   },
@@ -1272,6 +1439,7 @@
     "summary": "QQ(Pad) 9.2.85.35550",
     "platform": "Android",
     "version": "9.2.85.35550",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-04-23"
   },
@@ -1279,12 +1447,14 @@
     "summary": "QQ 9.2.85.35550",
     "platform": "Android",
     "version": "9.2.85.35550",
+    "is_beta": false,
     "date": "2026-04-23"
   },
   "537348332": {
     "summary": "QQ(Pad) 9.2.80.35125",
     "platform": "Android",
     "version": "9.2.80.35125",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-04-09"
   },
@@ -1292,12 +1462,14 @@
     "summary": "QQ 9.2.80.35125",
     "platform": "Android",
     "version": "9.2.80.35125",
+    "is_beta": false,
     "date": "2026-04-09"
   },
   "537346911": {
     "summary": "QQ(Linux-Mips) 3.2.27.47354",
     "platform": "Linux",
     "version": "3.2.27.47354",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-03-30"
   },
@@ -1305,6 +1477,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.27.47354",
     "platform": "Linux",
     "version": "3.2.27.47354",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-03-30"
   },
@@ -1312,6 +1485,7 @@
     "summary": "QQ(Linux) 3.2.27.47354",
     "platform": "Linux",
     "version": "3.2.27.47354",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -1323,6 +1497,7 @@
     "summary": "QQ(Mac) 6.9.93.47354",
     "platform": "macOS",
     "version": "6.9.93.47354",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1332,6 +1507,7 @@
     "summary": "QQ(Win-Arm) 9.9.29.47354",
     "platform": "Windows",
     "version": "9.9.29.47354",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-03-30"
   },
@@ -1339,6 +1515,7 @@
     "summary": "QQ(Win-X64) 9.9.29.47354",
     "platform": "Windows",
     "version": "9.9.29.47354",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-03-30"
   },
@@ -1346,6 +1523,7 @@
     "summary": "QQ(Win-X86) 9.9.29.47354",
     "platform": "Windows",
     "version": "9.9.29.47354",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-03-30"
   },
@@ -1353,6 +1531,7 @@
     "summary": "QQ(Linux-Mips) 3.2.27.47256",
     "platform": "Linux",
     "version": "3.2.27.47256",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-03-26"
   },
@@ -1360,6 +1539,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.27.47256",
     "platform": "Linux",
     "version": "3.2.27.47256",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-03-26"
   },
@@ -1367,6 +1547,7 @@
     "summary": "QQ(Linux) 3.2.27.47256",
     "platform": "Linux",
     "version": "3.2.27.47256",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -1378,6 +1559,7 @@
     "summary": "QQ(Mac) 6.9.92.47256",
     "platform": "macOS",
     "version": "6.9.92.47256",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1387,6 +1569,7 @@
     "summary": "QQ(Win-Arm) 9.9.29.47256",
     "platform": "Windows",
     "version": "9.9.29.47256",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-03-26"
   },
@@ -1394,6 +1577,7 @@
     "summary": "QQ(Win-X64) 9.9.29.47256",
     "platform": "Windows",
     "version": "9.9.29.47256",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-03-26"
   },
@@ -1401,6 +1585,7 @@
     "summary": "QQ(Win-X86) 9.9.29.47256",
     "platform": "Windows",
     "version": "9.9.29.47256",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-03-26"
   },
@@ -1408,6 +1593,7 @@
     "summary": "QQ(Mac) 6.9.92.47149",
     "platform": "macOS",
     "version": "6.9.92.47149",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1417,6 +1603,7 @@
     "summary": "QQ(Win-Arm) 9.9.29.47149",
     "platform": "Windows",
     "version": "9.9.29.47149",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-03-26"
   },
@@ -1424,6 +1611,7 @@
     "summary": "QQ(Win-X64) 9.9.29.47149",
     "platform": "Windows",
     "version": "9.9.29.47149",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-03-26"
   },
@@ -1431,6 +1619,7 @@
     "summary": "QQ(Win-X86) 9.9.29.47149",
     "platform": "Windows",
     "version": "9.9.29.47149",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-03-26"
   },
@@ -1438,6 +1627,7 @@
     "summary": "QQ(Linux-Mips) 3.2.26.46928",
     "platform": "Linux",
     "version": "3.2.26.46928",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-03-19"
   },
@@ -1445,6 +1635,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.26.46928",
     "platform": "Linux",
     "version": "3.2.26.46928",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-03-19"
   },
@@ -1452,6 +1643,7 @@
     "summary": "QQ(Linux) 3.2.26.46928",
     "platform": "Linux",
     "version": "3.2.26.46928",
+    "is_beta": false,
     "packages": [
       "DEB"
     ],
@@ -1461,6 +1653,7 @@
     "summary": "QQ(Linux) 3.2.26.46928",
     "platform": "Linux",
     "version": "3.2.26.46928",
+    "is_beta": false,
     "packages": [
       "RPM",
       "APPIMAGE"
@@ -1471,6 +1664,7 @@
     "summary": "QQ(Mac) 6.9.91.46928",
     "platform": "macOS",
     "version": "6.9.91.46928",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1480,6 +1674,7 @@
     "summary": "QQ(Win-Arm) 9.9.28.46928",
     "platform": "Windows",
     "version": "9.9.28.46928",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-03-19"
   },
@@ -1487,6 +1682,7 @@
     "summary": "QQ(Win-X64) 9.9.28.46928",
     "platform": "Windows",
     "version": "9.9.28.46928",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-03-19"
   },
@@ -1494,6 +1690,7 @@
     "summary": "QQ(Win-X86) 9.9.28.46928",
     "platform": "Windows",
     "version": "9.9.28.46928",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-03-19"
   },
@@ -1501,6 +1698,7 @@
     "summary": "QQ(Linux-Mips) 3.2.26.46494",
     "platform": "Linux",
     "version": "3.2.26.46494",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-03-07"
   },
@@ -1508,6 +1706,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.26.46494",
     "platform": "Linux",
     "version": "3.2.26.46494",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-03-07"
   },
@@ -1515,6 +1714,7 @@
     "summary": "QQ(Linux) 3.2.26.46494",
     "platform": "Linux",
     "version": "3.2.26.46494",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -1526,6 +1726,7 @@
     "summary": "QQ(Mac) 6.9.90.46494",
     "platform": "macOS",
     "version": "6.9.90.46494",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1535,6 +1736,7 @@
     "summary": "QQ(Win-Arm) 9.9.28.46494",
     "platform": "Windows",
     "version": "9.9.28.46494",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-03-07"
   },
@@ -1542,6 +1744,7 @@
     "summary": "QQ(Win-X64) 9.9.28.46494",
     "platform": "Windows",
     "version": "9.9.28.46494",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-03-07"
   },
@@ -1549,6 +1752,7 @@
     "summary": "QQ(Win-X86) 9.9.28.46494",
     "platform": "Windows",
     "version": "9.9.28.46494",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-03-07"
   },
@@ -1556,6 +1760,7 @@
     "summary": "QQ(Mac) 6.9.90.46345",
     "platform": "macOS",
     "version": "6.9.90.46345",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1565,6 +1770,7 @@
     "summary": "QQ(Win-Arm) 9.9.28.46345",
     "platform": "Windows",
     "version": "9.9.28.46345",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-03-03"
   },
@@ -1572,6 +1778,7 @@
     "summary": "QQ(Win-X64) 9.9.28.46345",
     "platform": "Windows",
     "version": "9.9.28.46345",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-03-03"
   },
@@ -1579,6 +1786,7 @@
     "summary": "QQ(Win-X86) 9.9.28.46345",
     "platform": "Windows",
     "version": "9.9.28.46345",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-03-03"
   },
@@ -1586,6 +1794,7 @@
     "summary": "QQ(Pad) 9.2.75.34700",
     "platform": "Android",
     "version": "9.2.75.34700",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-03-25"
   },
@@ -1593,12 +1802,14 @@
     "summary": "QQ 9.2.75.34700",
     "platform": "Android",
     "version": "9.2.75.34700",
+    "is_beta": false,
     "date": "2026-03-25"
   },
   "537341724": {
     "summary": "QQ(Pad) 9.2.70.34275",
     "platform": "Android",
     "version": "9.2.70.34275",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-03-06"
   },
@@ -1606,12 +1817,14 @@
     "summary": "QQ 9.2.70.34275",
     "platform": "Android",
     "version": "9.2.70.34275",
+    "is_beta": false,
     "date": "2026-03-06"
   },
   "537340252": {
     "summary": "QQ(Linux-Mips) 3.2.25.45758",
     "platform": "Linux",
     "version": "3.2.25.45758",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-02-03"
   },
@@ -1619,6 +1832,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.25.45758",
     "platform": "Linux",
     "version": "3.2.25.45758",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-02-03"
   },
@@ -1626,6 +1840,7 @@
     "summary": "QQ(Linux) 3.2.25.45758",
     "platform": "Linux",
     "version": "3.2.25.45758",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB",
@@ -1637,6 +1852,7 @@
     "summary": "QQ(Mac) 6.9.89.45758",
     "platform": "macOS",
     "version": "6.9.89.45758",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1646,6 +1862,7 @@
     "summary": "QQ(Win-Arm) 9.9.27.45758",
     "platform": "Windows",
     "version": "9.9.27.45758",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-02-03"
   },
@@ -1653,6 +1870,7 @@
     "summary": "QQ(Win-X64) 9.9.27.45758",
     "platform": "Windows",
     "version": "9.9.27.45758",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-02-03"
   },
@@ -1660,6 +1878,7 @@
     "summary": "QQ(Win-X86) 9.9.27.45758",
     "platform": "Windows",
     "version": "9.9.27.45758",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-02-03"
   },
@@ -1667,6 +1886,7 @@
     "summary": "QQ(Mac) 6.9.89.45627",
     "platform": "macOS",
     "version": "6.9.89.45627",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1676,6 +1896,7 @@
     "summary": "QQ(Win-Arm) 9.9.27.45627",
     "platform": "Windows",
     "version": "9.9.27.45627",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-01-30"
   },
@@ -1683,6 +1904,7 @@
     "summary": "QQ(Win-X64) 9.9.27.45627",
     "platform": "Windows",
     "version": "9.9.27.45627",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-01-30"
   },
@@ -1690,6 +1912,7 @@
     "summary": "QQ(Win-X86) 9.9.27.45627",
     "platform": "Windows",
     "version": "9.9.27.45627",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-01-30"
   },
@@ -1697,6 +1920,7 @@
     "summary": "QQ(Pad) 9.2.66.33870",
     "platform": "Android",
     "version": "9.2.66.33870",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-02-06"
   },
@@ -1704,12 +1928,14 @@
     "summary": "QQ 9.2.66.33870",
     "platform": "Android",
     "version": "9.2.66.33870",
+    "is_beta": false,
     "date": "2026-02-06"
   },
   "537339080": {
     "summary": "QQ(Pad) 9.2.65.33850",
     "platform": "Android",
     "version": "9.2.65.33850",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-01-30"
   },
@@ -1717,12 +1943,14 @@
     "summary": "QQ 9.2.65.33850",
     "platform": "Android",
     "version": "9.2.65.33850",
+    "is_beta": false,
     "date": "2026-01-30"
   },
   "537337593": {
     "summary": "QQ(Mac) 6.9.88.44725",
     "platform": "macOS",
     "version": "6.9.88.44725",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1732,6 +1960,7 @@
     "summary": "QQ(Win-Arm) 9.9.26.44725",
     "platform": "Windows",
     "version": "9.9.26.44725",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-01-14"
   },
@@ -1739,6 +1968,7 @@
     "summary": "QQ(Win-X64) 9.9.26.44725",
     "platform": "Windows",
     "version": "9.9.26.44725",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-01-14"
   },
@@ -1746,6 +1976,7 @@
     "summary": "QQ(Win-X86) 9.9.26.44725",
     "platform": "Windows",
     "version": "9.9.26.44725",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-01-14"
   },
@@ -1753,6 +1984,7 @@
     "summary": "QQ(Mac) 6.9.88.44498",
     "platform": "macOS",
     "version": "6.9.88.44498",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1762,6 +1994,7 @@
     "summary": "QQ(Win-Arm) 9.9.26.44498 / 9.9.26.44563",
     "platform": "Windows",
     "version": "9.9.26.44498 / 9.9.26.44563",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.26.44498",
@@ -1777,6 +2010,7 @@
     "summary": "QQ(Win-X64) 9.9.26.44498 / 9.9.26.44563",
     "platform": "Windows",
     "version": "9.9.26.44498 / 9.9.26.44563",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.26.44498",
@@ -1792,6 +2026,7 @@
     "summary": "QQ(Win-X86) 9.9.26.44498 / 9.9.26.44563",
     "platform": "Windows",
     "version": "9.9.26.44498 / 9.9.26.44563",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.26.44498",
@@ -1807,6 +2042,7 @@
     "summary": "QQ(Linux-Mips) 3.2.23.44343",
     "platform": "Linux",
     "version": "3.2.23.44343",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2026-01-06"
   },
@@ -1814,6 +2050,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.23.44343",
     "platform": "Linux",
     "version": "3.2.23.44343",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2026-01-06"
   },
@@ -1821,6 +2058,7 @@
     "summary": "QQ(Linux) 3.2.23.44343",
     "platform": "Linux",
     "version": "3.2.23.44343",
+    "is_beta": false,
     "packages": [
       "APPIMAGE"
     ],
@@ -1830,6 +2068,7 @@
     "summary": "QQ(Linux) 3.2.23.44343",
     "platform": "Linux",
     "version": "3.2.23.44343",
+    "is_beta": false,
     "packages": [
       "RPM",
       "DEB"
@@ -1840,6 +2079,7 @@
     "summary": "QQ(Mac) 6.9.87.44343",
     "platform": "macOS",
     "version": "6.9.87.44343",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1849,6 +2089,7 @@
     "summary": "QQ(Win-Arm) 9.9.26.44343",
     "platform": "Windows",
     "version": "9.9.26.44343",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2026-01-06"
   },
@@ -1856,6 +2097,7 @@
     "summary": "QQ(Win-X64) 9.9.26.44343",
     "platform": "Windows",
     "version": "9.9.26.44343",
+    "is_beta": false,
     "arch": "X64",
     "date": "2026-01-06"
   },
@@ -1863,6 +2105,7 @@
     "summary": "QQ(Win-X86) 9.9.26.44343",
     "platform": "Windows",
     "version": "9.9.26.44343",
+    "is_beta": false,
     "arch": "X86",
     "date": "2026-01-06"
   },
@@ -1870,6 +2113,7 @@
     "summary": "QQ(Mac) 6.9.87.44175",
     "platform": "macOS",
     "version": "6.9.87.44175",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1879,6 +2123,7 @@
     "summary": "QQ(Win-Arm) 9.9.26.44175",
     "platform": "Windows",
     "version": "9.9.26.44175",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-12-30"
   },
@@ -1886,6 +2131,7 @@
     "summary": "QQ(Win-X64) 9.9.26.44175",
     "platform": "Windows",
     "version": "9.9.26.44175",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-12-30"
   },
@@ -1893,6 +2139,7 @@
     "summary": "QQ(Win-X86) 9.9.26.44175",
     "platform": "Windows",
     "version": "9.9.26.44175",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-12-30"
   },
@@ -1900,6 +2147,7 @@
     "summary": "QQ(Pad) 9.2.60.33425",
     "platform": "Android",
     "version": "9.2.60.33425",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2026-01-14"
   },
@@ -1907,12 +2155,14 @@
     "summary": "QQ 9.2.60.33425",
     "platform": "Android",
     "version": "9.2.60.33425",
+    "is_beta": false,
     "date": "2026-01-14"
   },
   "537333132": {
     "summary": "QQ(Pad) 9.2.55.33000",
     "platform": "Android",
     "version": "9.2.55.33000",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-12-24"
   },
@@ -1920,12 +2170,14 @@
     "summary": "QQ 9.2.55.33000",
     "platform": "Android",
     "version": "9.2.55.33000",
+    "is_beta": false,
     "date": "2025-12-24"
   },
   "537330134": {
     "summary": "QQ(Pad) 9.2.50.32575",
     "platform": "Android",
     "version": "9.2.50.32575",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-12-10"
   },
@@ -1933,12 +2185,14 @@
     "summary": "QQ 9.2.50.32575",
     "platform": "Android",
     "version": "9.2.50.32575",
+    "is_beta": false,
     "date": "2025-12-10"
   },
   "537328662": {
     "summary": "QQ(Linux-Mips) 3.2.22.42941",
     "platform": "Linux",
     "version": "3.2.22.42941",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-12-02"
   },
@@ -1946,6 +2200,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.22.42941",
     "platform": "Linux",
     "version": "3.2.22.42941",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-12-02"
   },
@@ -1953,6 +2208,7 @@
     "summary": "QQ(Linux) 3.2.22.42941",
     "platform": "Linux",
     "version": "3.2.22.42941",
+    "is_beta": false,
     "packages": [
       "APPIMAGE",
       "DEB",
@@ -1964,6 +2220,7 @@
     "summary": "QQ(Mac) 6.9.86.42941",
     "platform": "macOS",
     "version": "6.9.86.42941",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -1973,6 +2230,7 @@
     "summary": "QQ(Win-Arm) 9.9.25.42941",
     "platform": "Windows",
     "version": "9.9.25.42941",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-12-02"
   },
@@ -1980,6 +2238,7 @@
     "summary": "QQ(Win-X64) 9.9.25.42941",
     "platform": "Windows",
     "version": "9.9.25.42941",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-12-02"
   },
@@ -1987,6 +2246,7 @@
     "summary": "QQ(Win-X86) 9.9.25.42941",
     "platform": "Windows",
     "version": "9.9.25.42941",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-12-02"
   },
@@ -1994,6 +2254,7 @@
     "summary": "QQ(Mac) 6.9.86.42905",
     "platform": "macOS",
     "version": "6.9.86.42905",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2003,6 +2264,7 @@
     "summary": "QQ(Win-Arm) 9.9.25.42905",
     "platform": "Windows",
     "version": "9.9.25.42905",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-11-29"
   },
@@ -2010,6 +2272,7 @@
     "summary": "QQ(Win-X64) 9.9.25.42905",
     "platform": "Windows",
     "version": "9.9.25.42905",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-11-29"
   },
@@ -2017,6 +2280,7 @@
     "summary": "QQ(Win-X86) 9.9.25.42905",
     "platform": "Windows",
     "version": "9.9.25.42905",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-11-29"
   },
@@ -2024,6 +2288,7 @@
     "summary": "QQ(Mac) 6.9.86.42744",
     "platform": "macOS",
     "version": "6.9.86.42744",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2033,6 +2298,7 @@
     "summary": "QQ(Win-Arm) 9.9.25.42744",
     "platform": "Windows",
     "version": "9.9.25.42744",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-11-26"
   },
@@ -2040,6 +2306,7 @@
     "summary": "QQ(Win-X64) 9.9.25.42744",
     "platform": "Windows",
     "version": "9.9.25.42744",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-11-26"
   },
@@ -2047,6 +2314,7 @@
     "summary": "QQ(Win-X86) 9.9.25.42744",
     "platform": "Windows",
     "version": "9.9.25.42744",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-11-26"
   },
@@ -2054,6 +2322,7 @@
     "summary": "QQ(Pad) 9.2.35.32150",
     "platform": "Android",
     "version": "9.2.35.32150",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-11-25"
   },
@@ -2061,12 +2330,14 @@
     "summary": "QQ 9.2.35.32150",
     "platform": "Android",
     "version": "9.2.35.32150",
+    "is_beta": false,
     "date": "2025-11-25"
   },
   "537324470": {
     "summary": "QQ(Pad) 9.2.30.31725",
     "platform": "Android",
     "version": "9.2.30.31725",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-11-11"
   },
@@ -2074,12 +2345,14 @@
     "summary": "QQ 9.2.30.31725",
     "platform": "Android",
     "version": "9.2.30.31725",
+    "is_beta": false,
     "date": "2025-11-11"
   },
   "537323342": {
     "summary": "QQ(Pad) 9.2.27.31300",
     "platform": "Android",
     "version": "9.2.27.31300",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-10-22"
   },
@@ -2087,12 +2360,14 @@
     "summary": "QQ 9.2.27.31300",
     "platform": "Android",
     "version": "9.2.27.31300",
+    "is_beta": false,
     "date": "2025-10-22"
   },
   "537320251": {
     "summary": "QQ(Linux-Mips) 3.2.21.42086",
     "platform": "Linux",
     "version": "3.2.21.42086",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-11-12"
   },
@@ -2100,6 +2375,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.21.42086",
     "platform": "Linux",
     "version": "3.2.21.42086",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-11-12"
   },
@@ -2107,6 +2383,7 @@
     "summary": "QQ(Linux) 3.2.21.42086",
     "platform": "Linux",
     "version": "3.2.21.42086",
+    "is_beta": false,
     "packages": [
       "APPIMAGE",
       "DEB",
@@ -2118,6 +2395,7 @@
     "summary": "QQ(Mac) 6.9.85.42086",
     "platform": "macOS",
     "version": "6.9.85.42086",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2127,6 +2405,7 @@
     "summary": "QQ(Win-Arm) 9.9.23.42086",
     "platform": "Windows",
     "version": "9.9.23.42086",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-11-12"
   },
@@ -2134,6 +2413,7 @@
     "summary": "QQ(Win-X64) 9.9.23.42086",
     "platform": "Windows",
     "version": "9.9.23.42086",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-11-12"
   },
@@ -2141,6 +2421,7 @@
     "summary": "QQ(Win-X86) 9.9.23.42086",
     "platform": "Windows",
     "version": "9.9.23.42086",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-11-12"
   },
@@ -2148,6 +2429,7 @@
     "summary": "QQ(Linux-Mips) 3.2.21.41857",
     "platform": "Linux",
     "version": "3.2.21.41857",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-11-04"
   },
@@ -2155,6 +2437,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.21.41857",
     "platform": "Linux",
     "version": "3.2.21.41857",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-11-04"
   },
@@ -2162,6 +2445,7 @@
     "summary": "QQ(Linux) 3.2.21.41857",
     "platform": "Linux",
     "version": "3.2.21.41857",
+    "is_beta": false,
     "packages": [
       "APPIMAGE",
       "DEB",
@@ -2173,6 +2457,7 @@
     "summary": "QQ(Mac) 6.9.83.41857",
     "platform": "macOS",
     "version": "6.9.83.41857",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2182,6 +2467,7 @@
     "summary": "QQ(Win-Arm) 9.9.23.41857",
     "platform": "Windows",
     "version": "9.9.23.41857",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-11-04"
   },
@@ -2189,6 +2475,7 @@
     "summary": "QQ(Win-X64) 9.9.23.41857",
     "platform": "Windows",
     "version": "9.9.23.41857",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-11-04"
   },
@@ -2196,6 +2483,7 @@
     "summary": "QQ(Win-X86) 9.9.23.41857",
     "platform": "Windows",
     "version": "9.9.23.41857",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-11-04"
   },
@@ -2203,6 +2491,7 @@
     "summary": "QQ(Mac) 6.9.83.41679 / 6.9.83.41785",
     "platform": "macOS",
     "version": "6.9.83.41679 / 6.9.83.41785",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2220,6 +2509,7 @@
     "summary": "QQ(Win-Arm) 9.9.23.41679 / 9.9.23.41785",
     "platform": "Windows",
     "version": "9.9.23.41679 / 9.9.23.41785",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.23.41679",
@@ -2235,6 +2525,7 @@
     "summary": "QQ(Win-X64) 9.9.23.41679 / 9.9.23.41785",
     "platform": "Windows",
     "version": "9.9.23.41679 / 9.9.23.41785",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.23.41679",
@@ -2250,6 +2541,7 @@
     "summary": "QQ(Win-X86) 9.9.23.41679 / 9.9.23.41785",
     "platform": "Windows",
     "version": "9.9.23.41679 / 9.9.23.41785",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.23.41679",
@@ -2265,6 +2557,7 @@
     "summary": "QQ(Linux-Mips) 3.2.20.40990",
     "platform": "Linux",
     "version": "3.2.20.40990",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-10-20"
   },
@@ -2272,6 +2565,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.20.40990",
     "platform": "Linux",
     "version": "3.2.20.40990",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-10-20"
   },
@@ -2279,6 +2573,7 @@
     "summary": "QQ(Linux) 3.2.20.40990",
     "platform": "Linux",
     "version": "3.2.20.40990",
+    "is_beta": false,
     "packages": [
       "APPIMAGE",
       "DEB",
@@ -2290,6 +2585,7 @@
     "summary": "QQ(Mac) 6.9.82.40990",
     "platform": "macOS",
     "version": "6.9.82.40990",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2299,6 +2595,7 @@
     "summary": "QQ(Win-Arm) 9.9.22.40990",
     "platform": "Windows",
     "version": "9.9.22.40990",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-10-20"
   },
@@ -2306,6 +2603,7 @@
     "summary": "QQ(Win-X64) 9.9.22.40990",
     "platform": "Windows",
     "version": "9.9.22.40990",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-10-20"
   },
@@ -2313,6 +2611,7 @@
     "summary": "QQ(Win-X86) 9.9.22.40990",
     "platform": "Windows",
     "version": "9.9.22.40990",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-10-20"
   },
@@ -2320,6 +2619,7 @@
     "summary": "QQ(Linux-Mips) 3.2.20.40768",
     "platform": "Linux",
     "version": "3.2.20.40768",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-10-14"
   },
@@ -2327,6 +2627,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.20.40768",
     "platform": "Linux",
     "version": "3.2.20.40768",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-10-14"
   },
@@ -2334,6 +2635,7 @@
     "summary": "QQ(Linux) 3.2.20.40768",
     "platform": "Linux",
     "version": "3.2.20.40768",
+    "is_beta": false,
     "packages": [
       "APPIMAGE",
       "DEB",
@@ -2345,6 +2647,7 @@
     "summary": "QQ(Mac) 6.9.82.40768 / 6.9.82.40824",
     "platform": "macOS",
     "version": "6.9.82.40768 / 6.9.82.40824",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2362,6 +2665,7 @@
     "summary": "QQ(Win-Arm) 9.9.22.40768 / 9.9.22.40824",
     "platform": "Windows",
     "version": "9.9.22.40768 / 9.9.22.40824",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.22.40768",
@@ -2377,6 +2681,7 @@
     "summary": "QQ(Win-X64) 9.9.22.40768 / 9.9.22.40824",
     "platform": "Windows",
     "version": "9.9.22.40768 / 9.9.22.40824",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.22.40768",
@@ -2392,6 +2697,7 @@
     "summary": "QQ(Win-X86) 9.9.22.40768 / 9.9.22.40824",
     "platform": "Windows",
     "version": "9.9.22.40768 / 9.9.22.40824",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.22.40768",
@@ -2407,6 +2713,7 @@
     "summary": "QQ(Pad) 9.2.25.30450",
     "platform": "Android",
     "version": "9.2.25.30450",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-10-17"
   },
@@ -2414,12 +2721,14 @@
     "summary": "QQ 9.2.25.30450",
     "platform": "Android",
     "version": "9.2.25.30450",
+    "is_beta": false,
     "date": "2025-10-17"
   },
   "537315825": {
     "summary": "QQ(Pad) 9.2.20",
     "platform": "Android",
     "version": "9.2.20",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-09-24"
   },
@@ -2427,12 +2736,14 @@
     "summary": "QQ 9.2.20",
     "platform": "Android",
     "version": "9.2.20",
+    "is_beta": false,
     "date": "2025-09-24"
   },
   "537314236": {
     "summary": "QQ(Mac) 6.9.82.40362",
     "platform": "macOS",
     "version": "6.9.82.40362",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2442,6 +2753,7 @@
     "summary": "QQ(Win-Arm) 9.9.22.40362",
     "platform": "Windows",
     "version": "9.9.22.40362",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-09-28"
   },
@@ -2449,6 +2761,7 @@
     "summary": "QQ(Win-X64) 9.9.22.40362",
     "platform": "Windows",
     "version": "9.9.22.40362",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-09-28"
   },
@@ -2456,6 +2769,7 @@
     "summary": "QQ(Win-X86) 9.9.22.40362",
     "platform": "Windows",
     "version": "9.9.22.40362",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-09-28"
   },
@@ -2463,6 +2777,7 @@
     "summary": "QQ(Mac) 6.9.81.40111",
     "platform": "macOS",
     "version": "6.9.81.40111",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2472,6 +2787,7 @@
     "summary": "QQ(Win-Arm) 9.9.22.40111",
     "platform": "Windows",
     "version": "9.9.22.40111",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-09-23"
   },
@@ -2479,6 +2795,7 @@
     "summary": "QQ(Win-X64) 9.9.22.40111",
     "platform": "Windows",
     "version": "9.9.22.40111",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-09-23"
   },
@@ -2486,6 +2803,7 @@
     "summary": "QQ(Win-X86) 9.9.22.40111",
     "platform": "Windows",
     "version": "9.9.22.40111",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-09-23"
   },
@@ -2493,6 +2811,7 @@
     "summary": "QQ(Linux-Mips) 3.2.19.39038",
     "platform": "Linux",
     "version": "3.2.19.39038",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-09-02"
   },
@@ -2500,6 +2819,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.19.39038",
     "platform": "Linux",
     "version": "3.2.19.39038",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-09-02"
   },
@@ -2507,6 +2827,7 @@
     "summary": "QQ(Linux) 3.2.19.39038",
     "platform": "Linux",
     "version": "3.2.19.39038",
+    "is_beta": false,
     "packages": [
       "APPIMAGE",
       "DEB",
@@ -2518,6 +2839,7 @@
     "summary": "QQ(Mac) 6.9.80.39038",
     "platform": "macOS",
     "version": "6.9.80.39038",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2527,6 +2849,7 @@
     "summary": "QQ(Win-Arm) 9.9.21.39038",
     "platform": "Windows",
     "version": "9.9.21.39038",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-09-02"
   },
@@ -2534,6 +2857,7 @@
     "summary": "QQ(Win-X64) 9.9.21.39038",
     "platform": "Windows",
     "version": "9.9.21.39038",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-09-02"
   },
@@ -2541,6 +2865,7 @@
     "summary": "QQ(Win-X86) 9.9.21.39038",
     "platform": "Windows",
     "version": "9.9.21.39038",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-09-02"
   },
@@ -2548,6 +2873,7 @@
     "summary": "QQ(Linux-Mips) 3.2.19.38960",
     "platform": "Linux",
     "version": "3.2.19.38960",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-08-28"
   },
@@ -2555,6 +2881,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.19.38960",
     "platform": "Linux",
     "version": "3.2.19.38960",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-08-28"
   },
@@ -2562,6 +2889,7 @@
     "summary": "QQ(Linux) 3.2.19.38960",
     "platform": "Linux",
     "version": "3.2.19.38960",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -2573,6 +2901,7 @@
     "summary": "QQ(Win-Arm) 9.9.21.38960",
     "platform": "Windows",
     "version": "9.9.21.38960",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-08-28"
   },
@@ -2580,6 +2909,7 @@
     "summary": "QQ(Win-X64) 9.9.21.38960",
     "platform": "Windows",
     "version": "9.9.21.38960",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-08-28"
   },
@@ -2587,6 +2917,7 @@
     "summary": "QQ(Win-X86) 9.9.21.38960",
     "platform": "Windows",
     "version": "9.9.21.38960",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-08-28"
   },
@@ -2594,6 +2925,7 @@
     "summary": "QQ(Pad) 9.2.15",
     "platform": "Android",
     "version": "9.2.15",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-09-10"
   },
@@ -2601,12 +2933,14 @@
     "summary": "QQ 9.2.15",
     "platform": "Android",
     "version": "9.2.15",
+    "is_beta": false,
     "date": "2025-09-10"
   },
   "537309877": {
     "summary": "QQ(Pad) 9.2.10",
     "platform": "Android",
     "version": "9.2.10",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-08-19"
   },
@@ -2614,12 +2948,14 @@
     "summary": "QQ 9.2.10",
     "platform": "Android",
     "version": "9.2.10",
+    "is_beta": false,
     "date": "2025-08-19"
   },
   "537307694": {
     "summary": "QQ(Linux-Mips) 3.2.19.38626",
     "platform": "Linux",
     "version": "3.2.19.38626",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-08-18"
   },
@@ -2627,6 +2963,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.19.38626",
     "platform": "Linux",
     "version": "3.2.19.38626",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-08-18"
   },
@@ -2634,6 +2971,7 @@
     "summary": "QQ(Linux) 3.2.19.38626",
     "platform": "Linux",
     "version": "3.2.19.38626",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -2645,6 +2983,7 @@
     "summary": "QQ(Mac) 6.9.79.38626",
     "platform": "macOS",
     "version": "6.9.79.38626",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2654,6 +2993,7 @@
     "summary": "QQ(Win-Arm) 9.9.21.38711 / 9.9.21.38626",
     "platform": "Windows",
     "version": "9.9.21.38711 / 9.9.21.38626",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.21.38711",
@@ -2669,6 +3009,7 @@
     "summary": "QQ(Win-X64) 9.9.21.38711 / 9.9.21.38626",
     "platform": "Windows",
     "version": "9.9.21.38711 / 9.9.21.38626",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.21.38711",
@@ -2684,6 +3025,7 @@
     "summary": "QQ(Win-X86) 9.9.21.38711 / 9.9.21.38626",
     "platform": "Windows",
     "version": "9.9.21.38711 / 9.9.21.38626",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.21.38711",
@@ -2699,6 +3041,7 @@
     "summary": "QQ(Linux-Mips) 3.2.19.38503",
     "platform": "Linux",
     "version": "3.2.19.38503",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-08-14"
   },
@@ -2706,6 +3049,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.19.38503",
     "platform": "Linux",
     "version": "3.2.19.38503",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-08-14"
   },
@@ -2713,6 +3057,7 @@
     "summary": "QQ(Linux) 3.2.19.38503",
     "platform": "Linux",
     "version": "3.2.19.38503",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -2724,6 +3069,7 @@
     "summary": "QQ(Mac) 6.9.79.38503",
     "platform": "macOS",
     "version": "6.9.79.38503",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2733,6 +3079,7 @@
     "summary": "QQ(Win-Arm) 9.9.21.38503",
     "platform": "Windows",
     "version": "9.9.21.38503",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-08-14"
   },
@@ -2740,6 +3087,7 @@
     "summary": "QQ(Win-X64) 9.9.21.38503",
     "platform": "Windows",
     "version": "9.9.21.38503",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-08-14"
   },
@@ -2747,6 +3095,7 @@
     "summary": "QQ(Win-X86) 9.9.21.38503",
     "platform": "Windows",
     "version": "9.9.21.38503",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-08-14"
   },
@@ -2754,6 +3103,7 @@
     "summary": "QQ(Pad) 9.2.5",
     "platform": "Android",
     "version": "9.2.5",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-07-29"
   },
@@ -2761,12 +3111,14 @@
     "summary": "QQ 9.2.5",
     "platform": "Android",
     "version": "9.2.5",
+    "is_beta": false,
     "date": "2025-07-29"
   },
   "537304263": {
     "summary": "QQ(Linux-Mips) 3.2.18.37625",
     "platform": "Linux",
     "version": "3.2.18.37625",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-07-23"
   },
@@ -2774,6 +3126,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.37625",
     "platform": "Linux",
     "version": "3.2.18.37625",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-07-23"
   },
@@ -2781,6 +3134,7 @@
     "summary": "QQ(Linux) 3.2.18.37625",
     "platform": "Linux",
     "version": "3.2.18.37625",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -2792,6 +3146,7 @@
     "summary": "QQ(Mac) 6.9.77.37625",
     "platform": "macOS",
     "version": "6.9.77.37625",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2801,6 +3156,7 @@
     "summary": "QQ(Win-Arm) 9.9.20.37625",
     "platform": "Windows",
     "version": "9.9.20.37625",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-07-23"
   },
@@ -2808,6 +3164,7 @@
     "summary": "QQ(Win-X64) 9.9.20.37625",
     "platform": "Windows",
     "version": "9.9.20.37625",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-07-23"
   },
@@ -2815,6 +3172,7 @@
     "summary": "QQ(Win-X86) 9.9.20.37625",
     "platform": "Windows",
     "version": "9.9.20.37625",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-07-23"
   },
@@ -2822,6 +3180,7 @@
     "summary": "QQ(Linux-Mips) 3.2.18.37503 / 3.2.18.37475",
     "platform": "Linux",
     "version": "3.2.18.37503 / 3.2.18.37475",
+    "is_beta": false,
     "arch": "Mips",
     "versions": [
       "3.2.18.37503",
@@ -2837,6 +3196,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.37503 / 3.2.18.37475",
     "platform": "Linux",
     "version": "3.2.18.37503 / 3.2.18.37475",
+    "is_beta": false,
     "arch": "LoongArch",
     "versions": [
       "3.2.18.37503",
@@ -2852,6 +3212,7 @@
     "summary": "QQ(Linux) 3.2.18.37503 / 3.2.18.37475",
     "platform": "Linux",
     "version": "3.2.18.37503 / 3.2.18.37475",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -2871,6 +3232,7 @@
     "summary": "QQ(Mac) 6.9.75.37503 / 6.9.75.37475",
     "platform": "macOS",
     "version": "6.9.75.37503 / 6.9.75.37475",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2888,6 +3250,7 @@
     "summary": "QQ(Win-Arm) 9.9.20.37503 / 9.9.20.37475",
     "platform": "Windows",
     "version": "9.9.20.37503 / 9.9.20.37475",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.20.37503",
@@ -2903,6 +3266,7 @@
     "summary": "QQ(Win-X64) 9.9.20.37503 / 9.9.20.37475",
     "platform": "Windows",
     "version": "9.9.20.37503 / 9.9.20.37475",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.20.37503",
@@ -2918,6 +3282,7 @@
     "summary": "QQ(Win-X86) 9.9.20.37503 / 9.9.20.37475",
     "platform": "Windows",
     "version": "9.9.20.37503 / 9.9.20.37475",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.20.37503",
@@ -2933,6 +3298,7 @@
     "summary": "QQ(Linux-Mips) 3.2.18.37051",
     "platform": "Linux",
     "version": "3.2.18.37051",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-07-09"
   },
@@ -2940,6 +3306,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.37051",
     "platform": "Linux",
     "version": "3.2.18.37051",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-07-09"
   },
@@ -2947,6 +3314,7 @@
     "summary": "QQ(Linux) 3.2.18.37051",
     "platform": "Linux",
     "version": "3.2.18.37051",
+    "is_beta": false,
     "packages": [
       "DEB"
     ],
@@ -2956,6 +3324,7 @@
     "summary": "QQ(Linux) 3.2.18.37051",
     "platform": "Linux",
     "version": "3.2.18.37051",
+    "is_beta": false,
     "packages": [
       "RPM",
       "APPIMAGE"
@@ -2966,6 +3335,7 @@
     "summary": "QQ(Mac) 6.9.75.37051",
     "platform": "macOS",
     "version": "6.9.75.37051",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -2975,6 +3345,7 @@
     "summary": "QQ(Win-Arm) 9.9.20.37051",
     "platform": "Windows",
     "version": "9.9.20.37051",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-07-09"
   },
@@ -2982,6 +3353,7 @@
     "summary": "QQ(Win-X64) 9.9.20.37051",
     "platform": "Windows",
     "version": "9.9.20.37051",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-07-09"
   },
@@ -2989,6 +3361,7 @@
     "summary": "QQ(Win-X86) 9.9.20.37051",
     "platform": "Windows",
     "version": "9.9.20.37051",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-07-09"
   },
@@ -2996,6 +3369,7 @@
     "summary": "QQ(Linux-Mips) 3.2.18.37012",
     "platform": "Linux",
     "version": "3.2.18.37012",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-07-05"
   },
@@ -3003,6 +3377,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.37012",
     "platform": "Linux",
     "version": "3.2.18.37012",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-07-05"
   },
@@ -3010,6 +3385,7 @@
     "summary": "QQ(Linux) 3.2.18.37012",
     "platform": "Linux",
     "version": "3.2.18.37012",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3021,6 +3397,7 @@
     "summary": "QQ(Mac) 6.9.75.37012",
     "platform": "macOS",
     "version": "6.9.75.37012",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3030,6 +3407,7 @@
     "summary": "QQ(Win-Arm) 9.9.20.37012",
     "platform": "Windows",
     "version": "9.9.20.37012",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-07-05"
   },
@@ -3037,6 +3415,7 @@
     "summary": "QQ(Win-X64) 9.9.20.37012",
     "platform": "Windows",
     "version": "9.9.20.37012",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-07-05"
   },
@@ -3044,6 +3423,7 @@
     "summary": "QQ(Win-X86) 9.9.20.37012",
     "platform": "Windows",
     "version": "9.9.20.37012",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-07-05"
   },
@@ -3051,6 +3431,7 @@
     "summary": "QQ(Pad) 9.2.0",
     "platform": "Android",
     "version": "9.2.0",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-07-11"
   },
@@ -3058,12 +3439,14 @@
     "summary": "QQ 9.2.0",
     "platform": "Android",
     "version": "9.2.0",
+    "is_beta": false,
     "date": "2025-07-11"
   },
   "537301789": {
     "summary": "QQ(Pad) 9.1.97",
     "platform": "Android",
     "version": "9.1.97",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-07-01"
   },
@@ -3071,12 +3454,14 @@
     "summary": "QQ 9.1.97",
     "platform": "Android",
     "version": "9.1.97",
+    "is_beta": false,
     "date": "2025-07-01"
   },
   "537298512": {
     "summary": "QQ(Linux-Mips) 3.2.18.36580 / 3.2.18.36497",
     "platform": "Linux",
     "version": "3.2.18.36580 / 3.2.18.36497",
+    "is_beta": false,
     "arch": "Mips",
     "versions": [
       "3.2.18.36580",
@@ -3092,6 +3477,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.36580 / 3.2.18.36497",
     "platform": "Linux",
     "version": "3.2.18.36580 / 3.2.18.36497",
+    "is_beta": false,
     "arch": "LoongArch",
     "versions": [
       "3.2.18.36580",
@@ -3107,6 +3493,7 @@
     "summary": "QQ(Linux) 3.2.18.36580 / 3.2.18.36497",
     "platform": "Linux",
     "version": "3.2.18.36580 / 3.2.18.36497",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3126,6 +3513,7 @@
     "summary": "QQ(Mac) 6.9.75.36580 / 6.9.75.36497",
     "platform": "macOS",
     "version": "6.9.75.36580 / 6.9.75.36497",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3143,6 +3531,7 @@
     "summary": "QQ(Win-Arm) 9.9.20.36580 / 9.9.20.36497",
     "platform": "Windows",
     "version": "9.9.20.36580 / 9.9.20.36497",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.20.36580",
@@ -3158,6 +3547,7 @@
     "summary": "QQ(Win-X64) 9.9.20.36580 / 9.9.20.36497",
     "platform": "Windows",
     "version": "9.9.20.36580 / 9.9.20.36497",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.20.36580",
@@ -3173,6 +3563,7 @@
     "summary": "QQ(Win-X86) 9.9.20.36580 / 9.9.20.36497",
     "platform": "Windows",
     "version": "9.9.20.36580 / 9.9.20.36497",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.20.36580",
@@ -3188,6 +3579,7 @@
     "summary": "QQ(Pad) 4.1.0",
     "platform": "Android",
     "version": "4.1.0",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-05-27"
   },
@@ -3195,12 +3587,14 @@
     "summary": "QQ 4.1.0",
     "platform": "Android",
     "version": "4.1.0",
+    "is_beta": false,
     "date": "2025-05-27"
   },
   "537297389": {
     "summary": "QQ(Pad) 9.1.95",
     "platform": "Android",
     "version": "9.1.95",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-06-17"
   },
@@ -3208,12 +3602,14 @@
     "summary": "QQ 9.1.95",
     "platform": "Android",
     "version": "9.1.95",
+    "is_beta": false,
     "date": "2025-06-17"
   },
   "537297311": {
     "summary": "QQ(Pad) 9.1.95",
     "platform": "Android",
     "version": "9.1.95",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-06-17"
   },
@@ -3221,12 +3617,14 @@
     "summary": "QQ 9.1.95",
     "platform": "Android",
     "version": "9.1.95",
+    "is_beta": false,
     "date": "2025-06-17"
   },
   "537296067": {
     "summary": "QQ(Linux-Mips) 3.2.18.36330",
     "platform": "Linux",
     "version": "3.2.18.36330",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-06-16"
   },
@@ -3234,6 +3632,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.36330",
     "platform": "Linux",
     "version": "3.2.18.36330",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-06-16"
   },
@@ -3241,6 +3640,7 @@
     "summary": "QQ(Linux) 3.2.18.36330",
     "platform": "Linux",
     "version": "3.2.18.36330",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3252,6 +3652,7 @@
     "summary": "QQ(Mac) 6.9.75.36330",
     "platform": "macOS",
     "version": "6.9.75.36330",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3261,6 +3662,7 @@
     "summary": "QQ(Win-X64) 9.9.20.36330",
     "platform": "Windows",
     "version": "9.9.20.36330",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-06-16"
   },
@@ -3268,6 +3670,7 @@
     "summary": "QQ(Win-X86) 9.9.20.36330",
     "platform": "Windows",
     "version": "9.9.20.36330",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-06-16"
   },
@@ -3275,6 +3678,7 @@
     "summary": "QQ(Linux-Mips) 3.2.18.35951",
     "platform": "Linux",
     "version": "3.2.18.35951",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-06-07"
   },
@@ -3282,6 +3686,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.18.35951",
     "platform": "Linux",
     "version": "3.2.18.35951",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-06-07"
   },
@@ -3289,6 +3694,7 @@
     "summary": "QQ(Linux) 3.2.18.35951",
     "platform": "Linux",
     "version": "3.2.18.35951",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3300,6 +3706,7 @@
     "summary": "QQ(Mac) 6.9.75.35951",
     "platform": "macOS",
     "version": "6.9.75.35951",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3309,6 +3716,7 @@
     "summary": "QQ(Win-X64) 9.9.20.35951",
     "platform": "Windows",
     "version": "9.9.20.35951",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-06-07"
   },
@@ -3316,6 +3724,7 @@
     "summary": "QQ(Win-X86) 9.9.20.35951",
     "platform": "Windows",
     "version": "9.9.20.35951",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-06-07"
   },
@@ -3323,6 +3732,7 @@
     "summary": "QQ(Pad) 9.1.92",
     "platform": "Android",
     "version": "9.1.92",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-06-16"
   },
@@ -3330,12 +3740,14 @@
     "summary": "QQ 9.1.92",
     "platform": "Android",
     "version": "9.1.92",
+    "is_beta": false,
     "date": "2025-06-16"
   },
   "537294957": {
     "summary": "QQ(Pad) 9.1.91",
     "platform": "Android",
     "version": "9.1.91",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-06-05"
   },
@@ -3343,12 +3755,14 @@
     "summary": "QQ 9.1.91",
     "platform": "Android",
     "version": "9.1.91",
+    "is_beta": false,
     "date": "2025-06-05"
   },
   "537294645": {
     "summary": "QQ(Pad) 9.1.90",
     "platform": "Android",
     "version": "9.1.90",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-05-28"
   },
@@ -3356,12 +3770,14 @@
     "summary": "QQ 9.1.90",
     "platform": "Android",
     "version": "9.1.90",
+    "is_beta": false,
     "date": "2025-05-28"
   },
   "537291423": {
     "summary": "QQ(Mac) 6.9.73.35469",
     "platform": "macOS",
     "version": "6.9.73.35469",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3371,6 +3787,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.35469",
     "platform": "Windows",
     "version": "9.9.19.35469",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-05-23"
   },
@@ -3378,6 +3795,7 @@
     "summary": "QQ(Win-X64) 9.9.19.35469",
     "platform": "Windows",
     "version": "9.9.19.35469",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-05-23"
   },
@@ -3385,6 +3803,7 @@
     "summary": "QQ(Win-X86) 9.9.19.35469",
     "platform": "Windows",
     "version": "9.9.19.35469",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-05-23"
   },
@@ -3392,6 +3811,7 @@
     "summary": "QQ(Linux-Mips) 3.2.17.35341",
     "platform": "Linux",
     "version": "3.2.17.35341",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-05-20"
   },
@@ -3399,6 +3819,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.35341",
     "platform": "Linux",
     "version": "3.2.17.35341",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-05-20"
   },
@@ -3406,6 +3827,7 @@
     "summary": "QQ(Linux) 3.2.17.35341",
     "platform": "Linux",
     "version": "3.2.17.35341",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3417,6 +3839,7 @@
     "summary": "QQ(Mac) 6.9.73.35341",
     "platform": "macOS",
     "version": "6.9.73.35341",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3426,6 +3849,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.35341",
     "platform": "Windows",
     "version": "9.9.19.35341",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-05-20"
   },
@@ -3433,6 +3857,7 @@
     "summary": "QQ(Win-X64) 9.9.19.35341",
     "platform": "Windows",
     "version": "9.9.19.35341",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-05-20"
   },
@@ -3440,6 +3865,7 @@
     "summary": "QQ(Win-X86) 9.9.19.35341",
     "platform": "Windows",
     "version": "9.9.19.35341",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-05-20"
   },
@@ -3447,6 +3873,7 @@
     "summary": "QQ(Linux-Mips) 3.2.17.35184",
     "platform": "Linux",
     "version": "3.2.17.35184",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-05-16"
   },
@@ -3454,6 +3881,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.35184",
     "platform": "Linux",
     "version": "3.2.17.35184",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-05-16"
   },
@@ -3461,6 +3889,7 @@
     "summary": "QQ(Linux) 3.2.17.35184",
     "platform": "Linux",
     "version": "3.2.17.35184",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3472,6 +3901,7 @@
     "summary": "QQ(Mac) 6.9.72.35184",
     "platform": "macOS",
     "version": "6.9.72.35184",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3481,6 +3911,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.35184",
     "platform": "Windows",
     "version": "9.9.19.35184",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-05-16"
   },
@@ -3488,6 +3919,7 @@
     "summary": "QQ(Win-X64) 9.9.19.35184",
     "platform": "Windows",
     "version": "9.9.19.35184",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-05-16"
   },
@@ -3495,6 +3927,7 @@
     "summary": "QQ(Win-X86) 9.9.19.35184",
     "platform": "Windows",
     "version": "9.9.19.35184",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-05-16"
   },
@@ -3502,6 +3935,7 @@
     "summary": "QQ(Mac) 6.9.71.34958",
     "platform": "macOS",
     "version": "6.9.71.34958",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3511,6 +3945,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.34958",
     "platform": "Windows",
     "version": "9.9.19.34958",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-05-10"
   },
@@ -3518,6 +3953,7 @@
     "summary": "QQ(Win-X64) 9.9.19.34958",
     "platform": "Windows",
     "version": "9.9.19.34958",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-05-10"
   },
@@ -3525,6 +3961,7 @@
     "summary": "QQ(Win-X86) 9.9.19.34958",
     "platform": "Windows",
     "version": "9.9.19.34958",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-05-10"
   },
@@ -3532,6 +3969,7 @@
     "summary": "QQ(Linux-Mips) 3.2.17.34740",
     "platform": "Linux",
     "version": "3.2.17.34740",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-04-28"
   },
@@ -3539,6 +3977,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.34740",
     "platform": "Linux",
     "version": "3.2.17.34740",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-04-28"
   },
@@ -3546,6 +3985,7 @@
     "summary": "QQ(Linux) 3.2.17.34740",
     "platform": "Linux",
     "version": "3.2.17.34740",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3557,6 +3997,7 @@
     "summary": "QQ(Mac) 6.9.70.34740",
     "platform": "macOS",
     "version": "6.9.70.34740",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3566,6 +4007,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.34740",
     "platform": "Windows",
     "version": "9.9.19.34740",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-04-28"
   },
@@ -3573,6 +4015,7 @@
     "summary": "QQ(Win-X64) 9.9.19.34740",
     "platform": "Windows",
     "version": "9.9.19.34740",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-04-28"
   },
@@ -3580,6 +4023,7 @@
     "summary": "QQ(Win-X86) 9.9.19.34740",
     "platform": "Windows",
     "version": "9.9.19.34740",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-04-28"
   },
@@ -3587,6 +4031,7 @@
     "summary": "QQ(Pad) 9.1.76",
     "platform": "Android",
     "version": "9.1.76",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-05-18"
   },
@@ -3594,12 +4039,14 @@
     "summary": "QQ 9.1.76",
     "platform": "Android",
     "version": "9.1.76",
+    "is_beta": false,
     "date": "2025-05-18"
   },
   "537288346": {
     "summary": "QQ(Pad) 9.1.75",
     "platform": "Android",
     "version": "9.1.75",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-05-13"
   },
@@ -3607,12 +4054,14 @@
     "summary": "QQ 9.1.75",
     "platform": "Android",
     "version": "9.1.75",
+    "is_beta": false,
     "date": "2025-05-13"
   },
   "537286298": {
     "summary": "QQ(Pad) 9.1.71",
     "platform": "Android",
     "version": "9.1.71",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-05-12"
   },
@@ -3620,12 +4069,14 @@
     "summary": "QQ 9.1.71",
     "platform": "Android",
     "version": "9.1.71",
+    "is_beta": false,
     "date": "2025-05-12"
   },
   "537285986": {
     "summary": "QQ(Pad) 9.1.70",
     "platform": "Android",
     "version": "9.1.70",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-04-28"
   },
@@ -3633,12 +4084,14 @@
     "summary": "QQ 9.1.70",
     "platform": "Android",
     "version": "9.1.70",
+    "is_beta": false,
     "date": "2025-04-28"
   },
   "537284140": {
     "summary": "QQ(Pad) 9.1.67",
     "platform": "Android",
     "version": "9.1.67",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-04-25"
   },
@@ -3646,12 +4099,14 @@
     "summary": "QQ 9.1.67",
     "platform": "Android",
     "version": "9.1.67",
+    "is_beta": false,
     "date": "2025-04-25"
   },
   "537282346": {
     "summary": "QQ(Linux-Mips) 3.2.17.34566",
     "platform": "Linux",
     "version": "3.2.17.34566",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-04-22"
   },
@@ -3659,6 +4114,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.34606 / 3.2.17.34566",
     "platform": "Linux",
     "version": "3.2.17.34606 / 3.2.17.34566",
+    "is_beta": false,
     "arch": "LoongArch",
     "versions": [
       "3.2.17.34606",
@@ -3674,6 +4130,7 @@
     "summary": "QQ(Linux) 3.2.17.34606",
     "platform": "Linux",
     "version": "3.2.17.34606",
+    "is_beta": false,
     "packages": [
       "RPM",
       "APPIMAGE"
@@ -3684,6 +4141,7 @@
     "summary": "QQ(Linux) 3.2.17.34606 / 3.2.17.34566",
     "platform": "Linux",
     "version": "3.2.17.34606 / 3.2.17.34566",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3703,6 +4161,7 @@
     "summary": "QQ(Mac) 6.9.69.34606 / 6.9.69.34566",
     "platform": "macOS",
     "version": "6.9.69.34606 / 6.9.69.34566",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3720,6 +4179,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.34606 / 9.9.19.34566",
     "platform": "Windows",
     "version": "9.9.19.34606 / 9.9.19.34566",
+    "is_beta": false,
     "arch": "Arm",
     "versions": [
       "9.9.19.34606",
@@ -3735,6 +4195,7 @@
     "summary": "QQ(Win-X64) 9.9.19.34606 / 9.9.19.34566",
     "platform": "Windows",
     "version": "9.9.19.34606 / 9.9.19.34566",
+    "is_beta": false,
     "arch": "X64",
     "versions": [
       "9.9.19.34606",
@@ -3750,6 +4211,7 @@
     "summary": "QQ(Win-X86) 9.9.19.34606 / 9.9.19.34566",
     "platform": "Windows",
     "version": "9.9.19.34606 / 9.9.19.34566",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.19.34606",
@@ -3765,6 +4227,7 @@
     "summary": "QQ(Linux-Mips) 3.2.17.34467",
     "platform": "Linux",
     "version": "3.2.17.34467",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-04-18"
   },
@@ -3772,6 +4235,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.34467",
     "platform": "Linux",
     "version": "3.2.17.34467",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-04-18"
   },
@@ -3779,6 +4243,7 @@
     "summary": "QQ(Linux) 3.2.17.34467",
     "platform": "Linux",
     "version": "3.2.17.34467",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3790,6 +4255,7 @@
     "summary": "QQ(Mac) 6.9.69.34467",
     "platform": "macOS",
     "version": "6.9.69.34467",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3799,6 +4265,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.34467",
     "platform": "Windows",
     "version": "9.9.19.34467",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-04-18"
   },
@@ -3806,6 +4273,7 @@
     "summary": "QQ(Win-X64) 9.9.19.34467",
     "platform": "Windows",
     "version": "9.9.19.34467",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-04-18"
   },
@@ -3813,6 +4281,7 @@
     "summary": "QQ(Win-X86) 9.9.19.34467",
     "platform": "Windows",
     "version": "9.9.19.34467",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-04-18"
   },
@@ -3820,6 +4289,7 @@
     "summary": "QQ(Pad) 4.0.99",
     "platform": "Android",
     "version": "4.0.99",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-04-08"
   },
@@ -3827,12 +4297,14 @@
     "summary": "QQ 4.0.99",
     "platform": "Android",
     "version": "4.0.99",
+    "is_beta": false,
     "date": "2025-04-08"
   },
   "537279299": {
     "summary": "QQ(Linux-Mips) 3.2.17.34362",
     "platform": "Linux",
     "version": "3.2.17.34362",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-04-18"
   },
@@ -3840,6 +4312,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.34362",
     "platform": "Linux",
     "version": "3.2.17.34362",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-04-18"
   },
@@ -3847,6 +4320,7 @@
     "summary": "QQ(Linux) 3.2.17.34362",
     "platform": "Linux",
     "version": "3.2.17.34362",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3858,6 +4332,7 @@
     "summary": "QQ(Mac) 6.9.69.34362",
     "platform": "macOS",
     "version": "6.9.69.34362",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3867,6 +4342,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.34362",
     "platform": "Windows",
     "version": "9.9.19.34362",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-04-18"
   },
@@ -3874,6 +4350,7 @@
     "summary": "QQ(Win-X64) 9.9.19.34362",
     "platform": "Windows",
     "version": "9.9.19.34362",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-04-18"
   },
@@ -3881,6 +4358,7 @@
     "summary": "QQ(Win-X86) 9.9.19.34362",
     "platform": "Windows",
     "version": "9.9.19.34362",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-04-18"
   },
@@ -3888,6 +4366,7 @@
     "summary": "QQ(Linux-Mips) 3.2.17.34231",
     "platform": "Linux",
     "version": "3.2.17.34231",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-04-10"
   },
@@ -3895,6 +4374,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.17.34231",
     "platform": "Linux",
     "version": "3.2.17.34231",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-04-10"
   },
@@ -3902,6 +4382,7 @@
     "summary": "QQ(Linux) 3.2.17.34231",
     "platform": "Linux",
     "version": "3.2.17.34231",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3913,6 +4394,7 @@
     "summary": "QQ(Mac) 6.9.69.34231",
     "platform": "macOS",
     "version": "6.9.69.34231",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -3922,6 +4404,7 @@
     "summary": "QQ(Win-Arm) 9.9.19.34231",
     "platform": "Windows",
     "version": "9.9.19.34231",
+    "is_beta": false,
     "arch": "Arm",
     "date": "2025-04-10"
   },
@@ -3929,6 +4412,7 @@
     "summary": "QQ(Win-X64) 9.9.19.34231",
     "platform": "Windows",
     "version": "9.9.19.34231",
+    "is_beta": false,
     "arch": "X64",
     "date": "2025-04-10"
   },
@@ -3936,6 +4420,7 @@
     "summary": "QQ(Win-X86) 9.9.19.34231",
     "platform": "Windows",
     "version": "9.9.19.34231",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-04-10"
   },
@@ -3943,6 +4428,7 @@
     "summary": "QQ(Pad) 9.1.65",
     "platform": "Android",
     "version": "9.1.65",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-04-14"
   },
@@ -3950,12 +4436,14 @@
     "summary": "QQ 9.1.65",
     "platform": "Android",
     "version": "9.1.65",
+    "is_beta": false,
     "date": "2025-04-14"
   },
   "537275675": {
     "summary": "QQ(Pad) 9.1.60",
     "platform": "Android",
     "version": "9.1.60",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-03-19"
   },
@@ -3963,12 +4451,14 @@
     "summary": "QQ 9.1.60",
     "platform": "Android",
     "version": "9.1.60",
+    "is_beta": false,
     "date": "2025-03-19"
   },
   "537274012": {
     "summary": "QQ(Linux-Mips) 3.2.16.33800",
     "platform": "Linux",
     "version": "3.2.16.33800",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-04-01"
   },
@@ -3976,6 +4466,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.16.33800",
     "platform": "Linux",
     "version": "3.2.16.33800",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-04-01"
   },
@@ -3983,6 +4474,7 @@
     "summary": "QQ(Linux) 3.2.16.33800",
     "platform": "Linux",
     "version": "3.2.16.33800",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -3994,6 +4486,7 @@
     "summary": "QQ(Mac) 6.9.68.33800",
     "platform": "macOS",
     "version": "6.9.68.33800",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4003,6 +4496,7 @@
     "summary": "QQ(Win) 9.9.18.33800",
     "platform": "Windows",
     "version": "9.9.18.33800",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "date": "2025-04-01"
   },
@@ -4010,6 +4504,7 @@
     "summary": "QQ(Win-X86) 9.9.18.33800",
     "platform": "Windows",
     "version": "9.9.18.33800",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-04-01"
   },
@@ -4017,6 +4512,7 @@
     "summary": "QQ(Linux-Mips) 3.2.16.33139",
     "platform": "Linux",
     "version": "3.2.16.33139",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-03-19"
   },
@@ -4024,6 +4520,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.16.33139",
     "platform": "Linux",
     "version": "3.2.16.33139",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-03-19"
   },
@@ -4031,6 +4528,7 @@
     "summary": "QQ(Linux) 3.2.16.33139",
     "platform": "Linux",
     "version": "3.2.16.33139",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -4042,6 +4540,7 @@
     "summary": "QQ(Mac) 6.9.67.33259",
     "platform": "macOS",
     "version": "6.9.67.33259",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4051,6 +4550,7 @@
     "summary": "QQ(Win) 9.9.18.33139",
     "platform": "Windows",
     "version": "9.9.18.33139",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "date": "2025-03-19"
   },
@@ -4058,6 +4558,7 @@
     "summary": "QQ(Win-X86) 9.9.18.33139",
     "platform": "Windows",
     "version": "9.9.18.33139",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-03-19"
   },
@@ -4065,6 +4566,7 @@
     "summary": "QQ(Pad) 9.1.55",
     "platform": "Android",
     "version": "9.1.55",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-03-11"
   },
@@ -4072,12 +4574,14 @@
     "summary": "QQ 9.1.55",
     "platform": "Android",
     "version": "9.1.55",
+    "is_beta": false,
     "date": "2025-03-11"
   },
   "537271332": {
     "summary": "QQ(Linux-Mips) 3.2.16.32869",
     "platform": "Linux",
     "version": "3.2.16.32869",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-03-09"
   },
@@ -4085,6 +4589,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.16.32869",
     "platform": "Linux",
     "version": "3.2.16.32869",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-03-09"
   },
@@ -4092,6 +4597,7 @@
     "summary": "QQ(Linux) 3.2.16.32869",
     "platform": "Linux",
     "version": "3.2.16.32869",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -4103,6 +4609,7 @@
     "summary": "QQ(Mac) 6.9.66.32869",
     "platform": "macOS",
     "version": "6.9.66.32869",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4112,6 +4619,7 @@
     "summary": "QQ(Win) 9.9.18.32869",
     "platform": "Windows",
     "version": "9.9.18.32869",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "date": "2025-03-09"
   },
@@ -4119,6 +4627,7 @@
     "summary": "QQ(Win-X86) 9.9.18.32869",
     "platform": "Windows",
     "version": "9.9.18.32869",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-03-09"
   },
@@ -4126,6 +4635,7 @@
     "summary": "QQ(Linux-Mips) 3.2.16.32793",
     "platform": "Linux",
     "version": "3.2.16.32793",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-03-05"
   },
@@ -4133,6 +4643,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.16.32793",
     "platform": "Linux",
     "version": "3.2.16.32793",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-03-05"
   },
@@ -4140,6 +4651,7 @@
     "summary": "QQ(Linux) 3.2.16.32793",
     "platform": "Linux",
     "version": "3.2.16.32793",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -4151,6 +4663,7 @@
     "summary": "QQ(Mac) 6.9.66.32793",
     "platform": "macOS",
     "version": "6.9.66.32793",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4160,6 +4673,7 @@
     "summary": "QQ(Win) 9.9.18.32793",
     "platform": "Windows",
     "version": "9.9.18.32793",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "date": "2025-03-05"
   },
@@ -4167,6 +4681,7 @@
     "summary": "QQ(Win-X86) 9.9.18.32793",
     "platform": "Windows",
     "version": "9.9.18.32793",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-03-05"
   },
@@ -4174,6 +4689,7 @@
     "summary": "QQ(Linux-Mips) 3.2.16.32690",
     "platform": "Linux",
     "version": "3.2.16.32690",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-02-27"
   },
@@ -4181,6 +4697,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.16.32690",
     "platform": "Linux",
     "version": "3.2.16.32690",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-02-27"
   },
@@ -4188,6 +4705,7 @@
     "summary": "QQ(Linux) 3.2.16.32690",
     "platform": "Linux",
     "version": "3.2.16.32690",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -4199,6 +4717,7 @@
     "summary": "QQ(Mac) 6.9.66.32690",
     "platform": "macOS",
     "version": "6.9.66.32690",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4208,6 +4727,7 @@
     "summary": "QQ(Win) 9.9.18.32690",
     "platform": "Windows",
     "version": "9.9.18.32690",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "date": "2025-02-27"
   },
@@ -4215,6 +4735,7 @@
     "summary": "QQ(Win-X86) 9.9.18.32690",
     "platform": "Windows",
     "version": "9.9.18.32690",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-02-27"
   },
@@ -4222,6 +4743,7 @@
     "summary": "QQ(Pad) 9.1.52",
     "platform": "Android",
     "version": "9.1.52",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-02-23"
   },
@@ -4229,12 +4751,14 @@
     "summary": "QQ 9.1.52",
     "platform": "Android",
     "version": "9.1.52",
+    "is_beta": false,
     "date": "2025-02-23"
   },
   "537270070": {
     "summary": "QQ(Pad) 9.1.50",
     "platform": "Android",
     "version": "9.1.50",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-02-19"
   },
@@ -4242,12 +4766,14 @@
     "summary": "QQ 9.1.50",
     "platform": "Android",
     "version": "9.1.50",
+    "is_beta": false,
     "date": "2025-02-19"
   },
   "537266538": {
     "summary": "QQ(Linux-Mips) 3.2.15.31363",
     "platform": "Linux",
     "version": "3.2.15.31363",
+    "is_beta": false,
     "arch": "Mips",
     "date": "2025-01-10"
   },
@@ -4255,6 +4781,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.15.31363",
     "platform": "Linux",
     "version": "3.2.15.31363",
+    "is_beta": false,
     "arch": "LoongArch",
     "date": "2025-01-10"
   },
@@ -4262,6 +4789,7 @@
     "summary": "QQ(Linux) 3.2.15.31363",
     "platform": "Linux",
     "version": "3.2.15.31363",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -4273,6 +4801,7 @@
     "summary": "QQ(Mac) 6.9.65.31363",
     "platform": "macOS",
     "version": "6.9.65.31363",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4282,6 +4811,7 @@
     "summary": "QQ(Win) 9.9.17.31363",
     "platform": "Windows",
     "version": "9.9.17.31363",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "date": "2025-01-10"
   },
@@ -4289,6 +4819,7 @@
     "summary": "QQ(Win-X86) 9.9.17.31363",
     "platform": "Windows",
     "version": "9.9.17.31363",
+    "is_beta": false,
     "arch": "X86",
     "date": "2025-01-10"
   },
@@ -4296,6 +4827,7 @@
     "summary": "QQ(Linux-Mips) 3.2.15.31245 / 3.2.15.31219",
     "platform": "Linux",
     "version": "3.2.15.31245 / 3.2.15.31219",
+    "is_beta": false,
     "arch": "Mips",
     "versions": [
       "3.2.15.31245",
@@ -4311,6 +4843,7 @@
     "summary": "QQ(Linux-LoongArch) 3.2.15.31245 / 3.2.15.31219",
     "platform": "Linux",
     "version": "3.2.15.31245 / 3.2.15.31219",
+    "is_beta": false,
     "arch": "LoongArch",
     "versions": [
       "3.2.15.31245",
@@ -4326,6 +4859,7 @@
     "summary": "QQ(Linux) 3.2.15.31245 / 3.2.15.31219",
     "platform": "Linux",
     "version": "3.2.15.31245 / 3.2.15.31219",
+    "is_beta": false,
     "packages": [
       "DEB",
       "RPM",
@@ -4345,6 +4879,7 @@
     "summary": "QQ(Mac) 6.9.63.31245 / 6.9.63.31219",
     "platform": "macOS",
     "version": "6.9.63.31245 / 6.9.63.31219",
+    "is_beta": false,
     "packages": [
       "DMG"
     ],
@@ -4362,6 +4897,7 @@
     "summary": "QQ(Win) 9.9.17.31245 / 9.9.17.31219",
     "platform": "Windows",
     "version": "9.9.17.31245 / 9.9.17.31219",
+    "is_beta": false,
     "arch": "X64 / Arm",
     "versions": [
       "9.9.17.31245",
@@ -4377,6 +4913,7 @@
     "summary": "QQ(Win-X86) 9.9.17.31245 / 9.9.17.31219",
     "platform": "Windows",
     "version": "9.9.17.31245 / 9.9.17.31219",
+    "is_beta": false,
     "arch": "X86",
     "versions": [
       "9.9.17.31245",
@@ -4392,6 +4929,7 @@
     "summary": "QQ(Pad) 9.1.35",
     "platform": "Android",
     "version": "9.1.35",
+    "is_beta": false,
     "arch": "Pad",
     "date": "2025-01-10"
   },
@@ -4399,6 +4937,7 @@
     "summary": "QQ 9.1.35",
     "platform": "Android",
     "version": "9.1.35",
+    "is_beta": false,
     "date": "2025-01-10"
   }
 }
