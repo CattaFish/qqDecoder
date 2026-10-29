@@ -68,8 +68,8 @@ def download_target_file(url, target_dir):
 
             cmd = [
                 "curl",
-                "-k",  # ★ 核心修复：允许不安全/老旧 SSL 证书连接，避免部分旧市场 CDN 报错
-                "-4",  # ★ 强制 IPv4，彻底规避运营商 IPv6 边缘节点解析失败
+                "-k",
+                "-4",
                 "-fL",
                 "-s",
                 "-S",
@@ -115,8 +115,16 @@ def get_aapt_cmd():
 
 
 def extract_subids_and_version(extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown"):
-    """自适应提取 SubID 列表和统合版本号"""
+    """自适应提取 SubID 列表和统合版本号 (保留并继承 Beta 标记)"""
     fname_str = str(downloaded_file_path).lower()
+
+    # 预判包名、路径或传入版本中是否包含 Beta 标记
+    is_beta_hint = bool(
+        "-beta" in str(fallback_ver).lower()
+        or "beta" in str(fallback_ver).lower()
+        or "beta" in fname_str
+        or "rc" in fname_str
+    )
 
     if fname_str.endswith(".apk") or (extract_dir / "AndroidManifest.xml").exists():
         subid_phone, subid_pad, base_vname, build_no = None, None, None, None
@@ -161,9 +169,16 @@ def extract_subids_and_version(extract_dir, downloaded_file_path, default_arch, 
                         if m_str: build_no = m_str.group(1)
 
         raw_v = base_vname or fallback_ver
+        if "beta" in str(base_vname).lower():
+            is_beta_hint = True
+
         m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
         base_3parts = m_v3.group(1) if m_v3 else raw_v
         clean_ver = f"{base_3parts}.{build_no}" if build_no else base_3parts
+
+        # 确保版本截断后恢复 -Beta 标识
+        if is_beta_hint and not clean_ver.endswith("-Beta"):
+            clean_ver = f"{clean_ver}-Beta"
 
         pairs = []
         if subid_phone: pairs.append((subid_phone, "Phone"))
@@ -204,6 +219,8 @@ def extract_subids_and_version(extract_dir, downloaded_file_path, default_arch, 
                 plat = "macOS" if (".app" in path_str or "macos" in path_str) else "Linux" if ("opt" in path_str or "linux" in path_str) else "Windows"
                 m_already = re.search(r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver)
                 clean_ver = m_already.group(1) if m_already else fallback_ver
+                if is_beta_hint and not clean_ver.endswith("-Beta"):
+                    clean_ver = f"{clean_ver}-Beta"
                 return [(subid, default_arch)], plat, clean_ver
         except Exception:
             pass
