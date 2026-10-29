@@ -150,7 +150,7 @@ jobs:
           input_arch = """${{ inputs.arch }}""".strip()
           input_channel = """${{ inputs.channel }}""".strip() or "官方"
           input_date = """${{ inputs.date }}""".strip()
-          is_beta = "${{ inputs.is_beta }}".strip().lower() == "true"
+          is_beta_param = "${{ inputs.is_beta }}".strip().lower() == "true"
 
           if not input_date:
               input_date = time.strftime("%Y-%m-%d")
@@ -159,7 +159,7 @@ jobs:
           manifest_dump = root_dir / "manifest_dump.txt"
           manifest_xml = root_dir / "AndroidManifest.xml"
 
-          extracted_records = [] # (subid, platform, arch, version)
+          extracted_records = []
           detected_platform = "Unknown"
 
           # ----------------------------------------------------
@@ -207,26 +207,31 @@ jobs:
                   if len(all_m) >= 1 and not subid_phone: subid_phone = all_m[0]
                   if len(all_m) >= 2 and not subid_pad: subid_pad = all_m[1]
 
-              # 版本规整
               raw_ver = base_vname or input_ver
               m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_ver)
               base_3p = m_v3.group(1) if m_v3 else raw_ver
               clean_v = f"{base_3p}.{build_no}" if build_no and not raw_ver.endswith(f".{build_no}") else raw_ver
-              if is_beta and not clean_v.endswith("-Beta"):
+
+              is_beta_flag = bool(
+                  is_beta_param
+                  or "-beta" in clean_v.lower()
+                  or "beta" in clean_v.lower()
+                  or "beta" in input_url.lower()
+              )
+              if is_beta_flag and not clean_v.endswith("-Beta"):
                   clean_v = f"{clean_v}-Beta"
 
               plat_to_use = input_plat if input_plat != "Auto" else "Android"
 
-              # 架构指定/全选处理
               if input_arch:
                   target_sid = subid_pad if input_arch.lower() == "pad" else (subid_phone or subid_pad)
                   if target_sid:
-                      extracted_records.append((target_sid, plat_to_use, input_arch, clean_v))
+                      extracted_records.append((target_sid, plat_to_use, input_arch, clean_v, is_beta_flag))
               else:
                   if subid_phone:
-                      extracted_records.append((subid_phone, plat_to_use, "Phone", clean_v))
+                      extracted_records.append((subid_phone, plat_to_use, "Phone", clean_v, is_beta_flag))
                   if subid_pad:
-                      extracted_records.append((subid_pad, plat_to_use, "Pad", clean_v))
+                      extracted_records.append((subid_pad, plat_to_use, "Pad", clean_v, is_beta_flag))
 
           # ----------------------------------------------------
           # 分支 B: 处理桌面端 NT (Windows, Linux, macOS)
@@ -283,10 +288,16 @@ jobs:
                   arch_to_use = m_arch.group(1).upper() if m_arch else "Package"
 
               clean_v = input_ver
-              if is_beta and not clean_v.endswith("-Beta"):
+              is_beta_flag = bool(
+                  is_beta_param
+                  or "-beta" in clean_v.lower()
+                  or "beta" in clean_v.lower()
+                  or "beta" in input_url.lower()
+              )
+              if is_beta_flag and not clean_v.endswith("-Beta"):
                   clean_v = f"{clean_v}-Beta"
 
-              extracted_records.append((found_subid, plat_to_use, arch_to_use, clean_v))
+              extracted_records.append((found_subid, plat_to_use, arch_to_use, clean_v, is_beta_flag))
 
           if not extracted_records:
               print("::error::未能提取到任何有效的 SubID 实体！")
@@ -307,14 +318,15 @@ jobs:
 
           recorded_info = []
 
-          for sid, plat, arch, ver in extracted_records:
+          for sid, plat, arch, ver, b_flag in extracted_records:
               new_item = {
                   "version": ver,
                   "platform": plat,
                   "arch": arch,
                   "date": input_date,
                   "source_url": input_url,
-                  "channel": input_channel
+                  "channel": input_channel,
+                  "is_beta": b_flag,  # 显式打标写入
               }
 
               if sid not in subid_map:
@@ -322,7 +334,6 @@ jobs:
               else:
                   if isinstance(subid_map[sid], dict):
                       subid_map[sid] = [subid_map[sid]]
-                  # 根据 source_url 和 arch 去重更新
                   exist_idx = -1
                   for i, ex in enumerate(subid_map[sid]):
                       if ex.get("source_url") == input_url and ex.get("arch") == arch:
@@ -333,16 +344,14 @@ jobs:
                   else:
                       subid_map[sid].append(new_item)
 
-              recorded_info.append(f"SubID: `{sid}` | 平台: `{plat}` | 架构: `{arch}` | 版本: `{ver}` | 渠道: `{input_channel}`")
-              print(f"[录入成功] SubID: {sid} | 平台: {plat} | 架构: {arch} | 版本: {ver} | 渠道: {input_channel}")
+              recorded_info.append(f"SubID: `{sid}` | 平台: `{plat}` | 架构: `{arch}` | 版本: `{ver}` | Beta: `{b_flag}` | 渠道: `{input_channel}`")
+              print(f"[录入成功] SubID: {sid} | 平台: {plat} | 架构: {arch} | 版本: {ver} | Beta: {b_flag} | 渠道: {input_channel}")
 
-          # 1. 原子持久化原始数据库
           tmp_file = data_file.with_suffix(".tmp")
           tmp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
           tmp_file.replace(data_file)
           print("[持久化] 已成功更新 data/qq_subid_map.json")
 
-          # 2. 同步派生编译出运行时字典 data/subid.json
           runtime_file = Path("data/subid.json")
           compiled_dict = compile_subid_map_to_runtime_dict(subid_map)
           tmp_rt = runtime_file.with_suffix(".tmp")
@@ -350,13 +359,11 @@ jobs:
           tmp_rt.replace(runtime_file)
           print(f"[运行时同步] 已成功派生编译 data/subid.json (收录 {len(compiled_dict)} 条)")
 
-          # 3. 若为豌豆荚渠道，联动更新记录文件
           if input_channel == "豌豆荚":
               wdj_file = Path("data/wandoujia_latest_version.txt")
               wdj_file.write_text(input_ver.strip(), encoding="utf-8")
               print(f"[版本记录] 豌豆荚版本文件已同步写入: {input_ver}")
 
-          # 4. 生成 Step Summary
           summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
           if summary_path:
               with open(summary_path, "a", encoding="utf-8") as f:
@@ -365,7 +372,7 @@ jobs:
                   f.write(f"- **录入版本**: `{input_ver}`\n")
                   f.write(f"- **分发渠道**: `{input_channel}`\n")
                   f.write(f"- **构建日期**: `{input_date}`\n")
-                  f.write(f"- **测试版状态**: `{'是 (#Beta)' if is_beta else '否'}`\n\n")
+                  f.write(f"- **测试版状态**: `{'是 (#Beta)' if is_beta_param else '否'}`\n\n")
                   f.write("#### 🎯 提取并落盘结果清单：\n")
                   for rec in recorded_info:
                       f.write(f"- {rec}\n")
