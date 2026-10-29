@@ -84,7 +84,7 @@ def is_bad_item(s_id, item):
 
 
 def load_and_sanitize_database():
-    """读取已有数据，平滑升级为列表结构，并清理残缺数据"""
+    """读取已有数据，平滑升级并自动补齐 is_beta 标记，清理残缺数据"""
     raw_map = {}
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -116,6 +116,11 @@ def load_and_sanitize_database():
                     flush=True,
                 )
             else:
+                # 自动为存量历史记录补齐 is_beta 标记
+                if "is_beta" not in item:
+                    v = str(item.get("version", ""))
+                    u = str(item.get("source_url", ""))
+                    item["is_beta"] = bool("-beta" in v.lower() or "beta" in v.lower() or "beta" in u.lower())
                 valid_items.append(item)
 
         if valid_items:
@@ -246,7 +251,7 @@ def get_history_messages(start_date_str):
 
 
 def parse_backup_tasks(messages):
-    """提取任务清单，严格优先提取备份直链并剔除黑名单 (兼容 Markdown 链接与新格式)"""
+    """提取任务清单，严格优先提取备份直链并剔除黑名单"""
     print("[阶段 2] 正在分析提取文件下载链接（优先提取备份）...", flush=True)
     tasks = []
 
@@ -256,6 +261,7 @@ def parse_backup_tasks(messages):
         date = msg["date"]
         post_id = msg["post_id"]
 
+        # 保持 Telegram 原则不变：识别 #Beta\b
         is_beta = bool(re.search(r"#Beta\b", text, re.IGNORECASE))
 
         win_ver = ""
@@ -282,7 +288,6 @@ def parse_backup_tasks(messages):
         if m_android:
             android_ver = m_android.group(1)
 
-        # 兼容新排版：第一行直接是版本号
         if not (win_ver or mac_ver or linux_ver or android_ver):
             lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
             if lines:
@@ -298,7 +303,6 @@ def parse_backup_tasks(messages):
                     else:
                         android_ver = extracted_v
 
-        # 区分平台解析超链接
         has_desktop = any(p in text for p in ["Windows", "Linux", "MacOS", "Mac QQ_NT", "Linux QQ_NT", "Windows QQ_NT"])
 
         if has_desktop:
@@ -395,7 +399,7 @@ def parse_backup_tasks(messages):
 
 
 def download_target_file(url, target_dir):
-    """带 600 秒 (10分钟) 硬超时的静默下载"""
+    """带 600 秒硬超时的静默下载"""
     try:
         if "t.me/" in url:
             cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
@@ -451,7 +455,6 @@ def download_target_file(url, target_dir):
 
 
 def get_aapt_cmd():
-    """获取 aapt 工具路径"""
     cmd = shutil.which("aapt")
     if cmd:
         return cmd
@@ -477,7 +480,13 @@ def extract_subids_and_version(
     """自适应提取 SubID 列表和统合版本号"""
     fname_str = str(downloaded_file_path).lower()
 
-    # 1. Android 端处理 (APK)
+    is_beta_hint = bool(
+        "-beta" in str(fallback_ver).lower()
+        or "beta" in str(fallback_ver).lower()
+        or "beta" in fname_str
+        or "rc" in fname_str
+    )
+
     manifest_xml = extract_dir / "AndroidManifest.xml"
     if fname_str.endswith(".apk") or manifest_xml.exists():
         subid_phone = None
@@ -550,7 +559,6 @@ def extract_subids_and_version(
                         if m_str:
                             build_no = m_str.group(1)
 
-        # 字节流兜底抽取双端 SubID
         if manifest_xml.exists() and (not subid_phone or not subid_pad):
             raw = manifest_xml.read_bytes()
             matches_u8 = [
@@ -572,13 +580,15 @@ def extract_subids_and_version(
                     subid_pad = all_found[1]
 
         raw_v = base_vname or fallback_ver
+        if "beta" in str(base_vname).lower():
+            is_beta_hint = True
+
         m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
         base_3parts = m_v3.group(1) if m_v3 else raw_v
+        clean_ver = f"{base_3parts}.{build_no}" if build_no else base_3parts
 
-        if build_no:
-            clean_ver = f"{base_3parts}.{build_no}"
-        else:
-            clean_ver = base_3parts
+        if is_beta_hint and not clean_ver.endswith("-Beta"):
+            clean_ver = f"{clean_ver}-Beta"
 
         extracted_pairs = []
         if subid_phone:
@@ -588,7 +598,7 @@ def extract_subids_and_version(
 
         return extracted_pairs, "Android", clean_ver
 
-    # 2. 桌面端处理 (Win / Linux / macOS)
+    # 桌面端处理
     nodes = list(extract_dir.glob("**/major.node")) or list(
         extract_dir.glob("**/*.node")
     )
@@ -659,6 +669,9 @@ def extract_subids_and_version(
                         clean_ver = v_str
                         break
 
+                if is_beta_hint and not clean_ver.endswith("-Beta"):
+                    clean_ver = f"{clean_ver}-Beta"
+
                 return [(subid, default_arch)], plat, clean_ver
         except Exception:
             pass
@@ -667,7 +680,6 @@ def extract_subids_and_version(
 
 
 def extract_version_from_filename(filename):
-    """从真实文件名提炼基础版本号"""
     m4 = re.search(r"(\d+\.\d+\.\d+)[-._](\d{4,6})", filename)
     if m4:
         return f"{m4.group(1)}.{m4.group(2)}"
@@ -734,12 +746,14 @@ def run_extraction_pipeline(tasks):
                 f"[人工指定命中] 直接采纳人工预设 SubID: {manual_override_subid}",
                 flush=True,
             )
+            is_beta_override = bool(t.get("is_beta") or "-beta" in t["version"].lower() or "beta" in t["version"].lower())
             new_item = {
                 "version": t["version"],
                 "platform": t["platform"],
                 "arch": t["arch"],
                 "date": t["date"],
                 "source_url": t["url"],
+                "is_beta": is_beta_override,
             }
             if manual_override_subid not in subid_map:
                 subid_map[manual_override_subid] = [new_item]
@@ -759,7 +773,6 @@ def run_extraction_pipeline(tasks):
             shutil.rmtree(TEMP_DL)
         TEMP_DL.mkdir()
 
-        # 1. 下载
         proc = download_target_file(t["url"], TEMP_DL)
         if proc is None or proc.returncode != 0:
             err_msg = ""
@@ -797,7 +810,6 @@ def run_extraction_pipeline(tasks):
             flush=True,
         )
 
-        # 2. 解包 (核心容灾升级：dpkg-deb 失败时自动启动 7z 容错穿透)
         if TEMP_EXTRACT.exists():
             shutil.rmtree(TEMP_EXTRACT)
         TEMP_EXTRACT.mkdir()
@@ -872,7 +884,6 @@ def run_extraction_pipeline(tasks):
                         stderr=subprocess.DEVNULL,
                     )
 
-            # 3. 提取 SubID 与权威版本
             subid_pairs, detected_platform, unified_version = (
                 extract_subids_and_version(
                     TEMP_EXTRACT, downloaded_file, t["arch"], base_version
@@ -886,7 +897,14 @@ def run_extraction_pipeline(tasks):
                     else t["platform"]
                 )
 
-                if t.get("is_beta") and not unified_version.endswith("-Beta"):
+                is_beta_flag = bool(
+                    t.get("is_beta")
+                    or "-beta" in unified_version.lower()
+                    or "beta" in unified_version.lower()
+                    or "beta" in fname.lower()
+                    or "beta" in t.get("url", "").lower()
+                )
+                if is_beta_flag and not unified_version.endswith("-Beta"):
                     unified_version = f"{unified_version}-Beta"
 
                 for subid_val, arch_val in subid_pairs:
@@ -896,12 +914,13 @@ def run_extraction_pipeline(tasks):
                         "arch": arch_val,
                         "date": t["date"],
                         "source_url": t["url"],
+                        "is_beta": is_beta_flag,  # 显式打标写入
                     }
 
                     if subid_val not in subid_map:
                         subid_map[subid_val] = [new_item]
                         print(
-                            f"[提取成功] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | SubID: {subid_val}",
+                            f"[提取成功] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | Beta: {is_beta_flag} | SubID: {subid_val}",
                             flush=True,
                         )
                     else:
@@ -914,7 +933,7 @@ def run_extraction_pipeline(tasks):
                         if t["url"] not in exist_urls:
                             subid_map[subid_val].append(new_item)
                             print(
-                                f"[架构追加] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | SubID: {subid_val} (当前共关联 {len(subid_map[subid_val])} 项)",
+                                f"[架构追加] 平台: {final_platform} | 架构: {arch_val:<6} | 统合版本: {unified_version} | Beta: {is_beta_flag} | SubID: {subid_val} (当前共关联 {len(subid_map[subid_val])} 项)",
                                 flush=True,
                             )
 
