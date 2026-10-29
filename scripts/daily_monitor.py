@@ -71,7 +71,7 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
         clean = re.sub(r"/\d{10,}/", "/", clean)
         return clean.split("?")[0]
 
-    if "gdown.baidu.com" in clean or channel == "百度":  # 百度直链指纹按包体 MD5 归一
+    if "gdown.baidu.com" in clean or channel == "百度":
         return clean.split("?")[0]
 
     if "heytap" in clean or "oppo" in clean or channel == "OPPO":
@@ -124,7 +124,7 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
-    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，优先保留官方直链"""
+    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，优先保留官方直链，补齐 is_beta 标记"""
     cleaned_map = {}
     purged_count = 0
     for s_id, val in raw_map.items():
@@ -136,6 +136,14 @@ def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
             a = item.get("arch", "").strip()
             c = item.get("channel", "").strip()
             url = item.get("source_url", "").strip()
+
+            # 自动自愈补齐历史遗留条目的 is_beta 标记
+            if "is_beta" not in item:
+                item["is_beta"] = bool(
+                    "-beta" in v.lower()
+                    or "beta" in v.lower()
+                    or "beta" in url.lower()
+                )
 
             key = (p, a, c, v)
             if key not in unique_entities:
@@ -213,7 +221,7 @@ def main():
             subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
             subid_map, purged_count = sanitize_and_deduplicate_map(subid_map)
             if purged_count > 0:
-                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录: {purged_count} 条！立即持久化落盘...")
+                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录并补齐 Beta 标记: {purged_count} 条！立即持久化落盘...")
                 save_database_and_runtime(subid_map)
         except Exception:
             subid_map = {}
@@ -232,7 +240,7 @@ def main():
             if p and v and a:
                 platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 2. 采集 Telegram 官方更新（严格备份独占）
+    # 2. 采集 Telegram 官方更新（保持原样）
     tg_tasks = get_telegram_tasks()
     seen_platform_tasks = set()
 
@@ -244,7 +252,6 @@ def main():
         is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
-        # 彻底拦截：链接已在库中
         if fp_cur in processed_url_fps:
             print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
             continue
@@ -266,7 +273,6 @@ def main():
             should_update = True
             update_reason = f"版本升级 ({recorded_tg_ver} -> {cur_ver})"
         else:
-            # 只有当该备份包对应的架构在当前版本完全未收录时，才允许自愈补齐
             clean_cur = cur_ver.replace("-Beta", "").strip()
             clean_rec = recorded_tg_ver.replace("-Beta", "").strip()
             known_arches = platform_version_arches.get((plat, clean_cur), set())
@@ -303,7 +309,13 @@ def main():
         cur_url = info["download_url"]
         fp_cur = get_url_fingerprint(cur_url, name)
 
-        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
+        # 感知应用市场渠道包是否为测试版
+        is_market_beta = bool(
+            re.search(r"beta|内测|体验|preview|rc", cur_ver, re.IGNORECASE)
+            or re.search(r"beta|内测|体验", cur_url, re.IGNORECASE)
+        )
+
+        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'} | Beta: {is_market_beta}")
 
         if fp_cur in processed_url_fps:
             print(f"[{name}监控] 安装包链接已在库中，无需下载。")
@@ -315,7 +327,7 @@ def main():
         if not recorded_ver:
             should_update = True
             update_reason = "首次收录"
-        elif is_newer_version(cur_ver, recorded_ver):
+        elif is_newer_version(cur_ver, recorded_ver, is_new_beta=is_market_beta):
             should_update = True
             update_reason = f"版本升级 ({recorded_ver} -> {cur_ver})"
         elif cur_ver == recorded_ver:
@@ -339,7 +351,7 @@ def main():
                 "version": cur_ver,
                 "date": info["date"],
                 "url": cur_url,
-                "is_beta": False,
+                "is_beta": is_market_beta,
                 "channel": name,
                 "mark_channel_name": name,
                 "mark_version_val": cur_ver,
@@ -420,15 +432,26 @@ def main():
             subid_pairs, plat, clean_ver = extract_subids_and_version(TEMP_EXTRACT, downloaded_file, t["arch"], base_ver)
             if subid_pairs:
                 has_subid_extracted = True
-                if t.get("is_beta") and not clean_ver.endswith("-Beta"):
+
+                # 识别当前 SubID 是否为 Beta 测试版
+                is_beta_flag = bool(
+                    t.get("is_beta")
+                    or "-beta" in clean_ver.lower()
+                    or "beta" in clean_ver.lower()
+                    or "beta" in base_ver.lower()
+                    or "beta" in fname.lower()
+                    or "beta" in t.get("url", "").lower()
+                )
+                if is_beta_flag and not clean_ver.endswith("-Beta"):
                     clean_ver = f"{clean_ver}-Beta"
 
                 for s_id, a_val in subid_pairs:
                     ch_label = t.get("channel", "官方")
-                    print(f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {ch_label} | SubID: {s_id}")
+                    print(f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {ch_label} | Beta: {is_beta_flag} | SubID: {s_id}")
                     new_item = {
                         "version": clean_ver, "platform": plat, "arch": a_val,
                         "date": t["date"], "source_url": t["url"], "channel": ch_label,
+                        "is_beta": is_beta_flag,  # 显式打标写入主数据库
                     }
 
                     if s_id not in subid_map:
@@ -467,7 +490,7 @@ def main():
                     android_info = {
                         "url": decompile_apk_url,
                         "version": clean_ver,
-                        "is_beta": "true" if t.get("is_beta") else "false"
+                        "is_beta": "true" if is_beta_flag else "false"
                     }
         finally:
             shutil.rmtree(TEMP_DL, ignore_errors=True)
