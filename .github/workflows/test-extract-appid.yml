@@ -336,14 +336,18 @@ jobs:
                       subid_map[sid] = [subid_map[sid]]
                   exist_idx = -1
                   for i, ex in enumerate(subid_map[sid]):
-                      if ex.get("source_url") == input_url and ex.get("arch") == arch:
+                      ex_v = str(ex.get("version", "")).replace("-Beta", "").strip()
+                      cur_v = str(ver).replace("-Beta", "").strip()
+                      same_url = (ex.get("source_url") == input_url and ex.get("arch") == arch)
+                      same_pkg = (ex.get("platform") == plat and ex.get("arch") == arch and ex_v == cur_v)
+                      if same_url or same_pkg:
                           exist_idx = i
                           break
                   if exist_idx >= 0:
                       subid_map[sid][exist_idx] = new_item
                   else:
                       subid_map[sid].append(new_item)
-
+                      
               recorded_info.append(f"SubID: `{sid}` | 平台: `{plat}` | 架构: `{arch}` | 版本: `{ver}` | Beta: `{b_flag}` | 渠道: `{input_channel}`")
               print(f"[录入成功] SubID: {sid} | 平台: {plat} | 架构: {arch} | 版本: {ver} | Beta: {b_flag} | 渠道: {input_channel}")
 
