@@ -1,124 +1,140 @@
-name: Test Download QQ IPA (Linux)
+name: Test Download & Extract Decrypted QQ IPA
 
 on:
   workflow_dispatch:
     inputs:
-      auth_code:
-        description: '首次认证 6 位验证码 (手机收到弹窗或短信时填入)'
+      version:
+        description: '指定下载版本 (默认 latest-available 最新版，例如 9.3.78)'
         required: false
         type: string
-        default: ''
+        default: 'latest-available'
 
 jobs:
-  download-ipa:
+  download-and-analyze:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
 
     steps:
       - name: 1. 检出仓库代码
         uses: actions/checkout@v4
 
-      - name: 2. 安装官方 ipatool v2.7.0
+      - name: 2. 安装分析工具链 (ripgrep & p7zip)
         run: |
-          echo "[状态] 正在拉取官方 ipatool v2.7.0..."
-          curl -fL --retry 3 --connect-timeout 20 -o ipatool.tar.gz \
-            "https://github.com/majd/ipatool/releases/download/v2.7.0/ipatool-2.7.0-linux-amd64.tar.gz"
-          
-          tar -zxvf ipatool.tar.gz
-          sudo mv bin/ipatool* /usr/local/bin/ipatool
-          sudo chmod +x /usr/local/bin/ipatool
-          ipatool --version
+          sudo apt-get update
+          sudo apt-get install -y ripgrep p7zip-full jq curl
 
-      - name: 3. 恢复已有登录会话 (若存在且有效则免密)
-        id: restore_session
+      - name: 3. 从 ARMConverter 下载已脱壳的明文 QQ IPA
+        id: download_ipa
         env:
-          SESSION_BASE64: ${{ secrets.IPATOOL_SESSION_BASE64 }}
+          SESSION_TOKEN: ${{ secrets.ARMCONVERTER_SESSION }}
+          TARGET_VER: ${{ inputs.version }}
         run: |
-          if [ -n "$SESSION_BASE64" ]; then
-            echo "[凭据恢复] 检测到已保存的 ipatool Session，正在校验并还原..."
-            echo "$SESSION_BASE64" | base64 -d > /tmp/test_session.tar.gz 2>/dev/null || true
-            
-            # 校验 tarball 完整性
-            if tar -ztvf /tmp/test_session.tar.gz >/dev/null 2>&1; then
-              tar -zxvf /tmp/test_session.tar.gz -C "$HOME"
-              echo "has_session=true" >> $GITHUB_OUTPUT
-              echo "[凭据恢复] 恢复成功，后续将跳过 2FA 登录流程！"
-            else
-              echo "::warning::已保存的 Session 数据不完整或被截断，本次将自动重新登录生成完整凭据！"
-              echo "has_session=false" >> $GITHUB_OUTPUT
-            fi
-            rm -f /tmp/test_session.tar.gz
-          else
-            echo "[凭据检查] 未检测到已持久化的 Session，需要进行登录认证。"
-            echo "has_session=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 4. 执行 Apple ID 登录并捕获完整会话
-        if: steps.restore_session.outputs.has_session != 'true'
-        env:
-          APPLE_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
-          APPLE_PWD: ${{ secrets.APPLE_ID_PASSWORD }}
-          AUTH_CODE: ${{ inputs.auth_code }}
-        run: |
-          echo "[认证] 正在登录 Apple ID..."
+          APP_ID="444934666"
+          BUNDLE_ID="com.tencent.mqq"
           
-          if [ -z "$AUTH_CODE" ]; then
-            echo "::warning::未传入 2FA 验证码，正在向苹果发起请求并触发向手机发送验证码..."
-            ipatool --keychain-passphrase "ipatoolpass123" auth login \
-              --email "$APPLE_EMAIL" \
-              --password "$APPLE_PWD" \
-              --non-interactive || true
-            echo "::error::验证码已推送到你的手机，请查看最新 6 位数并在重新触发本工作流时填入输入框！"
+          if [ -z "$SESSION_TOKEN" ]; then
+            echo "::error::未检测到 ARMCONVERTER_SESSION，请在仓库 Settings 中添加该 Secret！"
             exit 1
           fi
 
-          # 携带当前 2FA 验证码完成最终鉴权
-          ipatool --keychain-passphrase "ipatoolpass123" auth login \
-            --email "$APPLE_EMAIL" \
-            --password "$APPLE_PWD" \
-            --auth-code "$AUTH_CODE" \
-            --non-interactive
+          echo "[1/4] 正在查询 QQ 线上脱壳版本列表..."
+          VERSIONS_JSON=$(curl -s -X POST \
+            --cookie "session=$SESSION_TOKEN" \
+            -H "Referer: https://armconverter.com/decryptedappstore" \
+            "https://armconverter.com/decryptedappstore/versions/$APP_ID/0?country=cn")
 
-          echo "=========================================================="
-          echo "🎉 登录成功！正在生成完整持久化会话凭据..."
-          echo "=========================================================="
-          
-          mkdir -p /tmp/session_export
-          cd "$HOME"
-          tar -zcvf /tmp/session_export/ipatool_session.tar.gz .ipatool .config/ipatool 2>/dev/null || tar -zcvf /tmp/session_export/ipatool_session.tar.gz .ipatool
-          
-          # 采用标准 76 列折行 base64，彻底杜绝单行被 GitHub 页面截断
-          base64 /tmp/session_export/ipatool_session.tar.gz > /tmp/session_export/session_base64.txt
-          
-          echo "------------------- BEGIN IPATOOL SESSION -------------------"
-          cat /tmp/session_export/session_base64.txt
-          echo "-------------------- END IPATOOL SESSION --------------------"
+          if [ "$TARGET_VER" = "latest-available" ]; then
+            REAL_VER=$(echo "$VERSIONS_JSON" | jq -r '.versions[-1].ver')
+          else
+            REAL_VER="$TARGET_VER"
+          fi
 
-      - name: 5. 备份 Session 文件为 Artifact (防截断兜底)
-        if: steps.restore_session.outputs.has_session != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ipatool-auth-session
-          path: /tmp/session_export/session_base64.txt
-          retention-days: 1
+          echo "目标版本: $REAL_VER"
+          echo "version=$REAL_VER" >> $GITHUB_OUTPUT
 
-      - name: 6. 购买许可并下载 QQ (.ipa)
+          echo "[2/4] 正在向 ARMConverter 申请下载 Token..."
+          PREPARE_RES=$(curl -s -X POST \
+            --cookie "session=$SESSION_TOKEN" \
+            -H "Referer: https://armconverter.com/decryptedappstore" \
+            "https://armconverter.com/decryptedappstore/download/$APP_ID/$BUNDLE_ID/$REAL_VER/prepare")
+
+          DL_TOKEN=$(echo "$PREPARE_RES" | jq -r '.token')
+          ERR_MSG=$(echo "$PREPARE_RES" | jq -r '.error // empty')
+
+          if [ -n "$ERR_MSG" ] || [ -z "$DL_TOKEN" ] || [ "$DL_TOKEN" = "null" ]; then
+            echo "::error::获取下载授权失败: $PREPARE_RES (可能是 Session 过期或触发了下载配额限制)"
+            exit 1
+          fi
+
+          echo "[3/4] 正在高速下载已脱壳的 QQ.ipa ($REAL_VER)..."
+          curl -fL \
+            -o "QQ_decrypted.ipa" \
+            "https://armconverter.com/decryptedappstore/download/$APP_ID/$BUNDLE_ID/$REAL_VER?token=$DL_TOKEN"
+
+          ls -lh QQ_decrypted.ipa
+
+          echo "[4/4] 验证 IPA 文件完整性..."
+          zip -T QQ_decrypted.ipa
+
+      - name: 4. 自动解包并提取 Info.plist
         run: |
-          mkdir -p ipa_output
-          cd ipa_output
+          mkdir -p qq_decrypted_out
+          unzip -q QQ_decrypted.ipa -d qq_decrypted_out/
           
-          echo "[下载] 正在调用 App Store 购买并下载 QQ (Bundle ID: com.tencent.mqq)..."
-          ipatool --keychain-passphrase "ipatoolpass123" download \
-            -b com.tencent.mqq \
-            --purchase
+          cd qq_decrypted_out/Payload/QQ.app
           
-          ls -lh
+          echo "=========================================="
+          echo "📱 应用基础元数据信息："
+          python3 -c "
+          import plistlib
+          try:
+              pl = plistlib.load(open('Info.plist', 'rb'))
+              print('- 外显版本 (CFBundleShortVersionString):', pl.get('CFBundleShortVersionString'))
+              print('- 内部构建号 (CFBundleVersion):', pl.get('CFBundleVersion'))
+              print('- 最低系统要求 (MinimumOSVersion):', pl.get('MinimumOSVersion'))
+          except Exception as e:
+              print('解析 Info.plist 异常:', e)
+          "
+          echo "=========================================="
 
-      - name: 7. 上传 IPA 为制品 (Artifact)
+      - name: 5. 扫描脱壳明文 Mach-O 二进制，秒抓 SubID
+        run: |
+          cd qq_decrypted_out/Payload/QQ.app
+          
+          echo "=========================================="
+          echo "🚀 正在全量检索脱壳主程序的 537 识别码..."
+          echo "=========================================="
+          
+          python3 -c "
+          import re
+          data = open('QQ', 'rb').read()
+          
+          matches = list(re.finditer(rb'(?<![0-9])(537[0-9]{6})(?![0-9])', data))
+          print(f'共扫描到 {len(matches)} 处 537 开头的 9 位数字')
+          
+          found_subids = set()
+          for m in matches:
+              subid = m.group(1).decode('ascii')
+              start = max(0, m.start() - 60)
+              end = min(len(data), m.end() + 60)
+              ctx_bytes = data[start:end]
+              
+              # 过滤着色器浮点数（排除 float/vec/material 等噪点）
+              if any(k in ctx_bytes for k in [b'float', b'vec2', b'vec4', b'materialParams']):
+                  continue
+                  
+              readable = ''.join(chr(b) if 32 <= b < 127 else '.' for b in ctx_bytes)
+              print(f'\n🔥 [高价值候选 SubID: {subid}] 偏移量: {m.start()}')
+              print('上下文:', readable)
+              found_subids.add(subid)
+          
+          print('\n==========================================')
+          print('🎯 最终提取到的 SubID 候选集:', found_subids)
+          print('==========================================')
+          "
+
+      - name: 6. 上传已脱壳的 IPA 为制品 (Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: QQ_iOS_IPA
-          path: ipa_output/*.ipa
+          name: QQ_iOS_Decrypted_IPA
+          path: QQ_decrypted.ipa
           retention-days: 2
