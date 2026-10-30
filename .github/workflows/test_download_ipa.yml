@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       auth_code:
-        description: '苹果双重认证 6 位验证码 (若手机收到弹窗则填入，首次留空测试)'
+        description: '苹果双重认证 6 位验证码 (手机收到弹窗填入，首次可留空)'
         required: false
         type: string
         default: ''
@@ -14,61 +14,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. 检出仓库
+      - name: 1. 检出仓库代码
         uses: actions/checkout@v4
 
-      - name: 2. 安装 Linux 环境基础依赖
+      - name: 2. 获取官方 ipatool v2.7.0 二进制
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl tar p7zip-full
-
-      - name: 3. 安装官方 ipatool (Linux AMD64)
-        run: |
-          echo "[状态] 正在从 GitHub Releases 拉取最新 Linux 版 ipatool..."
-          # 获取最新版本下载地址
-          DOWNLOAD_URL=$(curl -sL https://api.github.com/repos/majd/ipatool/releases/latest | grep "browser_download_url.*linux-amd64.tar.gz" | cut -d '"' -f 4)
-          if [ -z "$DOWNLOAD_URL" ]; then
-            DOWNLOAD_URL="https://github.com/majd/ipatool/releases/download/v2.1.4/ipatool-2.1.4-linux-amd64.tar.gz"
-          fi
-          echo "下载直链: $DOWNLOAD_URL"
-          curl -sL "$DOWNLOAD_URL" -o ipatool.tar.gz
-          tar -zxvf ipatool.tar.gz
+          echo "[状态] 正在直接拉取官方 ipatool-2.7.0-linux-amd64.tar.gz..."
+          curl -fL \
+            --retry 3 \
+            --connect-timeout 20 \
+            -o ipatool.tar.gz \
+            "https://github.com/majd/ipatool/releases/download/v2.7.0/ipatool-2.7.0-linux-amd64.tar.gz"
           
-          # 将二进制移动到系统 PATH 路径
+          # 解压并部署二进制
+          tar -zxvf ipatool.tar.gz
           sudo mv bin/ipatool-linux-amd64 /usr/local/bin/ipatool
           sudo chmod +x /usr/local/bin/ipatool
           ipatool --version
 
-      - name: 4. 执行 Apple ID 登录
+      - name: 3. 认证 Apple ID
         env:
           APPLE_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
           APPLE_PWD: ${{ secrets.APPLE_ID_PASSWORD }}
           AUTH_CODE: ${{ inputs.auth_code }}
         run: |
-          echo "[认证] 正在执行 Apple ID 鉴权..."
-          
-          CMD="ipatool auth login --email $APPLE_EMAIL --password $APPLE_PWD --non-interactive"
-          
-          # 如果提供了 2FA 验证码则附加
+          echo "[认证] 正在登录 Apple ID..."
           if [ -n "$AUTH_CODE" ]; then
-            echo "[认证] 携带 2FA 验证码登录"
-            CMD="$CMD --auth-code $AUTH_CODE"
+            ipatool auth login --email "$APPLE_EMAIL" --password "$APPLE_PWD" --auth-code "$AUTH_CODE" --non-interactive
+          else
+            ipatool auth login --email "$APPLE_EMAIL" --password "$APPLE_PWD" --non-interactive
           fi
-          
-          eval $CMD
 
-      - name: 5. 自动获取许可并下载 QQ 安装包 (.ipa)
+      - name: 4. 购买许可并下载 QQ (.ipa)
         run: |
           mkdir -p ipa_output
           cd ipa_output
           
           echo "[下载] 正在调用 App Store 购买并下载 QQ (Bundle ID: com.tencent.mqq)..."
-          # --purchase: 若账号未获取过 QQ，会自动免费“购买”绑定许可
+          # --purchase: 若未购买过会自动领取免费许可
           ipatool download -b com.tencent.mqq --purchase
           
           ls -lh
 
-      - name: 6. 上传 IPA 为制品 (Artifact)
+      - name: 5. 上传 IPA 为制品 (Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: QQ_iOS_IPA
