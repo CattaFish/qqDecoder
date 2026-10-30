@@ -31,30 +31,36 @@ jobs:
           sudo chmod +x /usr/local/bin/ipatool
           ipatool --version
 
-      - name: 3. 恢复已有登录会话 (若存在则免密)
+      - name: 3. 恢复已有登录会话 (若存在且有效则免密)
         id: restore_session
         env:
           SESSION_BASE64: ${{ secrets.IPATOOL_SESSION_BASE64 }}
         run: |
           if [ -n "$SESSION_BASE64" ]; then
-            echo "[凭据恢复] 检测到已保存的 ipatool Session，正在还原..."
-            echo "$SESSION_BASE64" | base64 -d > ipatool_session.tar.gz
-            tar -zxvf ipatool_session.tar.gz -C "$HOME"
-            rm -f ipatool_session.tar.gz
-            echo "has_session=true" >> $GITHUB_OUTPUT
-            echo "[凭据恢复] 恢复成功，后续将跳过 2FA 登录流程！"
+            echo "[凭据恢复] 检测到已保存的 ipatool Session，正在校验并还原..."
+            echo "$SESSION_BASE64" | base64 -d > /tmp/test_session.tar.gz 2>/dev/null || true
+            
+            # 校验 tarball 完整性
+            if tar -ztvf /tmp/test_session.tar.gz >/dev/null 2>&1; then
+              tar -zxvf /tmp/test_session.tar.gz -C "$HOME"
+              echo "has_session=true" >> $GITHUB_OUTPUT
+              echo "[凭据恢复] 恢复成功，后续将跳过 2FA 登录流程！"
+            else
+              echo "::warning::已保存的 Session 数据不完整或被截断，本次将自动重新登录生成完整凭据！"
+              echo "has_session=false" >> $GITHUB_OUTPUT
+            fi
+            rm -f /tmp/test_session.tar.gz
           else
             echo "[凭据检查] 未检测到已持久化的 Session，需要进行登录认证。"
             echo "has_session=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: 4. 执行 Apple ID 登录并捕获会话 (含详细日志)
+      - name: 4. 执行 Apple ID 登录并捕获完整会话
         if: steps.restore_session.outputs.has_session != 'true'
         env:
           APPLE_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
           APPLE_PWD: ${{ secrets.APPLE_ID_PASSWORD }}
           AUTH_CODE: ${{ inputs.auth_code }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           echo "[认证] 正在登录 Apple ID..."
           
@@ -63,40 +69,42 @@ jobs:
             ipatool --keychain-passphrase "ipatoolpass123" auth login \
               --email "$APPLE_EMAIL" \
               --password "$APPLE_PWD" \
-              --verbose \
               --non-interactive || true
             echo "::error::验证码已推送到你的手机，请查看最新 6 位数并在重新触发本工作流时填入输入框！"
             exit 1
           fi
 
-          # 携带当前 2FA 验证码并输出详细的底层通信日志
+          # 携带当前 2FA 验证码完成最终鉴权
           ipatool --keychain-passphrase "ipatoolpass123" auth login \
             --email "$APPLE_EMAIL" \
             --password "$APPLE_PWD" \
             --auth-code "$AUTH_CODE" \
-            --verbose \
             --non-interactive
 
           echo "=========================================================="
-          echo "🎉 登录成功！正在将会话持久化归档..."
+          echo "🎉 登录成功！正在生成完整持久化会话凭据..."
           echo "=========================================================="
           
+          mkdir -p /tmp/session_export
           cd "$HOME"
-          tar -zcvf /tmp/ipatool_session.tar.gz .ipatool .config/ipatool 2>/dev/null || tar -zcvf /tmp/ipatool_session.tar.gz .ipatool
+          tar -zcvf /tmp/session_export/ipatool_session.tar.gz .ipatool .config/ipatool 2>/dev/null || tar -zcvf /tmp/session_export/ipatool_session.tar.gz .ipatool
           
-          SESSION_DATA=$(base64 -w 0 /tmp/ipatool_session.tar.gz)
+          # 采用标准 76 列折行 base64，彻底杜绝单行被 GitHub 页面截断
+          base64 /tmp/session_export/ipatool_session.tar.gz > /tmp/session_export/session_base64.txt
           
-          echo "[持久化] 正在尝试自动将会话保存至仓库 Secret..."
-          if gh secret set IPATOOL_SESSION_BASE64 --body "$SESSION_DATA" 2>/dev/null; then
-            echo "✅ 成功自动持久化 Secret: IPATOOL_SESSION_BASE64！以后将全自动免密！"
-          else
-            echo "::notice::请手动复制下方 Base64 内容并添加到仓库 Secret (IPATOOL_SESSION_BASE64)："
-            echo "------------------- BEGIN IPATOOL SESSION -------------------"
-            echo "$SESSION_DATA"
-            echo "-------------------- END IPATOOL SESSION --------------------"
-          fi
+          echo "------------------- BEGIN IPATOOL SESSION -------------------"
+          cat /tmp/session_export/session_base64.txt
+          echo "-------------------- END IPATOOL SESSION --------------------"
 
-      - name: 5. 购买许可并下载 QQ (.ipa)
+      - name: 5. 备份 Session 文件为 Artifact (防截断兜底)
+        if: steps.restore_session.outputs.has_session != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipatool-auth-session
+          path: /tmp/session_export/session_base64.txt
+          retention-days: 1
+
+      - name: 6. 购买许可并下载 QQ (.ipa)
         run: |
           mkdir -p ipa_output
           cd ipa_output
@@ -104,12 +112,11 @@ jobs:
           echo "[下载] 正在调用 App Store 购买并下载 QQ (Bundle ID: com.tencent.mqq)..."
           ipatool --keychain-passphrase "ipatoolpass123" download \
             -b com.tencent.mqq \
-            --purchase \
-            --verbose
+            --purchase
           
           ls -lh
 
-      - name: 6. 上传 IPA 为制品 (Artifact)
+      - name: 7. 上传 IPA 为制品 (Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: QQ_iOS_IPA
