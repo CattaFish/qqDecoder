@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: 1. 检出仓库代码
         uses: actions/checkout@v4
-        
+
       - name: 2. 获取官方 ipatool v2.7.0 二进制
         run: |
           echo "[状态] 正在直接拉取官方 ipatool-2.7.0-linux-amd64.tar.gz..."
@@ -26,10 +26,11 @@ jobs:
             -o ipatool.tar.gz \
             "https://github.com/majd/ipatool/releases/download/v2.7.0/ipatool-2.7.0-linux-amd64.tar.gz"
           
-          # 解压并部署二进制（通配匹配文件名）
+          # 解压并部署二进制（通配匹配版本文件名）
           tar -zxvf ipatool.tar.gz
           sudo mv bin/ipatool* /usr/local/bin/ipatool
-          sudo chmod +x /us
+          sudo chmod +x /usr/local/bin/ipatool
+          ipatool --version
 
       - name: 3. 认证 Apple ID
         env:
