@@ -5967,5 +5967,27 @@
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7720952/0/0/0/1793332721807/package_16750.1793332721807",
       "channel": "应用汇"
     }
+  ],
+  "537398376": [
+    {
+      "version": "9.3.78.42415",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-22",
+      "source_url": "https://qq-gray-1258344701.shiply-cdn.qq.com/apprelease/gray/4cd6974be1/prod/1792674172/Android_9.3.78.42415_64.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537398387": [
+    {
+      "version": "9.3.78.42415",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-22",
+      "source_url": "https://qq-gray-1258344701.shiply-cdn.qq.com/apprelease/gray/4cd6974be1/prod/1792674172/Android_9.3.78.42415_64.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
   ]
 }
