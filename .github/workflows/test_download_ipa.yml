@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       auth_code:
-        description: '首次认证 6 位验证码 (手机刚收到的验证码立刻填入)'
+        description: '首次认证 6 位验证码 (手机收到弹窗或短信时填入)'
         required: false
         type: string
         default: ''
@@ -44,11 +44,11 @@ jobs:
             echo "has_session=true" >> $GITHUB_OUTPUT
             echo "[凭据恢复] 恢复成功，后续将跳过 2FA 登录流程！"
           else
-            echo "[凭据检查] 未检测到已持久化的 Session，需要进行首次登录。"
+            echo "[凭据检查] 未检测到已持久化的 Session，需要进行登录认证。"
             echo "has_session=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: 4. 执行首次 Apple ID 登录并捕获会话
+      - name: 4. 执行 Apple ID 登录并捕获会话 (含详细日志)
         if: steps.restore_session.outputs.has_session != 'true'
         env:
           APPLE_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
@@ -59,44 +59,44 @@ jobs:
           echo "[认证] 正在登录 Apple ID..."
           
           if [ -z "$AUTH_CODE" ]; then
-            echo "::warning::未传入 2FA 验证码，正在触发苹果向手机发送验证码..."
+            echo "::warning::未传入 2FA 验证码，正在向苹果发起请求并触发向手机发送验证码..."
             ipatool --keychain-passphrase "ipatoolpass123" auth login \
               --email "$APPLE_EMAIL" \
               --password "$APPLE_PWD" \
+              --verbose \
               --non-interactive || true
             echo "::error::验证码已推送到你的手机，请查看最新 6 位数并在重新触发本工作流时填入输入框！"
             exit 1
           fi
 
-          # 携带当前刚收到的 2FA 验证码完成最终鉴权
+          # 携带当前 2FA 验证码并输出详细的底层通信日志
           ipatool --keychain-passphrase "ipatoolpass123" auth login \
             --email "$APPLE_EMAIL" \
             --password "$APPLE_PWD" \
             --auth-code "$AUTH_CODE" \
+            --verbose \
             --non-interactive
 
           echo "=========================================================="
           echo "🎉 登录成功！正在将会话持久化归档..."
           echo "=========================================================="
           
-          # 打包 ~/.ipatool 与 ~/.config/ipatool
           cd "$HOME"
           tar -zcvf /tmp/ipatool_session.tar.gz .ipatool .config/ipatool 2>/dev/null || tar -zcvf /tmp/ipatool_session.tar.gz .ipatool
           
           SESSION_DATA=$(base64 -w 0 /tmp/ipatool_session.tar.gz)
           
-          # 自动将该会话写回仓库的 Secret: IPATOOL_SESSION_BASE64
           echo "[持久化] 正在尝试自动将会话保存至仓库 Secret..."
           if gh secret set IPATOOL_SESSION_BASE64 --body "$SESSION_DATA" 2>/dev/null; then
-            echo "✅ 成功自动持久化 Secret: IPATOOL_SESSION_BASE64！以后再也不会弹 2FA 了！"
+            echo "✅ 成功自动持久化 Secret: IPATOOL_SESSION_BASE64！以后将全自动免密！"
           else
-            echo "::notice::自动写入 Secret 需更高权限，请手动复制下方 Base64 内容并添加到仓库 Secret (IPATOOL_SESSION_BASE64)："
+            echo "::notice::请手动复制下方 Base64 内容并添加到仓库 Secret (IPATOOL_SESSION_BASE64)："
             echo "------------------- BEGIN IPATOOL SESSION -------------------"
             echo "$SESSION_DATA"
             echo "-------------------- END IPATOOL SESSION --------------------"
           fi
 
-      - name: 5. 免密购买许可并下载 QQ (.ipa)
+      - name: 5. 购买许可并下载 QQ (.ipa)
         run: |
           mkdir -p ipa_output
           cd ipa_output
@@ -104,7 +104,8 @@ jobs:
           echo "[下载] 正在调用 App Store 购买并下载 QQ (Bundle ID: com.tencent.mqq)..."
           ipatool --keychain-passphrase "ipatoolpass123" download \
             -b com.tencent.mqq \
-            --purchase
+            --purchase \
+            --verbose
           
           ls -lh
 
