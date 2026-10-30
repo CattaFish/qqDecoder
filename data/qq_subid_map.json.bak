@@ -5872,22 +5872,24 @@
   ],
   "537399652": [
     {
-      "version": "9.3.80.42670",
+      "version": "9.3.80.42670-Beta",
       "platform": "Android",
       "arch": "Phone",
       "date": "2026-10-23",
       "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/7340cd19264a8c763d0b32e176ed6f7d.apk",
-      "channel": "官方"
+      "channel": "官方",
+      "is_beta": true
     }
   ],
   "537399663": [
     {
-      "version": "9.3.80.42670",
+      "version": "9.3.80.42670-Beta",
       "platform": "Android",
       "arch": "Pad",
       "date": "2026-10-23",
       "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/7340cd19264a8c763d0b32e176ed6f7d.apk",
-      "channel": "官方"
+      "channel": "官方",
+      "is_beta": true
     }
   ],
   "537403594": [
