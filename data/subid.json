@@ -67,6 +67,7 @@
     "summary": "QQ 9.3.80.42775",
     "platform": "Android",
     "version": "9.3.80.42775",
+    "arch": "Phone",
     "date": "2026-10-30 / 2026-10-31",
     "dates": [
       "2026-10-30",
@@ -83,6 +84,7 @@
     "summary": "QQ 9.3.80.42775",
     "platform": "Android",
     "version": "9.3.80.42775",
+    "arch": "Phone",
     "date": "2026-10-30",
     "channel": "官方"
   },
@@ -100,6 +102,7 @@
     "platform": "Android",
     "version": "9.3.80.42670-Beta",
     "is_beta": true,
+    "arch": "Phone",
     "date": "2026-10-23",
     "channel": "官方"
   },
@@ -115,6 +118,7 @@
     "summary": "QQ 9.3.78.42415",
     "platform": "Android",
     "version": "9.3.78.42415",
+    "arch": "Phone",
     "date": "2026-10-22",
     "channel": "官方"
   },
@@ -212,6 +216,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-19",
     "channel": "应用汇"
   },
@@ -219,6 +224,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-24",
     "channel": "百度"
   },
@@ -226,6 +232,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-20",
     "channel": "豌豆荚"
   },
@@ -233,6 +240,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-20",
     "channel": "OPPO"
   },
@@ -240,6 +248,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-19",
     "channel": "小米"
   },
@@ -247,6 +256,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-19",
     "channel": "荣耀"
   },
@@ -254,6 +264,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-14",
     "channel": "华为"
   },
@@ -261,6 +272,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-19",
     "channel": "vivo"
   },
@@ -268,6 +280,7 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-13 / 2026-10-23 / 2026-10-01",
     "dates": [
       "2026-10-13",
@@ -285,8 +298,25 @@
     "summary": "QQ 9.3.75.42350",
     "platform": "Android",
     "version": "9.3.75.42350",
+    "arch": "Phone",
     "date": "2026-10-13",
     "channel": "官方"
+  },
+  "537397083": {
+    "summary": "QQ(Pad) 9.3.78.616",
+    "platform": "iOS",
+    "version": "9.3.78.616",
+    "arch": "Pad",
+    "date": "2026-10-23",
+    "channel": "AppStore"
+  },
+  "537397072": {
+    "summary": "QQ 9.3.78.616",
+    "platform": "iOS",
+    "version": "9.3.78.616",
+    "arch": "Phone",
+    "date": "2026-10-23",
+    "channel": "AppStore"
   },
   "537395488": {
     "summary": "QQ(Pad) 9.3.70.41925",
@@ -347,6 +377,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-09-29",
     "channel": "豌豆荚"
   },
@@ -354,6 +385,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-10-17",
     "channel": "OPPO"
   },
@@ -361,6 +393,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-10-14",
     "channel": "小米"
   },
@@ -368,6 +401,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-10-15",
     "channel": "荣耀"
   },
@@ -375,6 +409,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-09-24",
     "channel": "华为"
   },
@@ -382,6 +417,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-09-28",
     "channel": "vivo"
   },
@@ -389,6 +425,7 @@
     "summary": "QQ 9.3.70.41925",
     "platform": "Android",
     "version": "9.3.70.41925",
+    "arch": "Phone",
     "date": "2026-09-24"
   },
   "537393139": {
@@ -402,6 +439,7 @@
     "summary": "QQ 9.3.65.41500",
     "platform": "Android",
     "version": "9.3.65.41500",
+    "arch": "Phone",
     "date": "2026-09-15"
   },
   "537391666": {
@@ -415,6 +453,7 @@
     "summary": "QQ(Linux-Arm) 3.2.34.53644",
     "platform": "Linux",
     "version": "3.2.34.53644",
+    "is_beta": true,
     "arch": "Arm",
     "date": "2026-09-23",
     "channel": "官方"
@@ -423,6 +462,7 @@
     "summary": "QQ(Linux-X64) 3.2.34.53644",
     "platform": "Linux",
     "version": "3.2.34.53644",
+    "is_beta": true,
     "arch": "X64",
     "packages": [
       "RPM",
@@ -503,6 +543,7 @@
     "summary": "QQ 9.3.60.41075",
     "platform": "Android",
     "version": "9.3.60.41075",
+    "arch": "Phone",
     "date": "2026-09-08"
   },
   "537386883": {
@@ -516,6 +557,7 @@
     "summary": "QQ 9.3.55.40650",
     "platform": "Android",
     "version": "9.3.55.40650",
+    "arch": "Phone",
     "date": "2026-08-27"
   },
   "537384534": {
@@ -529,6 +571,7 @@
     "summary": "QQ 9.3.50.40225",
     "platform": "Android",
     "version": "9.3.50.40225",
+    "arch": "Phone",
     "date": "2026-08-18"
   },
   "537382858": {
@@ -627,6 +670,7 @@
     "summary": "QQ 9.3.35.39800",
     "platform": "Android",
     "version": "9.3.35.39800",
+    "arch": "Phone",
     "date": "2026-08-07"
   },
   "537379450": {
@@ -750,6 +794,7 @@
     "summary": "QQ 9.3.30.39375",
     "platform": "Android",
     "version": "9.3.30.39375",
+    "arch": "Phone",
     "date": "2026-07-28"
   },
   "537376857": {
@@ -959,6 +1004,7 @@
     "summary": "QQ 9.3.25.38950",
     "platform": "Android",
     "version": "9.3.25.38950",
+    "arch": "Phone",
     "date": "2026-07-17"
   },
   "537372176": {
@@ -972,6 +1018,7 @@
     "summary": "QQ 9.3.20.38525",
     "platform": "Android",
     "version": "9.3.20.38525",
+    "arch": "Phone",
     "date": "2026-07-08"
   },
   "537369838": {
@@ -985,6 +1032,7 @@
     "summary": "QQ 9.3.15.38100",
     "platform": "Android",
     "version": "9.3.15.38100",
+    "arch": "Phone",
     "date": "2026-06-30"
   },
   "537367500": {
@@ -998,6 +1046,7 @@
     "summary": "QQ 9.3.10.37675",
     "platform": "Android",
     "version": "9.3.10.37675",
+    "arch": "Phone",
     "date": "2026-06-23"
   },
   "537365162": {
@@ -1011,6 +1060,7 @@
     "summary": "QQ 9.3.5.37250",
     "platform": "Android",
     "version": "9.3.5.37250",
+    "arch": "Phone",
     "date": "2026-06-17"
   },
   "537360606": {
@@ -1024,6 +1074,7 @@
     "summary": "QQ 9.3.1.36845",
     "platform": "Android",
     "version": "9.3.1.36845",
+    "arch": "Phone",
     "date": "2026-06-11"
   },
   "537360294": {
@@ -1037,6 +1088,7 @@
     "summary": "QQ 9.3.0.36825",
     "platform": "Android",
     "version": "9.3.0.36825",
+    "arch": "Phone",
     "date": "2026-06-10"
   },
   "537358778": {
@@ -1135,6 +1187,7 @@
     "summary": "QQ 9.2.95.36400",
     "platform": "Android",
     "version": "9.2.95.36400",
+    "arch": "Phone",
     "date": "2026-05-27"
   },
   "537355869": {
@@ -1233,6 +1286,7 @@
     "summary": "QQ 9.2.90.35975",
     "platform": "Android",
     "version": "9.2.90.35975",
+    "arch": "Phone",
     "date": "2026-05-15"
   },
   "537352537": {
@@ -1352,6 +1406,7 @@
     "summary": "QQ 9.2.85.35550",
     "platform": "Android",
     "version": "9.2.85.35550",
+    "arch": "Phone",
     "date": "2026-04-23"
   },
   "537348332": {
@@ -1365,6 +1420,7 @@
     "summary": "QQ 9.2.80.35125",
     "platform": "Android",
     "version": "9.2.80.35125",
+    "arch": "Phone",
     "date": "2026-04-09"
   },
   "537346911": {
@@ -1666,6 +1722,7 @@
     "summary": "QQ 9.2.75.34700",
     "platform": "Android",
     "version": "9.2.75.34700",
+    "arch": "Phone",
     "date": "2026-03-25"
   },
   "537341724": {
@@ -1679,6 +1736,7 @@
     "summary": "QQ 9.2.70.34275",
     "platform": "Android",
     "version": "9.2.70.34275",
+    "arch": "Phone",
     "date": "2026-03-06"
   },
   "537340252": {
@@ -1777,6 +1835,7 @@
     "summary": "QQ 9.2.66.33870",
     "platform": "Android",
     "version": "9.2.66.33870",
+    "arch": "Phone",
     "date": "2026-02-06"
   },
   "537339080": {
@@ -1790,6 +1849,7 @@
     "summary": "QQ 9.2.65.33850",
     "platform": "Android",
     "version": "9.2.65.33850",
+    "arch": "Phone",
     "date": "2026-01-30"
   },
   "537337593": {
@@ -1980,6 +2040,7 @@
     "summary": "QQ 9.2.60.33425",
     "platform": "Android",
     "version": "9.2.60.33425",
+    "arch": "Phone",
     "date": "2026-01-14"
   },
   "537333132": {
@@ -1993,6 +2054,7 @@
     "summary": "QQ 9.2.55.33000",
     "platform": "Android",
     "version": "9.2.55.33000",
+    "arch": "Phone",
     "date": "2025-12-24"
   },
   "537330134": {
@@ -2006,6 +2068,7 @@
     "summary": "QQ 9.2.50.32575",
     "platform": "Android",
     "version": "9.2.50.32575",
+    "arch": "Phone",
     "date": "2025-12-10"
   },
   "537328662": {
@@ -2134,6 +2197,7 @@
     "summary": "QQ 9.2.35.32150",
     "platform": "Android",
     "version": "9.2.35.32150",
+    "arch": "Phone",
     "date": "2025-11-25"
   },
   "537324470": {
@@ -2147,6 +2211,7 @@
     "summary": "QQ 9.2.30.31725",
     "platform": "Android",
     "version": "9.2.30.31725",
+    "arch": "Phone",
     "date": "2025-11-11"
   },
   "537323342": {
@@ -2160,6 +2225,7 @@
     "summary": "QQ 9.2.27.31300",
     "platform": "Android",
     "version": "9.2.27.31300",
+    "arch": "Phone",
     "date": "2025-10-22"
   },
   "537320251": {
@@ -2487,6 +2553,7 @@
     "summary": "QQ 9.2.25.30450",
     "platform": "Android",
     "version": "9.2.25.30450",
+    "arch": "Phone",
     "date": "2025-10-17"
   },
   "537315825": {
@@ -2500,6 +2567,7 @@
     "summary": "QQ 9.2.20",
     "platform": "Android",
     "version": "9.2.20",
+    "arch": "Phone",
     "date": "2025-09-24"
   },
   "537314236": {
@@ -2674,6 +2742,7 @@
     "summary": "QQ 9.2.15",
     "platform": "Android",
     "version": "9.2.15",
+    "arch": "Phone",
     "date": "2025-09-10"
   },
   "537309877": {
@@ -2687,6 +2756,7 @@
     "summary": "QQ 9.2.10",
     "platform": "Android",
     "version": "9.2.10",
+    "arch": "Phone",
     "date": "2025-08-19"
   },
   "537307694": {
@@ -2834,6 +2904,7 @@
     "summary": "QQ 9.2.5",
     "platform": "Android",
     "version": "9.2.5",
+    "arch": "Phone",
     "date": "2025-07-29"
   },
   "537304263": {
@@ -3131,6 +3202,7 @@
     "summary": "QQ 9.2.0",
     "platform": "Android",
     "version": "9.2.0",
+    "arch": "Phone",
     "date": "2025-07-11"
   },
   "537301789": {
@@ -3144,6 +3216,7 @@
     "summary": "QQ 9.1.97",
     "platform": "Android",
     "version": "9.1.97",
+    "arch": "Phone",
     "date": "2025-07-01"
   },
   "537298512": {
@@ -3268,6 +3341,7 @@
     "summary": "QQ 4.1.0",
     "platform": "Android",
     "version": "4.1.0",
+    "arch": "Phone",
     "date": "2025-05-27"
   },
   "537297389": {
@@ -3281,6 +3355,7 @@
     "summary": "QQ 9.1.95",
     "platform": "Android",
     "version": "9.1.95",
+    "arch": "Phone",
     "date": "2025-06-17"
   },
   "537297311": {
@@ -3294,6 +3369,7 @@
     "summary": "QQ 9.1.95",
     "platform": "Android",
     "version": "9.1.95",
+    "arch": "Phone",
     "date": "2025-06-17"
   },
   "537296067": {
@@ -3403,6 +3479,7 @@
     "summary": "QQ 9.1.92",
     "platform": "Android",
     "version": "9.1.92",
+    "arch": "Phone",
     "date": "2025-06-16"
   },
   "537294957": {
@@ -3416,6 +3493,7 @@
     "summary": "QQ 9.1.91",
     "platform": "Android",
     "version": "9.1.91",
+    "arch": "Phone",
     "date": "2025-06-05"
   },
   "537294645": {
@@ -3429,6 +3507,7 @@
     "summary": "QQ 9.1.90",
     "platform": "Android",
     "version": "9.1.90",
+    "arch": "Phone",
     "date": "2025-05-28"
   },
   "537291423": {
@@ -3667,6 +3746,7 @@
     "summary": "QQ 9.1.76",
     "platform": "Android",
     "version": "9.1.76",
+    "arch": "Phone",
     "date": "2025-05-18"
   },
   "537288346": {
@@ -3680,6 +3760,7 @@
     "summary": "QQ 9.1.75",
     "platform": "Android",
     "version": "9.1.75",
+    "arch": "Phone",
     "date": "2025-05-13"
   },
   "537286298": {
@@ -3693,6 +3774,7 @@
     "summary": "QQ 9.1.71",
     "platform": "Android",
     "version": "9.1.71",
+    "arch": "Phone",
     "date": "2025-05-12"
   },
   "537285986": {
@@ -3706,6 +3788,7 @@
     "summary": "QQ 9.1.70",
     "platform": "Android",
     "version": "9.1.70",
+    "arch": "Phone",
     "date": "2025-04-28"
   },
   "537284140": {
@@ -3719,6 +3802,7 @@
     "summary": "QQ 9.1.67",
     "platform": "Android",
     "version": "9.1.67",
+    "arch": "Phone",
     "date": "2025-04-25"
   },
   "537282346": {
@@ -3900,6 +3984,7 @@
     "summary": "QQ 4.0.99",
     "platform": "Android",
     "version": "4.0.99",
+    "arch": "Phone",
     "date": "2025-04-08"
   },
   "537279299": {
@@ -4023,6 +4108,7 @@
     "summary": "QQ 9.1.65",
     "platform": "Android",
     "version": "9.1.65",
+    "arch": "Phone",
     "date": "2025-04-14"
   },
   "537275675": {
@@ -4036,6 +4122,7 @@
     "summary": "QQ 9.1.60",
     "platform": "Android",
     "version": "9.1.60",
+    "arch": "Phone",
     "date": "2025-03-19"
   },
   "537274012": {
@@ -4145,6 +4232,7 @@
     "summary": "QQ 9.1.55",
     "platform": "Android",
     "version": "9.1.55",
+    "arch": "Phone",
     "date": "2025-03-11"
   },
   "537271332": {
@@ -4302,6 +4390,7 @@
     "summary": "QQ 9.1.52",
     "platform": "Android",
     "version": "9.1.52",
+    "arch": "Phone",
     "date": "2025-02-23"
   },
   "537270070": {
@@ -4315,6 +4404,7 @@
     "summary": "QQ 9.1.50",
     "platform": "Android",
     "version": "9.1.50",
+    "arch": "Phone",
     "date": "2025-02-19"
   },
   "537266538": {
@@ -4472,6 +4562,7 @@
     "summary": "QQ 9.1.35",
     "platform": "Android",
     "version": "9.1.35",
+    "arch": "Phone",
     "date": "2025-01-10"
   }
 }
