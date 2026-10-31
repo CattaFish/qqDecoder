@@ -5948,6 +5948,14 @@
       "date": "2026-10-30",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7720952/0/0/0/1793332721807/package_16750.1793332721807",
       "channel": "应用汇"
+    },
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-31",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/E01C6A8FEBB691C0EDD05AE54ECEA15E.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "三星"
     }
   ],
   "537400154": [
@@ -5966,6 +5974,14 @@
       "date": "2026-10-30",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7720952/0/0/0/1793332721807/package_16750.1793332721807",
       "channel": "应用汇"
+    },
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-31",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/E01C6A8FEBB691C0EDD05AE54ECEA15E.apk?fsname=com.tencent.mobileqq_9.3.75.apk",
+      "channel": "三星"
     }
   ],
   "537398376": [
@@ -5988,6 +6004,36 @@
       "source_url": "https://qq-gray-1258344701.shiply-cdn.qq.com/apprelease/gray/4cd6974be1/prod/1792674172/Android_9.3.78.42415_64.apk",
       "channel": "官方",
       "is_beta": false
+    }
+  ],
+  "537400114": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2963",
+      "channel": "官方"
+    }
+  ],
+  "537400153": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2963",
+      "channel": "官方"
+    }
+  ],
+  "537403760": [
+    {
+      "version": "3.2.35.54395",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-10-30",
+      "source_url": "https://t.me/linqiqi_backup/2965?single",
+      "channel": "官方"
     }
   ]
 }
