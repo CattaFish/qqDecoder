@@ -50,9 +50,15 @@ def download_target_file(url, target_dir):
                 text=True,
             )
         else:
-            fname = url.split("?")[0].split("/")[-1]
-            if not fname or not ("." in fname):
+            clean_path = url.split("?")[0]
+            fname = clean_path.split("/")[-1]
+
+            # 针对 ARMConverter 和 iOS 安装包的后缀安全矫正
+            if "armconverter.com" in url or "appstore" in url.lower() or ".ipa" in clean_path.lower():
+                fname = f"{fname}.ipa" if not fname.endswith(".ipa") else fname
+            elif not fname or not ("." in fname):
                 fname = "target_package.apk"
+
             out_file = target_dir / fname
 
             referer = "https://wap.pp.cn/"
