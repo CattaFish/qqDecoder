@@ -52,6 +52,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          ARMCONVERTER_SESSION: ${{ secrets.ARMCONVERTER_SESSION }}
         run: |
           python scripts/daily_monitor.py
 
@@ -105,6 +106,7 @@ jobs:
               sleep 2
             done
           fi
+
       # ==========================================
       # 联动步骤：仅在检测到 Android 新版本时唤起全量反编译
       # ==========================================
