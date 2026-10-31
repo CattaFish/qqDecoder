@@ -10,6 +10,7 @@ from .honor import get_honor_info
 from .samsung import get_samsung_info
 from .appchina import get_appchina_info
 from .baidu import get_baidu_info
+from .appstore import get_appstore_info
 
 __all__ = [
     "get_telegram_tasks",
@@ -23,4 +24,5 @@ __all__ = [
     "get_samsung_info",
     "get_appchina_info",
     "get_baidu_info",
+    "get_appstore_info",
 ]
