@@ -5,9 +5,9 @@ from pathlib import Path
 
 REAL_HW_ARCHES = {
     "x86": "X86", "x64": "X64", "arm": "Arm", "arm64": "Arm64",
-    "loongarch": "LoongArch", "mips": "Mips", "pad": "Pad"
+    "loongarch": "LoongArch", "mips": "Mips", "pad": "Pad", "phone": "Phone"
 }
-PACKAGE_FORMATS = {"rpm", "deb", "appimage", "dmg", "pkg", "apk"}
+PACKAGE_FORMATS = {"rpm", "deb", "appimage", "dmg", "pkg", "apk", "ipa"}
 STANDARD_RAW_KEYS = {"platform", "arch", "version", "date", "source_url", "is_beta"}
 
 
@@ -39,13 +39,14 @@ def build_single_entry(subid: str, items: list) -> dict:
     ver_str = " / ".join(versions) if versions else "未知版本"
     plat_low = platform.lower()
 
+    # 核心设计：手机端（Android 与 iOS）一律保持原始 QQ，仅当为 Pad 时修改 Summary 为 QQ(Pad)
     if "win" in plat_low:
         prefix = f"QQ(Win-{arch_display})" if arch_display else "QQ(Win)"
     elif "mac" in plat_low:
         prefix = "QQ(Mac)"
     elif "linux" in plat_low:
         prefix = f"QQ(Linux-{arch_display})" if arch_display else "QQ(Linux)"
-    elif "android" in plat_low:
+    elif "android" in plat_low or "ios" in plat_low:
         prefix = "QQ(Pad)" if arch_display == "Pad" else "QQ"
     elif "watch" in plat_low:
         prefix = "QQ(Watch)"
@@ -62,7 +63,6 @@ def build_single_entry(subid: str, items: list) -> dict:
         "version": ver_str
     }
 
-    # ★ 绝对严苛：只有你在源库明确写了 is_beta == True，才输出该字段！绝不乱猜，绝不输出 false！
     if any(it.get("is_beta") is True for it in items):
         entry["is_beta"] = True
 
