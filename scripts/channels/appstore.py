@@ -36,30 +36,39 @@ def get_appstore_info():
             print("[AppStore监控] 未能提取到版本号")
             return None
 
-        # 换取已脱壳的明文 IPA 直链
-        download_url = f"https://apps.apple.com/cn/app/qq/id444934666"
         session_token = os.environ.get("ARMCONVERTER_SESSION", "").strip()
+        if not session_token:
+            print("[AppStore监控] ❌ 未配置 ARMCONVERTER_SESSION 环境变量，无法生成脱壳下载直链！")
+            return None
 
-        if session_token:
-            try:
-                prep_url = f"{ARMCONVERTER_HOST}/download/444934666/com.tencent.mqq/{version}/prepare"
-                h_post = {
-                    "Referer": "https://armconverter.com/decryptedappstore",
-                    "User-Agent": "Mozilla/5.0",
-                }
-                r_prep = requests.post(
-                    prep_url,
-                    headers=h_post,
-                    cookies={"session": session_token},
-                    timeout=15,
-                )
-                if r_prep.status_code == 200:
-                    token = r_prep.json().get("token")
-                    if token and token != "null":
-                        download_url = f"{ARMCONVERTER_HOST}/download/444934666/com.tencent.mqq/{version}?token={token}"
-                        print(f"[AppStore监控] 成功解析到已脱壳直链！版本: {version}")
-            except Exception as e:
-                print(f"[AppStore监控] 换取脱壳直链受阻: {e}")
+        # 向 ARMConverter 申请已脱壳的真实下载 Token
+        prep_url = f"{ARMCONVERTER_HOST}/download/444934666/com.tencent.mqq/{version}/prepare"
+        h_post = {
+            "Referer": "https://armconverter.com/decryptedappstore",
+            "User-Agent": "Mozilla/5.0",
+        }
+        r_prep = requests.post(
+            prep_url,
+            headers=h_post,
+            cookies={"session": session_token},
+            timeout=20,
+        )
+
+        if r_prep.status_code != 200:
+            print(f"[AppStore监控] 换取脱壳 Token 请求失败: HTTP {r_prep.status_code}")
+            return None
+
+        prep_data = r_prep.json()
+        token = prep_data.get("token")
+        err = prep_data.get("error")
+
+        if err or not token or token == "null":
+            print(f"[AppStore监控] 换取 Token 失败: {prep_data}")
+            return None
+
+        # 构造带有 token 的有效脱壳直链
+        download_url = f"{ARMCONVERTER_HOST}/download/444934666/com.tencent.mqq/{version}?token={token}"
+        print(f"[AppStore监控] ✔ 成功换取到已脱壳 IPA 下载直链！版本: {version}")
 
         return {
             "version": version,
