@@ -19,6 +19,7 @@ from subid_compiler import compile_subid_map_to_runtime_dict
 
 from channels import (
     get_appchina_info,
+    get_appstore_info,
     get_baidu_info,
     get_honor_info,
     get_huawei_info,
@@ -46,7 +47,9 @@ TG_PLATFORM_VER_FILES = {
     "Linux": Path("data/telegram_linux_latest_version.txt"),
 }
 
+# 与各大安卓厂商市场同级，正式并入 AppStore iOS 官方渠道
 MARKET_CHANNELS = [
+    ("AppStore", get_appstore_info, Path("data/appstore_latest_version.txt")),
     ("豌豆荚", get_wandoujia_info, Path("data/wandoujia_latest_version.txt")),
     ("应用宝", get_yingyongbao_info, Path("data/yingyongbao_latest_version.txt")),
     ("vivo", get_vivo_info, Path("data/vivo_latest_version.txt")),
@@ -66,6 +69,9 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
         return ""
     clean = url.strip()
 
+    if "armconverter" in clean or channel == "AppStore":
+        return clean.split("?")[0]
+
     if "appchina" in clean or channel == "应用汇":
         clean = re.sub(r"/\d{10,}/package_(\d+)\.\d+", r"/package_\1", clean)
         clean = re.sub(r"/\d{10,}/", "/", clean)
@@ -77,7 +83,7 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
     if "heytap" in clean or "oppo" in clean or channel == "OPPO":
         return clean.split("?")[0]
 
-    if ".apk" in clean.lower():
+    if ".apk" in clean.lower() or ".ipa" in clean.lower():
         return clean.split("?")[0]
 
     return clean.split("?")[0]
@@ -101,19 +107,16 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
     p1 = [int(x) for x in re.findall(r"\d+", v1_clean)]
     p2 = [int(x) for x in re.findall(r"\d+", v2_clean)]
 
-    # 1. 逐段前缀数值比较
     for a, b in zip(p1, p2):
         if a > b:
             return True
         if a < b:
             return False
 
-    # 2. 前 3 段主版本完全相同时（如 9.3.80 vs 9.3.80.42670），正式版胜出
     if len(p1) >= 3 and len(p2) >= 3 and p1[:3] == p2[:3]:
         if is_old_beta and not is_new_b:
             return True
 
-    # 3. 常规长度段数比较
     if len(p1) != len(p2):
         return len(p1) > len(p2)
 
@@ -124,10 +127,7 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
-    """
-    全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，优先保留官方直链。
-    ★ 遵循不可变历史账本原则：保持历史存量条目绝对纯净，绝不强行批量注入 is_beta 字段！
-    """
+    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，补齐 is_beta 标记"""
     cleaned_map = {}
     purged_count = 0
     for s_id, val in raw_map.items():
@@ -139,6 +139,13 @@ def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
             a = item.get("arch", "").strip()
             c = item.get("channel", "").strip()
             url = item.get("source_url", "").strip()
+
+            if "is_beta" not in item:
+                item["is_beta"] = bool(
+                    "-beta" in v.lower()
+                    or "beta" in v.lower()
+                    or "beta" in url.lower()
+                )
 
             key = (p, a, c, v)
             if key not in unique_entities:
@@ -175,7 +182,7 @@ def save_database_and_runtime(subid_map: dict):
 
 def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
     """获取指定平台的水位线（版本、URL、文件路径）"""
-    v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/telegram_{plat.lower()}_latest_version.txt"))
+    v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/{plat.lower()}_latest_version.txt"))
     rec_ver, rec_url = "", ""
 
     if v_file.exists():
@@ -208,7 +215,6 @@ def main():
     versions_to_record = {}
     has_synced_watermark = False
 
-    # 1. 预载数据库（历史数据去重自愈，绝不注水污染已有字段）
     subid_map = {}
     purged_count = 0
     if DATA_FILE.exists():
@@ -216,7 +222,7 @@ def main():
             subid_map = json.loads(DATA_FILE.read_text(encoding="utf-8"))
             subid_map, purged_count = sanitize_and_deduplicate_map(subid_map)
             if purged_count > 0:
-                print(f"[自愈引擎] 已自动合并清理历史冗余克隆记录: {purged_count} 条！立即持久化落盘...")
+                print(f"[自愈引擎] 已自动合并清理历史冗余记录: {purged_count} 条！立即持久化落盘...")
                 save_database_and_runtime(subid_map)
         except Exception:
             subid_map = {}
@@ -235,7 +241,7 @@ def main():
             if p and v and a:
                 platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 2. 采集 Telegram 官方更新（严格备份独占）
+    # 1. 采集 Telegram 官方更新
     tg_tasks = get_telegram_tasks()
     seen_platform_tasks = set()
 
@@ -287,7 +293,7 @@ def main():
             pending_tasks.append(t)
             seen_platform_tasks.add(task_dedup_key)
 
-    # 3. 九大厂商应用市场比对
+    # 2. 十大渠道应用市场比对（包含 AppStore）
     for name, fetch_func, ver_file in MARKET_CHANNELS:
         recorded_ver = ""
         recorded_url = ""
@@ -302,15 +308,15 @@ def main():
 
         cur_ver = info["version"]
         cur_url = info["download_url"]
+        target_plat = info.get("platform", "Android")
         fp_cur = get_url_fingerprint(cur_url, name)
 
-        # 动态感知应用市场渠道包是否为测试版
         is_market_beta = bool(
             re.search(r"beta|内测|体验|preview|rc", cur_ver, re.IGNORECASE)
             or re.search(r"beta|内测|体验", cur_url, re.IGNORECASE)
         )
 
-        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'}")
+        print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'} | Beta: {is_market_beta}")
 
         if fp_cur in processed_url_fps:
             print(f"[{name}监控] 安装包链接已在库中，无需下载。")
@@ -341,7 +347,7 @@ def main():
         if should_update:
             print(f"[{name}监控] ★ 触发更新: [{update_reason}]！加入待处理任务。")
             pending_tasks.append({
-                "platform": "Android",
+                "platform": target_plat,
                 "arch": "Package",
                 "version": cur_ver,
                 "date": info["date"],
@@ -354,7 +360,7 @@ def main():
                 "ver_file_path": ver_file,
             })
 
-    # 4. 二次精细去重
+    # 3. 任务精细去重
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
@@ -386,7 +392,7 @@ def main():
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
-    # 5. 执行增量下载、解包与 SubID 抽取
+    # 4. 执行增量下载、格式自适应穿透与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
@@ -428,12 +434,13 @@ def main():
             if subid_pairs:
                 has_subid_extracted = True
 
-                # 判定当前下载的包是否属于测试版
                 is_beta_flag = bool(
                     t.get("is_beta")
                     or "-beta" in clean_ver.lower()
-                    or "-beta" in base_ver.lower()
-                    or "-beta" in fname.lower()
+                    or "beta" in clean_ver.lower()
+                    or "beta" in base_ver.lower()
+                    or "beta" in fname.lower()
+                    or "beta" in t.get("url", "").lower()
                 )
                 if is_beta_flag and not clean_ver.endswith("-Beta"):
                     clean_ver = f"{clean_ver}-Beta"
@@ -442,17 +449,10 @@ def main():
                     ch_label = t.get("channel", "官方")
                     print(f"[提取成功] 平台: {plat} | 架构: {a_val} | 版本: {clean_ver} | 渠道: {ch_label} | Beta: {is_beta_flag} | SubID: {s_id}")
                     new_item = {
-                        "version": clean_ver, 
-                        "platform": plat, 
-                        "arch": a_val,
-                        "date": t["date"], 
-                        "source_url": t["url"], 
-                        "channel": ch_label,
+                        "version": clean_ver, "platform": plat, "arch": a_val,
+                        "date": t["date"], "source_url": t["url"], "channel": ch_label,
+                        "is_beta": is_beta_flag,
                     }
-
-                    # ★ 稀疏原则：仅确认为测试版时打上 is_beta 属性，非测试版保持字段干净，不强塞 false
-                    if is_beta_flag:
-                        new_item["is_beta"] = True
 
                     if s_id not in subid_map:
                         subid_map[s_id] = [new_item]
@@ -500,10 +500,8 @@ def main():
         print("[状态] 本批次无有效新 SubID，取消落盘。")
         return
 
-    # 6. 原子落盘保存主数据库与派生字典
     save_database_and_runtime(subid_map)
 
-    # 7. 更新各渠道独立水位线文件
     for ver_path, (ch_name, ver_val, url_val) in versions_to_record.items():
         ver_path.parent.mkdir(parents=True, exist_ok=True)
         ver_path.write_text(f"{ver_val.strip()}\n{url_val.strip()}\n", encoding="utf-8")
@@ -515,7 +513,6 @@ def main():
 
     print("\n[更新完毕] 所有新版本数据已追加写入 data/qq_subid_map.json")
 
-    # 8. GitHub Actions 联动输出
     if github_output:
         with open(github_output, "a", encoding="utf-8") as f:
             f.write("has_changes=true\n")
