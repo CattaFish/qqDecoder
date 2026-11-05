@@ -47,7 +47,6 @@ TG_PLATFORM_VER_FILES = {
     "Linux": Path("data/telegram_linux_latest_version.txt"),
 }
 
-# 与各大安卓厂商市场同级，正式并入 AppStore iOS 官方渠道
 MARKET_CHANNELS = [
     ("AppStore", get_appstore_info, Path("data/appstore_latest_version.txt")),
     ("豌豆荚", get_wandoujia_info, Path("data/wandoujia_latest_version.txt")),
@@ -83,14 +82,11 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
     if "heytap" in clean or "oppo" in clean or channel == "OPPO":
         return clean.split("?")[0]
 
-    if ".apk" in clean.lower() or ".ipa" in clean.lower():
-        return clean.split("?")[0]
-
     return clean.split("?")[0]
 
 
 def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_old_beta: bool = None) -> bool:
-    """严格版本单调性判断（全面兼顾 Beta 测试版晋级到正式版的情形）"""
+    """严格版本单调性判断"""
     if not old_ver:
         return True
     if not new_ver:
@@ -127,7 +123,7 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
-    """全自动自愈去重：合并同 SubID 内部具有相同 (platform, arch, version) 的重复实体，补齐 is_beta 标记"""
+    """全自动去重自愈：合并同 SubID 内部相同 (platform, arch, channel, version) 的重复项"""
     cleaned_map = {}
     purged_count = 0
     for s_id, val in raw_map.items():
@@ -181,7 +177,6 @@ def save_database_and_runtime(subid_map: dict):
 
 
 def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
-    """获取指定平台的水位线（版本、URL、文件路径）"""
     v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/{plat.lower()}_latest_version.txt"))
     rec_ver, rec_url = "", ""
 
@@ -228,22 +223,15 @@ def main():
             subid_map = {}
 
     processed_url_fps = set()
-    platform_version_arches = {}
-
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
             u = item.get("source_url")
-            p = item.get("platform")
-            v = item.get("version", "").replace("-Beta", "").strip()
-            a = item.get("arch")
             if u:
                 processed_url_fps.add(get_url_fingerprint(u))
-            if p and v and a:
-                platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 1. 采集 Telegram 官方更新
+    # 1. 采集 Telegram 官方更新 (所有架构/所有格式全量独立处理)
     tg_tasks = get_telegram_tasks()
-    seen_platform_tasks = set()
+    seen_urls = set()
 
     for t in tg_tasks:
         plat = t["platform"]
@@ -253,12 +241,8 @@ def main():
         is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
-        if fp_cur in processed_url_fps:
+        if fp_cur in processed_url_fps or cur_url in seen_urls:
             print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
-            continue
-
-        task_dedup_key = (plat, arch, cur_ver)
-        if task_dedup_key in seen_platform_tasks:
             continue
 
         recorded_tg_ver, recorded_tg_url, tg_ver_file = get_platform_watermark(plat, subid_map)
@@ -276,24 +260,22 @@ def main():
         else:
             clean_cur = cur_ver.replace("-Beta", "").strip()
             clean_rec = recorded_tg_ver.replace("-Beta", "").strip()
-            known_arches = platform_version_arches.get((plat, clean_cur), set())
-
-            if clean_cur == clean_rec and arch not in known_arches and "t.me/linqiqi_backup" in cur_url:
+            if clean_cur == clean_rec:
                 should_update = True
-                update_reason = f"同版本缺失架构自愈补全 ({arch})"
+                update_reason = f"同版本多架构/多格式全量独立提取 ({arch})"
             else:
                 print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}) <= 本地记录 ({recorded_tg_ver})，跳过。")
 
         if should_update:
-            print(f"[TG 监控 - {plat}] ★ 触发更新: [{update_reason}]！加入待处理任务: {arch} -> {cur_url}")
+            print(f"[TG 监控 - {plat}] ★ 触发全量独立下载: [{update_reason}] -> {cur_url}")
             t["mark_channel_name"] = f"官方TG({plat})"
             t["mark_version_val"] = cur_ver
             t["mark_url_val"] = cur_url
             t["ver_file_path"] = tg_ver_file
             pending_tasks.append(t)
-            seen_platform_tasks.add(task_dedup_key)
+            seen_urls.add(cur_url)
 
-    # 2. 十大渠道应用市场比对（包含 AppStore）
+    # 2. 十大渠道应用市场比对
     for name, fetch_func, ver_file in MARKET_CHANNELS:
         recorded_ver = ""
         recorded_url = ""
@@ -360,7 +342,7 @@ def main():
                 "ver_file_path": ver_file,
             })
 
-    # 3. 任务精细去重
+    # 3. 任务去重
     tasks_to_run = []
     for t in pending_tasks:
         fp_t = get_url_fingerprint(t["url"], t.get("channel"))
@@ -389,10 +371,10 @@ def main():
                 f.write("has_new_version=false\ntrigger_decompile=false\n")
         return
 
-    print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个新包待处理！")
+    print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个独立安装包待全量下载提取！")
     has_android, android_info, has_subid_extracted = False, {}, False
 
-    # 4. 执行增量下载、格式自适应穿透与 SubID 抽取
+    # 4. 执行全量下载、格式穿透与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
         print(f"\n--- [{idx}/{len(tasks_to_run)}] 正在处理: {t['platform']} - {t['arch']} ({t.get('channel', '官方')}) ---")
         print(f"URL: {t['url']}")
@@ -424,13 +406,22 @@ def main():
                 subprocess.run(["dpkg-deb", "-x", str(downloaded_file), str(TEMP_EXTRACT)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             elif lf.endswith(".rpm"):
                 subprocess.run(f"cd '{TEMP_EXTRACT}' && rpm2cpio '{downloaded_file.resolve()}' | cpio -idmv", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif lf.endswith(".appimage"):
+                subprocess.run(["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if not list(TEMP_EXTRACT.glob("**/major.node")) and not list(TEMP_EXTRACT.glob("**/*.node")):
+                    downloaded_file.chmod(0o755)
+                    subprocess.run(f"cd '{TEMP_EXTRACT}' && '{downloaded_file.resolve()}' --appimage-extract", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 subprocess.run(["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 hfs = list(TEMP_EXTRACT.glob("**/*.hfs"))
                 if hfs:
                     subprocess.run(["7z", "x", str(hfs[0]), f"-o{TEMP_EXTRACT}/hfs_out", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            subid_pairs, plat, clean_ver = extract_subids_and_version(TEMP_EXTRACT, downloaded_file, t["arch"], base_ver)
+            # 显式传递 default_plat，杜绝将 Linux 误判为 Windows
+            subid_pairs, plat, clean_ver = extract_subids_and_version(
+                TEMP_EXTRACT, downloaded_file, t["arch"], base_ver, default_plat=t["platform"]
+            )
+
             if subid_pairs:
                 has_subid_extracted = True
 
@@ -469,9 +460,6 @@ def main():
                                 break
 
                         if exist_idx >= 0:
-                            old_url = subid_map[s_id][exist_idx].get("source_url", "")
-                            if "t.me/" in old_url and "t.me/" not in t["url"]:
-                                print(f"[直链晋级] SubID {s_id} 历史备份链接已升级替换为官方直链: {t['url']}")
                             subid_map[s_id][exist_idx] = new_item
                         else:
                             subid_map[s_id].append(new_item)

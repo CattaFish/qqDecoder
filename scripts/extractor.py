@@ -39,80 +39,69 @@ def validate_date_str(date_str):
 def download_target_file(url, target_dir):
     """跨市场通用静默下载，强制 IPv4 解析与忽略老旧 SSL，智能适配防盗链 Referer"""
     try:
-        if "t.me/" in url:
-            cmd = ["tdl", "dl", "-u", url, "-d", str(target_dir)]
-            return subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,
-                timeout=SINGLE_DOWNLOAD_TIMEOUT,
-                text=True,
-            )
-        else:
-            clean_path = url.split("?")[0]
-            fname = clean_path.split("/")[-1]
+        clean_path = url.split("?")[0]
+        fname = clean_path.split("/")[-1]
 
-            # 针对 ARMConverter 和 iOS 安装包的后缀安全矫正
-            if "armconverter.com" in url or "appstore" in url.lower() or ".ipa" in clean_path.lower():
-                fname = f"{fname}.ipa" if not fname.endswith(".ipa") else fname
-            elif not fname or not ("." in fname):
-                fname = "target_package.apk"
+        # 针对 ARMConverter 和 iOS 安装包的后缀安全矫正
+        if "armconverter.com" in url or "appstore" in url.lower() or ".ipa" in clean_path.lower():
+            fname = f"{fname}.ipa" if not fname.endswith(".ipa") else fname
+        elif not fname or not ("." in fname):
+            fname = "target_package.apk"
 
-            out_file = target_dir / fname
+        out_file = target_dir / fname
 
-            referer = "https://wap.pp.cn/"
-            if "vivo.com" in url:
-                referer = "https://appstore.vivo.com.cn/"
-            elif "qq.com" in url or "myapp.com" in url:
-                referer = "https://a.app.qq.com/"
-            elif "dbankcloud.com" in url or "huawei.com" in url:
-                referer = "https://appgallery.huawei.com/"
-            elif "heytap" in url or "oppo.com" in url:
-                referer = "https://store.oppomobile.com/"
-            elif "market.xiaomi.com" in url or "mi.com" in url:
-                referer = "https://app.mi.com/"
-            elif "hihonor" in url or "honor" in url:
-                referer = "https://appmarket.hihonor.com/"
-            elif "samsung" in url or "galaxyappstore.com" in url:
-                referer = "https://galaxyappstore.com/"
-            elif "appchina" in url or "yingyonghui" in url:
-                referer = "https://m.appchina.com/"
-            elif "baidu.com" in url:
-                referer = "https://mobile.baidu.com/"
-            elif "armconverter.com" in url:
-                referer = "https://armconverter.com/decryptedappstore"
+        referer = "https://wap.pp.cn/"
+        if "vivo.com" in url:
+            referer = "https://appstore.vivo.com.cn/"
+        elif "qq.com" in url or "myapp.com" in url:
+            referer = "https://im.qq.com/"
+        elif "dbankcloud.com" in url or "huawei.com" in url:
+            referer = "https://appgallery.huawei.com/"
+        elif "heytap" in url or "oppo.com" in url:
+            referer = "https://store.oppomobile.com/"
+        elif "market.xiaomi.com" in url or "mi.com" in url:
+            referer = "https://app.mi.com/"
+        elif "hihonor" in url or "honor" in url:
+            referer = "https://appmarket.hihonor.com/"
+        elif "samsung" in url or "galaxyappstore.com" in url:
+            referer = "https://galaxyappstore.com/"
+        elif "appchina" in url or "yingyonghui" in url:
+            referer = "https://m.appchina.com/"
+        elif "baidu.com" in url:
+            referer = "https://mobile.baidu.com/"
+        elif "armconverter.com" in url:
+            referer = "https://armconverter.com/decryptedappstore"
 
-            cmd = [
-                "curl",
-                "-k",
-                "-4",
-                "-fL",
-                "-s",
-                "-S",
-                "--no-progress-meter",
-                "-A",
-                ANDROID_DOWNLOAD_UA,
-                "-e",
-                referer,
-                "--retry",
-                "2",
-                "--connect-timeout",
-                "20",
-                "--max-time",
-                str(SINGLE_DOWNLOAD_TIMEOUT),
-                "-o",
-                str(out_file),
-                url,
-            ]
-            return subprocess.run(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,
-                timeout=SINGLE_DOWNLOAD_TIMEOUT,
-                text=True,
-            )
+        cmd = [
+            "curl",
+            "-k",
+            "-4",
+            "-fL",
+            "-s",
+            "-S",
+            "--no-progress-meter",
+            "-A",
+            ANDROID_DOWNLOAD_UA,
+            "-e",
+            referer,
+            "--retry",
+            "2",
+            "--connect-timeout",
+            "20",
+            "--max-time",
+            str(SINGLE_DOWNLOAD_TIMEOUT),
+            "-o",
+            str(out_file),
+            url,
+        ]
+        return subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
+            timeout=SINGLE_DOWNLOAD_TIMEOUT,
+            text=True,
+        )
     except Exception as e:
         print(f"[下载异常] {e}")
         return None
@@ -132,10 +121,7 @@ def get_aapt_cmd():
 
 
 def extract_ios_subids_from_macho(macho_path: Path):
-    """从脱壳的 iOS Mach-O 二进制中全自动提取 (Phone_SubID, Pad_SubID)
-
-    原理：逆向定位高频调用的 ADRP + ADD (差值4字节) 指针加载链，读取只读常量区 SubID
-    """
+    """从脱壳的 iOS Mach-O 二进制中全自动提取 (Phone_SubID, Pad_SubID)"""
     try:
         data = macho_path.read_bytes()
     except Exception:
@@ -231,7 +217,7 @@ def extract_ios_subids_from_macho(macho_path: Path):
 
 
 def extract_subids_and_version(
-    extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown"
+    extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown", default_plat="Unknown"
 ):
     """自适应提取全平台（Android / iOS / Windows / Linux / macOS）SubID 与统合版本号"""
     fname_str = str(downloaded_file_path).lower()
@@ -403,15 +389,17 @@ def extract_subids_and_version(
 
             if subid:
                 path_str = str(node).lower()
-                plat = (
-                    "macOS"
-                    if (".app" in path_str or "macos" in path_str)
-                    else (
-                        "Linux"
-                        if ("opt" in path_str or "linux" in path_str)
-                        else "Windows"
-                    )
-                )
+
+                # 精确平台判定：绝对不盲目回退 Windows
+                if ".app" in path_str or "macos" in path_str or fname_str.endswith(".dmg") or fname_str.endswith(".pkg"):
+                    plat = "macOS"
+                elif "opt" in path_str or "linux" in path_str or any(fname_str.endswith(ext) for ext in [".deb", ".rpm", ".appimage"]):
+                    plat = "Linux"
+                elif fname_str.endswith(".exe"):
+                    plat = "Windows"
+                else:
+                    plat = default_plat if default_plat != "Unknown" else "Windows"
+
                 m_already = re.search(r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver)
                 clean_ver = m_already.group(1) if m_already else fallback_ver
                 if is_beta_hint and not clean_ver.endswith("-Beta"):
