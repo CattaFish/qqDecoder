@@ -9,14 +9,12 @@ from pathlib import Path
 
 SINGLE_DOWNLOAD_TIMEOUT = 600
 
-# 采用标准安卓系统下载器 UA
 ANDROID_DOWNLOAD_UA = (
     "AndroidDownloadManager/13 (Linux; U; Android 13; Build/TQ3A.230901.001)"
 )
 
 
 def validate_date_str(date_str):
-    """严格校验物理公历日期合法性 (彻底杜绝 97 月等伪日期)"""
     if not date_str:
         return None
     try:
@@ -37,12 +35,10 @@ def validate_date_str(date_str):
 
 
 def download_target_file(url, target_dir):
-    """跨市场通用静默下载，强制 IPv4 解析与忽略老旧 SSL，智能适配防盗链 Referer"""
     try:
         clean_path = url.split("?")[0]
         fname = clean_path.split("/")[-1]
 
-        # 针对 ARMConverter 和 iOS 安装包的后缀安全矫正
         if "armconverter.com" in url or "appstore" in url.lower() or ".ipa" in clean_path.lower():
             fname = f"{fname}.ipa" if not fname.endswith(".ipa") else fname
         elif not fname or not ("." in fname):
@@ -53,7 +49,7 @@ def download_target_file(url, target_dir):
         referer = "https://wap.pp.cn/"
         if "vivo.com" in url:
             referer = "https://appstore.vivo.com.cn/"
-        elif "qq.com" in url or "myapp.com" in url:
+        elif "qq.com" in url or "myapp.com" in url or "gtimg.cn" in url:
             referer = "https://im.qq.com/"
         elif "dbankcloud.com" in url or "huawei.com" in url:
             referer = "https://appgallery.huawei.com/"
@@ -121,7 +117,6 @@ def get_aapt_cmd():
 
 
 def extract_ios_subids_from_macho(macho_path: Path):
-    """从脱壳的 iOS Mach-O 二进制中全自动提取 (Phone_SubID, Pad_SubID)"""
     try:
         data = macho_path.read_bytes()
     except Exception:
@@ -140,18 +135,14 @@ def extract_ios_subids_from_macho(macho_path: Path):
         if pos + 8 > len(data):
             break
         cmd, cmdsize = struct.unpack("<II", data[pos : pos + 8])
-        if cmd == 0x19:  # LC_SEGMENT_64
+        if cmd == 0x19:
             nsects = struct.unpack("<I", data[pos + 64 : pos + 68])[0]
             sec_pos = pos + 72
             for s in range(nsects):
                 if sec_pos + 80 > len(data):
                     break
-                s_name = (
-                    data[sec_pos : sec_pos + 16].rstrip(b"\x00").decode("latin1")
-                )
-                s_vm, s_size, s_off = struct.unpack(
-                    "<QQI", data[sec_pos + 32 : sec_pos + 52]
-                )
+                s_name = data[sec_pos : sec_pos + 16].rstrip(b"\x00").decode("latin1")
+                s_vm, s_size, s_off = struct.unpack("<QQI", data[sec_pos + 32 : sec_pos + 52])
                 sec_info = {"name": s_name, "vm": s_vm, "size": s_size, "off": s_off}
                 sections.append(sec_info)
                 if s_name == "__text":
@@ -176,15 +167,11 @@ def extract_ios_subids_from_macho(macho_path: Path):
 
     for i in range(text_off, min(text_off + text_size - 32, len(data) - 32), 4):
         insn1, insn2 = struct.unpack("<II", data[i : i + 8])
-        if (insn1 & 0x9F000000) == 0x90000000 and (
-            insn2 & 0x7F800000
-        ) == 0x11000000:
+        if (insn1 & 0x9F000000) == 0x90000000 and (insn2 & 0x7F800000) == 0x11000000:
             off1 = (insn2 >> 10) & 0xFFF
             for j in range(i + 8, i + 32, 4):
                 insn3, insn4 = struct.unpack("<II", data[j : j + 8])
-                if (insn3 & 0x9F000000) == 0x90000000 and (
-                    insn4 & 0x7F800000
-                ) == 0x11000000:
+                if (insn3 & 0x9F000000) == 0x90000000 and (insn4 & 0x7F800000) == 0x11000000:
                     off2 = (insn4 >> 10) & 0xFFF
                     if abs(off1 - off2) == 4:
                         immlo = (insn1 >> 29) & 0x3
@@ -202,10 +189,7 @@ def extract_ios_subids_from_macho(macho_path: Path):
                         if f1 and f2 and f2 + 4 <= len(data):
                             v1 = struct.unpack("<I", data[f1 : f1 + 4])[0]
                             v2 = struct.unpack("<I", data[f2 : f2 + 4])[0]
-                            if (
-                                537000000 <= v1 <= 537999999
-                                and 537000000 <= v2 <= 537999999
-                            ):
+                            if 537000000 <= v1 <= 537999999 and 537000000 <= v2 <= 537999999:
                                 if 0 < (v2 - v1) <= 50:
                                     candidates.add((v1, v2))
 
@@ -219,23 +203,13 @@ def extract_ios_subids_from_macho(macho_path: Path):
 def extract_subids_and_version(
     extract_dir, downloaded_file_path, default_arch, fallback_ver="Unknown", default_plat="Unknown"
 ):
-    """自适应提取全平台（Android / iOS / Windows / Linux / macOS）SubID 与统合版本号"""
+    """自适应提取全平台（Android / iOS / Windows / Linux / macOS）SubID 与纯净版本号"""
     fname_str = str(downloaded_file_path).lower()
-
-    is_beta_hint = bool(
-        "-beta" in str(fallback_ver).lower()
-        or "beta" in str(fallback_ver).lower()
-        or "beta" in fname_str
-        or "rc" in fname_str
-    )
 
     # ----------------------------------------------------
     # 分支 1: Android 平台 (.apk)
     # ----------------------------------------------------
-    if (
-        fname_str.endswith(".apk")
-        or (extract_dir / "AndroidManifest.xml").exists()
-    ):
+    if fname_str.endswith(".apk") or (extract_dir / "AndroidManifest.xml").exists():
         subid_phone, subid_pad, base_vname, build_no = None, None, None, None
         aapt_bin = get_aapt_cmd()
         dump_text = ""
@@ -262,51 +236,32 @@ def extract_subids_and_version(
             for idx, line in enumerate(lines):
                 if "versionName" in line and not base_vname:
                     m_vn = re.search(r'android:versionName[^=]*="([^"]+)"', line)
-                    if m_vn:
-                        base_vname = m_vn.group(1).strip()
+                    if m_vn: base_vname = m_vn.group(1).strip()
                 if "AppSetting_params" in line and not subid_phone:
                     if "AppSetting_params_pad" not in line:
-                        ctx = "\n".join(
-                            lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                        )
+                        ctx = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
                         m_sub = re.search(r"([0-9]{9})#", ctx)
-                        if m_sub:
-                            subid_phone = m_sub.group(1)
+                        if m_sub: subid_phone = m_sub.group(1)
                 if "AppSetting_params_pad" in line and not subid_pad:
-                    ctx = "\n".join(
-                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                    )
+                    ctx = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
                     m_sub = re.search(r"([0-9]{9})#", ctx)
-                    if m_sub:
-                        subid_pad = m_sub.group(1)
+                    if m_sub: subid_pad = m_sub.group(1)
                 if "ANDROID_QQ_BUILD_NO" in line and not build_no:
-                    ctx = "\n".join(
-                        lines[max(0, idx - 1) : min(len(lines), idx + 3)]
-                    )
+                    ctx = "\n".join(lines[max(0, idx - 1) : min(len(lines), idx + 3)])
                     m_hex = re.search(r"\(type 0x10\)0x([0-9a-fA-F]+)", ctx)
-                    if m_hex:
-                        build_no = str(int(m_hex.group(1), 16))
+                    if m_hex: build_no = str(int(m_hex.group(1), 16))
                     if not build_no:
                         m_dec = re.search(r"\(type 0x10\)([0-9]+)", ctx)
-                        if m_dec:
-                            build_no = m_dec.group(1)
+                        if m_dec: build_no = m_dec.group(1)
                     if not build_no:
-                        m_str = re.search(
-                            r'(?:Raw:\s*"|=")([0-9]+)"', ctx
-                        ) or re.search(r'"([0-9]+)"', ctx)
-                        if m_str:
-                            build_no = m_str.group(1)
+                        m_str = re.search(r'(?:Raw:\s*"|=")([0-9]+)"', ctx) or re.search(r'"([0-9]+)"', ctx)
+                        if m_str: build_no = m_str.group(1)
 
         raw_v = base_vname or fallback_ver
-        if "beta" in str(base_vname).lower():
-            is_beta_hint = True
-
-        m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v)
-        base_3parts = m_v3.group(1) if m_v3 else raw_v
+        raw_v_clean = raw_v.replace("-Beta", "").strip()
+        m_v3 = re.search(r"(\d+\.\d+\.\d+)", raw_v_clean)
+        base_3parts = m_v3.group(1) if m_v3 else raw_v_clean
         clean_ver = f"{base_3parts}.{build_no}" if build_no else base_3parts
-
-        if is_beta_hint and not clean_ver.endswith("-Beta"):
-            clean_ver = f"{clean_ver}-Beta"
 
         pairs = []
         if subid_phone:
@@ -339,9 +294,7 @@ def extract_subids_and_version(
             build_ver
             if (build_ver and len(build_ver.split(".")) >= 4)
             else (short_ver or fallback_ver)
-        )
-        if is_beta_hint and not clean_ver.endswith("-Beta"):
-            clean_ver = f"{clean_ver}-Beta"
+        ).replace("-Beta", "").strip()
 
         if ios_machos:
             pairs = extract_ios_subids_from_macho(ios_machos[0])
@@ -372,11 +325,7 @@ def extract_subids_and_version(
                 candidates = []
                 for match in pattern_cand.finditer(data):
                     cand_subid = match.group(1).decode("ascii")
-                    context = data[
-                        max(0, match.start() - 500) : min(
-                            len(data), match.end() + 500
-                        )
-                    ]
+                    context = data[max(0, match.start() - 500) : min(len(data), match.end() + 500)]
                     if b"fabu" not in context:
                         continue
                     score = 1
@@ -390,7 +339,7 @@ def extract_subids_and_version(
             if subid:
                 path_str = str(node).lower()
 
-                # 精确平台判定：绝对不盲目回退 Windows
+                # 精确平台判定
                 if ".app" in path_str or "macos" in path_str or fname_str.endswith(".dmg") or fname_str.endswith(".pkg"):
                     plat = "macOS"
                 elif "opt" in path_str or "linux" in path_str or any(fname_str.endswith(ext) for ext in [".deb", ".rpm", ".appimage"]):
@@ -402,13 +351,14 @@ def extract_subids_and_version(
 
                 m_already = re.search(r"(\d+\.\d+\.\d+\.\d{4,6})", fallback_ver)
                 clean_ver = m_already.group(1) if m_already else fallback_ver
-                if is_beta_hint and not clean_ver.endswith("-Beta"):
-                    clean_ver = f"{clean_ver}-Beta"
+                clean_ver = clean_ver.replace("-Beta", "").strip()
+
+                # ★ 核心原则：解包器保持版本纯净，绝不擅自追加 -Beta！
                 return [(subid, default_arch)], plat, clean_ver
         except Exception:
             pass
 
-    return [], "Unknown", fallback_ver
+    return [], "Unknown", fallback_ver.replace("-Beta", "").strip()
 
 
 def extract_version_from_filename(filename):

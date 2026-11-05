@@ -7,51 +7,33 @@ from extractor import validate_date_str
 TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 
 def clean_version_str(v_str: str) -> str:
-    """归一化版本号：剥离 (16580) 等冗余构建号括号"""
     if not v_str:
         return ""
     return re.sub(r"\s*\(\d+\)", "", str(v_str)).strip()
 
 def normalize_arch_from_link(a_txt: str, href: str, platform: str = "") -> str:
-    """
-    硬件架构精准判定：
-    仅基于当前链接自身文本和 URL 解析，绝不引入整行外部文字，杜绝 LoongArch 串扰。
-    """
+    """仅依据链接自身文本和 URL 提炼架构，彻底杜绝整行兄弟标签串扰"""
     t_low = a_txt.lower()
     h_low = href.lower()
 
-    # 1. Arm
     if any(k in t_low for k in ["arm64", "aarch64", "arm"]) or any(k in h_low for k in ["arm64", "aarch64", "_arm"]):
         return "Arm"
-
-    # 2. X64 / amd64
     if any(k in t_low for k in ["x64", "amd64", "x86_64", "64位"]) or any(k in h_low for k in ["amd64", "x86_64", "_x64"]):
         return "X64"
-
-    # 3. X86 / 32位
     if any(k in t_low for k in ["x86", "ia32", "i386", "32位"]) or any(k in h_low for k in ["i386", "_x86"]):
         return "X86"
-
-    # 4. LoongArch
     if "loongarch" in t_low or "loong64" in t_low or "loongarch" in h_low or "loong64" in h_low:
         return "LoongArch"
-
-    # 5. Mips
     if "mips" in t_low or "mips" in h_low:
         return "Mips"
-
-    # 6. macOS
     if platform == "macOS" or any(k in t_low for k in ["dmg", "pkg"]):
         return "Universal"
-
-    # 7. Linux 默认规则：若为 DEB, RPM, Appimage 且未标 arm/loongarch，全行业标准默认为主流 X64
     if platform == "Linux" and any(k in t_low for k in ["deb", "rpm", "appimage"]):
         return "X64"
 
     return "Package"
 
 def get_recent_messages(limit: int = 5):
-    """抓取 Telegram 频道最新发布的增量消息"""
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
         resp = requests.get(TG_CHANNEL_URL, headers=headers, timeout=30)
@@ -89,16 +71,13 @@ def get_recent_messages(limit: int = 5):
         return []
 
 def parse_single_message_tasks(msg: dict):
-    """
-    单条消息解析核心：
-    1. 严格只抓取【下载】区的所有官方下载直链，彻底跳过【备份】区链接；
-    2. 全架构、全包格式独立保留（不按架构覆盖），确保每个链接都能被独立下载解包分析 SubID。
-    """
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
     post_id = msg["post_id"]
-    is_beta = bool(re.search(r"#Beta\b", text, re.IGNORECASE))
+
+    # ★ 核心准则：完全以频道正文 Tag 为准，仅识别 #Beta 与 #Little_Beta，绝不看 URL
+    is_beta = bool(re.search(r"#(?:Beta|Little_Beta)\b", text, re.IGNORECASE))
 
     # 1. 提炼各平台版本号
     win_ver, mac_ver, linux_ver, android_ver = "", "", "", ""
@@ -238,7 +217,6 @@ def parse_single_message_tasks(msg: dict):
     return tasks
 
 def get_telegram_tasks(*args, **kwargs):
-    """获取 Telegram 频道近期最新有效官方下载任务清单"""
     limit = kwargs.get("limit", 5)
     messages = get_recent_messages(limit=limit)
     if not messages:

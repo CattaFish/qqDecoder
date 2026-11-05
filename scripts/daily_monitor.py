@@ -63,7 +63,6 @@ MARKET_CHANNELS = [
 
 
 def get_url_fingerprint(url: str, channel: str = "") -> str:
-    """提取静态特征指纹，剥离动态鉴权 Token 与时间戳"""
     if not url:
         return ""
     clean = url.strip()
@@ -86,7 +85,6 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
 
 
 def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_old_beta: bool = None) -> bool:
-    """严格版本单调性判断"""
     if not old_ver:
         return True
     if not new_ver:
@@ -123,7 +121,6 @@ def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_o
 
 
 def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
-    """全自动去重自愈：合并同 SubID 内部相同 (platform, arch, channel, version) 的重复项"""
     cleaned_map = {}
     purged_count = 0
     for s_id, val in raw_map.items():
@@ -140,7 +137,6 @@ def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
                 item["is_beta"] = bool(
                     "-beta" in v.lower()
                     or "beta" in v.lower()
-                    or "beta" in url.lower()
                 )
 
             key = (p, a, c, v)
@@ -157,7 +153,6 @@ def sanitize_and_deduplicate_map(raw_map: dict) -> tuple[dict, int]:
 
 
 def save_database_and_runtime(subid_map: dict):
-    """原子写盘保存主数据库并派生编译运行时字典"""
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     temp_file = DATA_FILE.with_suffix(".tmp")
     temp_file.write_text(json.dumps(subid_map, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -413,11 +408,11 @@ def main():
                     subprocess.run(f"cd '{TEMP_EXTRACT}' && '{downloaded_file.resolve()}' --appimage-extract", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 subprocess.run(["7z", "x", str(downloaded_file), f"-o{TEMP_EXTRACT}", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                hfs = list(TEMP_EXTRACT.glob("**/*.hfs"))
-                if hfs:
-                    subprocess.run(["7z", "x", str(hfs[0]), f"-o{TEMP_EXTRACT}/hfs_out", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                hfs_candidates = list(TEMP_EXTRACT.glob("**/*.hfs")) + list(TEMP_EXTRACT.glob("**/*Apple_HFS*")) + list(TEMP_EXTRACT.glob("**/*hfs*"))
+                hfs_files = [f for f in hfs_candidates if f.is_file()]
+                if hfs_files:
+                    subprocess.run(["7z", "x", str(hfs_files[0]), f"-o{TEMP_EXTRACT}", "-y"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            # 显式传递 default_plat，杜绝将 Linux 误判为 Windows
             subid_pairs, plat, clean_ver = extract_subids_and_version(
                 TEMP_EXTRACT, downloaded_file, t["arch"], base_ver, default_plat=t["platform"]
             )
@@ -425,15 +420,10 @@ def main():
             if subid_pairs:
                 has_subid_extracted = True
 
-                is_beta_flag = bool(
-                    t.get("is_beta")
-                    or "-beta" in clean_ver.lower()
-                    or "beta" in clean_ver.lower()
-                    or "beta" in base_ver.lower()
-                    or "beta" in fname.lower()
-                    or "beta" in t.get("url", "").lower()
-                )
-                if is_beta_flag and not clean_ver.endswith("-Beta"):
+                # ★ 核心准则：仅当任务显式携带 is_beta 或版本号原生自带时才算 Beta，绝不再根据 URL 误判！
+                is_beta_flag = bool(t.get("is_beta", False))
+                clean_ver = clean_ver.replace("-Beta", "").strip()
+                if is_beta_flag:
                     clean_ver = f"{clean_ver}-Beta"
 
                 for s_id, a_val in subid_pairs:
@@ -460,7 +450,12 @@ def main():
                                 break
 
                         if exist_idx >= 0:
-                            subid_map[s_id][exist_idx] = new_item
+                            # 若同架构下同版本再次命中（例如已有 deb，又下了 rpm），优先保留更通用的 deb 直链
+                            old_url = subid_map[s_id][exist_idx].get("source_url", "")
+                            if ".deb" in old_url and ".deb" not in t["url"]:
+                                pass
+                            else:
+                                subid_map[s_id][exist_idx] = new_item
                         else:
                             subid_map[s_id].append(new_item)
 
