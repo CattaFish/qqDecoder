@@ -6728,6 +6728,15 @@
       "source_url": "https://t.me/linqiqi_backup/2965?single",
       "channel": "官方",
       "is_beta": false
+    },
+    {
+      "version": "3.2.35.54395",
+      "platform": "Linux",
+      "arch": "Arm",
+      "date": "2026-10-30",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/816b3c79/linuxqq_3.2.35-54395_arm64.deb",
+      "channel": "官方",
+      "is_beta": false
     }
   ],
   "537397072": [
@@ -6758,7 +6767,7 @@
       "platform": "Windows",
       "arch": "X86",
       "date": "2026-11-02",
-      "source_url": "https://t.me/linqiqi_backup/2974",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/a2ca1b61/QQ9.9.37.54395_x86.exe",
       "channel": "官方",
       "is_beta": false
     }
@@ -6769,7 +6778,7 @@
       "platform": "Windows",
       "arch": "X64",
       "date": "2026-11-02",
-      "source_url": "https://t.me/linqiqi_backup/2973",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/a2ca1b61/QQ9.9.37.54395_x64.exe",
       "channel": "官方",
       "is_beta": false
     }
@@ -6780,7 +6789,7 @@
       "platform": "Windows",
       "arch": "Arm",
       "date": "2026-11-02",
-      "source_url": "https://t.me/linqiqi_backup/2975",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/ae4551ce/QQ9.9.37.54395_arm64.exe",
       "channel": "官方",
       "is_beta": false
     }
@@ -6791,7 +6800,7 @@
       "platform": "macOS",
       "arch": "Universal",
       "date": "2026-11-02",
-      "source_url": "https://t.me/linqiqi_backup/2976",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/a8ffd03b/QQ_v7.0.3.54395.dmg",
       "channel": "官方",
       "is_beta": false
     }
@@ -6881,6 +6890,50 @@
       "date": "2026-11-04",
       "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5e0e6b2a2c3b4be295a3d467bbc62338.apk",
       "channel": "荣耀",
+      "is_beta": false
+    }
+  ],
+  "537403759": [
+    {
+      "version": "3.2.35.54395",
+      "platform": "Linux",
+      "arch": "X64",
+      "date": "2026-10-30",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/816b3c79/linuxqq_3.2.35-54395_amd64.deb",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537403761": [
+    {
+      "version": "3.2.35.54395",
+      "platform": "Linux",
+      "arch": "LoongArch",
+      "date": "2026-10-30",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/816b3c79/linuxqq_3.2.35-54395_loongarch64.deb",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537400125": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-05",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/11/05/7/110_db7f8b0cc4909f76810d9cc34c0048c9.apk",
+      "channel": "豌豆荚",
+      "is_beta": false
+    }
+  ],
+  "537400164": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-05",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/11/05/7/110_db7f8b0cc4909f76810d9cc34c0048c9.apk",
+      "channel": "豌豆荚",
       "is_beta": false
     }
   ]
