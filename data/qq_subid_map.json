@@ -6817,5 +6817,71 @@
       "channel": "AppStore",
       "is_beta": false
     }
+  ],
+  "537400117": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-10-30",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/7c/7cad7627dee5449d957f0ab86cc2c035/com.tencent.mobileqq.2610300956.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为",
+      "is_beta": false
+    }
+  ],
+  "537400156": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-10-30",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/7c/7cad7627dee5449d957f0ab86cc2c035/com.tencent.mobileqq.2610300956.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为",
+      "is_beta": false
+    }
+  ],
+  "537400120": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-05",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/30/882515728c1061180088c7955fba2649.apk?sign=12baf26f966e987e2f6df0733930bf87&t=6AEC09BC&m=6c72f857cb3b6707c13e73f5dc44bbe2&hm=c3c13fd3615ae73b0ef0e33b51e12ff3",
+      "channel": "OPPO",
+      "is_beta": false
+    }
+  ],
+  "537400159": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-05",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202610/30/882515728c1061180088c7955fba2649.apk?sign=12baf26f966e987e2f6df0733930bf87&t=6AEC09BC&m=6c72f857cb3b6707c13e73f5dc44bbe2&hm=c3c13fd3615ae73b0ef0e33b51e12ff3",
+      "channel": "OPPO",
+      "is_beta": false
+    }
+  ],
+  "537400118": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-04",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5e0e6b2a2c3b4be295a3d467bbc62338.apk",
+      "channel": "荣耀",
+      "is_beta": false
+    }
+  ],
+  "537400157": [
+    {
+      "version": "9.3.80.42775",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-04",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5e0e6b2a2c3b4be295a3d467bbc62338.apk",
+      "channel": "荣耀",
+      "is_beta": false
+    }
   ]
 }

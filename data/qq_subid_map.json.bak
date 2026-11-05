@@ -6751,5 +6751,71 @@
       "channel": "AppStore",
       "is_beta": false
     }
+  ],
+  "537403722": [
+    {
+      "version": "9.9.37.54395",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-11-02",
+      "source_url": "https://t.me/linqiqi_backup/2974",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537403723": [
+    {
+      "version": "9.9.37.54395",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-11-02",
+      "source_url": "https://t.me/linqiqi_backup/2973",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537403735": [
+    {
+      "version": "9.9.37.54395",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-11-02",
+      "source_url": "https://t.me/linqiqi_backup/2975",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537403747": [
+    {
+      "version": "7.0.3.54395",
+      "platform": "macOS",
+      "arch": "Universal",
+      "date": "2026-11-02",
+      "source_url": "https://t.me/linqiqi_backup/2976",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537399146": [
+    {
+      "version": "9.3.80.608",
+      "platform": "iOS",
+      "arch": "Phone",
+      "date": "2026-11-02",
+      "source_url": "https://armconverter.com/decryptedappstore/download/444934666/com.tencent.mqq/9.3.80?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDIyNjMzMyIsImlhdCI6MTc5MzY4MTgzMywiZXhwIjoxNzkzNjkyNjMzLCJhcHBpZCI6NDQ0OTM0NjY2LCJhcHB2ZXIiOiI5LjMuODAifQ.uXUna7LrG9DFviQEmg1Yx6WJSCW0LnEkcxOPa9JcFNI",
+      "channel": "AppStore",
+      "is_beta": false
+    }
+  ],
+  "537399157": [
+    {
+      "version": "9.3.80.608",
+      "platform": "iOS",
+      "arch": "Pad",
+      "date": "2026-11-02",
+      "source_url": "https://armconverter.com/decryptedappstore/download/444934666/com.tencent.mqq/9.3.80?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDIyNjMzMyIsImlhdCI6MTc5MzY4MTgzMywiZXhwIjoxNzkzNjkyNjMzLCJhcHBpZCI6NDQ0OTM0NjY2LCJhcHB2ZXIiOiI5LjMuODAifQ.uXUna7LrG9DFviQEmg1Yx6WJSCW0LnEkcxOPa9JcFNI",
+      "channel": "AppStore",
+      "is_beta": false
+    }
   ]
 }
