@@ -6936,5 +6936,27 @@
       "channel": "豌豆荚",
       "is_beta": false
     }
+  ],
+  "537402089": [
+    {
+      "version": "9.3.85.43095",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-06",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/cadc6582aafe4da3a77cd69a50667a15.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537402100": [
+    {
+      "version": "9.3.85.43095",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-06",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/cadc6582aafe4da3a77cd69a50667a15.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
   ]
 }
