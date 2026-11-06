@@ -6,6 +6,9 @@ from extractor import validate_date_str
 
 TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 
+VALID_PACKAGE_EXTENSIONS = (".apk", ".exe", ".dmg", ".pkg", ".deb", ".rpm", ".appimage", ".ipa")
+VALID_PACKAGE_DOMAINS = ("qq.com", "myapp.com", "gtimg.cn")
+
 def clean_version_str(v_str: str) -> str:
     if not v_str:
         return ""
@@ -75,7 +78,7 @@ def parse_single_message_tasks(msg: dict):
     date = msg["date"]
     post_id = msg["post_id"]
 
-    # 严格只看消息 Tag，绝不看 URL
+    # 严格只看消息 Tag 是否含有 #Beta 或 #Little_Beta
     is_beta = bool(re.search(r"#(?:Beta|Little_Beta)\b", text, re.IGNORECASE))
 
     # 1. 提炼各平台版本号
@@ -148,19 +151,29 @@ def parse_single_message_tasks(msg: dict):
             href = a["href"].strip()
             a_txt = a.get_text().strip()
 
-            if "t.me/s/" in href or "t.me/qq_updatelog" in href:
+            # ★ 核心准则 1：链接必须是合法的 HTTP/HTTPS 绝对直链（彻底杜绝 ?q=%23Beta 等搜索相对路径）
+            if not href.startswith(("http://", "https://")):
                 continue
-            if in_backup_section or "t.me/linqiqi_backup" in href or "备份" in a_txt or "t.me/" in href:
+
+            # ★ 核心准则 2：彻底排除 Telegram 自身页面及任何【备份】链接
+            if "t.me/" in href or "telegram.me/" in href or in_backup_section or "备份" in a_txt:
+                continue
+
+            # ★ 核心准则 3：必须是官方直链域名或真实安装包扩展名
+            href_clean = href.split("?")[0].lower()
+            is_valid_ext = any(href_clean.endswith(ext) for ext in VALID_PACKAGE_EXTENSIONS)
+            is_valid_domain = any(domain in href.lower() for domain in VALID_PACKAGE_DOMAINS)
+            if not (is_valid_ext or is_valid_domain):
                 continue
 
             target_plat = current_platform
-            if ".apk" in href.lower() or "android" in href.lower():
+            if ".apk" in href_clean or "android" in href.lower():
                 target_plat = "Android"
-            elif ".exe" in href.lower():
+            elif ".exe" in href_clean:
                 target_plat = "Windows"
-            elif ".dmg" in href.lower() or ".pkg" in href.lower():
+            elif ".dmg" in href_clean or ".pkg" in href_clean:
                 target_plat = "macOS"
-            elif any(ext in href.lower() for ext in [".deb", ".rpm", ".appimage"]):
+            elif any(href_clean.endswith(ext) for ext in [".deb", ".rpm", ".appimage"]):
                 target_plat = "Linux"
 
             ver = (
@@ -175,10 +188,8 @@ def parse_single_message_tasks(msg: dict):
 
             target_arch = normalize_arch_from_link(a_txt, href, target_plat)
 
-            # ★ 核心准则：全硬件架构独立（Windows X86/X64/Arm, Linux X64/Arm/LoongArch 全覆盖）
-            # 同一架构内部优先保留 .deb 格式（解压最极速，且已知同架构 SubID 100% 相同）
             arch_key = (target_plat, target_arch)
-            is_deb = ".deb" in href.lower() or "deb" in a_txt.lower()
+            is_deb = ".deb" in href_clean or "deb" in a_txt.lower()
 
             task_obj = {
                 "platform": target_plat,
@@ -197,21 +208,23 @@ def parse_single_message_tasks(msg: dict):
             elif is_deb:
                 tasks_by_arch[arch_key] = task_obj
 
-    # 兼容处理纯文本裸露 APK
+    # 兼容处理纯文本中裸露的官方直链 APK
     if ("Android", "Package") not in tasks_by_arch and android_ver:
         naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
-        if naked_urls:
+        for nu in naked_urls:
+            nu_clean = nu.strip()
             tasks_by_arch[("Android", "Package")] = {
                 "platform": "Android",
                 "arch": "Package",
                 "version": android_ver,
                 "date": date,
-                "url": naked_urls[0].strip(),
-                "official_url": naked_urls[0].strip(),
+                "url": nu_clean,
+                "official_url": nu_clean,
                 "is_beta": is_beta,
                 "channel": "官方",
                 "post_id": post_id,
             }
+            break
 
     return list(tasks_by_arch.values())
 
