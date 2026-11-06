@@ -72,16 +72,37 @@ def get_recent_messages(limit: int = 5):
         print(f"[TG 监控] 抓取频道消息异常: {e}")
         return []
 
+def is_telegram_beta_message(text: str, html: str) -> bool:
+    t_clean = text.strip()
+    h_low = html.lower()
+
+    # 1. 纯文本标签（支持全角 ＃ 与半角 #）
+    if re.search(r"[#＃](?:Beta|Little_Beta)\b", t_clean, re.IGNORECASE):
+        return True
+
+    # 2. Telegram Web Tag 链接实体
+    if "%23beta" in h_low or "%23little_beta" in h_low:
+        return True
+
+    # 3. 首行标题判定（如 "QQ_NT 9.3.85.43095 #Beta"）
+    first_line = t_clean.splitlines()[0] if t_clean.splitlines() else ""
+    if re.search(r"\bbeta\b", first_line, re.IGNORECASE):
+        return True
+
+    # 4. 灰度与内测标签
+    if re.search(r"[#＃](?:体验版|内测|灰度)\b", t_clean):
+        return True
+
+    return False
+
 def parse_single_message_tasks(msg: dict):
     text = msg["text"]
     html = msg["html"]
     date = msg["date"]
     post_id = msg["post_id"]
 
-    # 严格只看消息 Tag 是否含有 #Beta 或 #Little_Beta
-    is_beta = bool(re.search(r"#(?:Beta|Little_Beta)\b", text, re.IGNORECASE))
+    is_beta = is_telegram_beta_message(text, html)
 
-    # 1. 提炼各平台版本号
     win_ver, mac_ver, linux_ver, android_ver = "", "", "", ""
     m_win = re.search(r"Windows(?:\s+QQ(?:_NT)?)?\s+([0-9]+(?:\.[0-9]+)+)", text, re.IGNORECASE)
     if m_win: win_ver = m_win.group(1)
@@ -151,15 +172,11 @@ def parse_single_message_tasks(msg: dict):
             href = a["href"].strip()
             a_txt = a.get_text().strip()
 
-            # ★ 核心准则 1：链接必须是合法的 HTTP/HTTPS 绝对直链（彻底杜绝 ?q=%23Beta 等搜索相对路径）
             if not href.startswith(("http://", "https://")):
                 continue
-
-            # ★ 核心准则 2：彻底排除 Telegram 自身页面及任何【备份】链接
             if "t.me/" in href or "telegram.me/" in href or in_backup_section or "备份" in a_txt:
                 continue
 
-            # ★ 核心准则 3：必须是官方直链域名或真实安装包扩展名
             href_clean = href.split("?")[0].lower()
             is_valid_ext = any(href_clean.endswith(ext) for ext in VALID_PACKAGE_EXTENSIONS)
             is_valid_domain = any(domain in href.lower() for domain in VALID_PACKAGE_DOMAINS)
@@ -208,7 +225,6 @@ def parse_single_message_tasks(msg: dict):
             elif is_deb:
                 tasks_by_arch[arch_key] = task_obj
 
-    # 兼容处理纯文本中裸露的官方直链 APK
     if ("Android", "Package") not in tasks_by_arch and android_ver:
         naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
         for nu in naked_urls:
