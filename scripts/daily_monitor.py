@@ -218,13 +218,19 @@ def main():
             subid_map = {}
 
     processed_url_fps = set()
+    platform_version_arches = {}
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
             u = item.get("source_url")
+            p = item.get("platform")
+            v = item.get("version", "").replace("-Beta", "").strip()
+            a = item.get("arch")
             if u:
                 processed_url_fps.add(get_url_fingerprint(u))
+            if p and v and a:
+                platform_version_arches.setdefault((p, v), set()).add(a)
 
-    # 1. 采集 Telegram 官方更新 (所有架构/所有格式全量独立处理)
+    # 1. 采集 Telegram 官方更新 (所有架构全量独立，每个硬件架构精准对应一个最优安装包)
     tg_tasks = get_telegram_tasks()
     seen_urls = set()
 
@@ -255,9 +261,12 @@ def main():
         else:
             clean_cur = cur_ver.replace("-Beta", "").strip()
             clean_rec = recorded_tg_ver.replace("-Beta", "").strip()
-            if clean_cur == clean_rec:
+            known_arches = platform_version_arches.get((plat, clean_cur), set())
+
+            # 只要这个架构在这个版本里没收录过，就触发下载入库
+            if clean_cur == clean_rec and arch not in known_arches:
                 should_update = True
-                update_reason = f"同版本多架构/多格式全量独立提取 ({arch})"
+                update_reason = f"同版本新架构独立提取 ({arch})"
             else:
                 print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}) <= 本地记录 ({recorded_tg_ver})，跳过。")
 
@@ -420,7 +429,6 @@ def main():
             if subid_pairs:
                 has_subid_extracted = True
 
-                # ★ 核心准则：仅当任务显式携带 is_beta 或版本号原生自带时才算 Beta，绝不再根据 URL 误判！
                 is_beta_flag = bool(t.get("is_beta", False))
                 clean_ver = clean_ver.replace("-Beta", "").strip()
                 if is_beta_flag:
@@ -450,12 +458,7 @@ def main():
                                 break
 
                         if exist_idx >= 0:
-                            # 若同架构下同版本再次命中（例如已有 deb，又下了 rpm），优先保留更通用的 deb 直链
-                            old_url = subid_map[s_id][exist_idx].get("source_url", "")
-                            if ".deb" in old_url and ".deb" not in t["url"]:
-                                pass
-                            else:
-                                subid_map[s_id][exist_idx] = new_item
+                            subid_map[s_id][exist_idx] = new_item
                         else:
                             subid_map[s_id].append(new_item)
 
