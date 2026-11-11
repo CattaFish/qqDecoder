@@ -1,2 +1,2 @@
-9.3.80.42775
-http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/E01C6A8FEBB691C0EDD05AE54ECEA15E.apk?fsname=com.tencent.mobileqq_9.3.80.apk
+9.3.85.43200
+http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/CF4A3CF181EB7246C4BA2B5ED20CD617.apk?fsname=com.tencent.mobileqq_9.3.85.apk
