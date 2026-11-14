@@ -7020,5 +7020,27 @@
       "channel": "小米",
       "is_beta": false
     }
+  ],
+  "537401671": [
+    {
+      "version": "9.3.86.617",
+      "platform": "iOS",
+      "arch": "Phone",
+      "date": "2026-11-13",
+      "source_url": "https://armconverter.com/decryptedappstore/download/444934666/com.tencent.mqq/9.3.86?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDIyNjMzMyIsImlhdCI6MTc5NDYzMDg5OCwiZXhwIjoxNzk0NjQxNjk4LCJhcHBpZCI6NDQ0OTM0NjY2LCJhcHB2ZXIiOiI5LjMuODYifQ.OM4w4yxfAtS2sS1Lt50NUbeyuf6PiFtHd3T0PF-mKT4",
+      "channel": "AppStore",
+      "is_beta": false
+    }
+  ],
+  "537401682": [
+    {
+      "version": "9.3.86.617",
+      "platform": "iOS",
+      "arch": "Pad",
+      "date": "2026-11-13",
+      "source_url": "https://armconverter.com/decryptedappstore/download/444934666/com.tencent.mqq/9.3.86?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxNDIyNjMzMyIsImlhdCI6MTc5NDYzMDg5OCwiZXhwIjoxNzk0NjQxNjk4LCJhcHBpZCI6NDQ0OTM0NjY2LCJhcHB2ZXIiOiI5LjMuODYifQ.OM4w4yxfAtS2sS1Lt50NUbeyuf6PiFtHd3T0PF-mKT4",
+      "channel": "AppStore",
+      "is_beta": false
+    }
   ]
 }

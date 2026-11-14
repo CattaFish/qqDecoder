@@ -135,6 +135,22 @@
     "date": "2026-11-06",
     "channel": "官方"
   },
+  "537401682": {
+    "summary": "QQ(Pad) 9.3.86.617",
+    "platform": "iOS",
+    "version": "9.3.86.617",
+    "arch": "Pad",
+    "date": "2026-11-13",
+    "channel": "AppStore"
+  },
+  "537401671": {
+    "summary": "QQ 9.3.86.617",
+    "platform": "iOS",
+    "version": "9.3.86.617",
+    "arch": "Phone",
+    "date": "2026-11-13",
+    "channel": "AppStore"
+  },
   "537400164": {
     "summary": "QQ(Pad) 9.3.80.42775",
     "platform": "Android",
