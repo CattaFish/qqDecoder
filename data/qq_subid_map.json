@@ -7042,5 +7042,27 @@
       "channel": "AppStore",
       "is_beta": false
     }
+  ],
+  "537402551": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-11",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.85.43200_59f33114080dbd69.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537402590": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-11",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.85.43200_59f33114080dbd69.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
   ]
 }
