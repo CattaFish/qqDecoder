@@ -7152,5 +7152,49 @@
       "channel": "荣耀",
       "is_beta": false
     }
+  ],
+  "537402562": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-17",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/11/17/2/110_e0451fa5efb92ce4f1110d799effc6e5.apk",
+      "channel": "豌豆荚",
+      "is_beta": false
+    }
+  ],
+  "537402601": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-17",
+      "source_url": "https://wap.pp.cn/app/dl/fs08/2026/11/17/2/110_e0451fa5efb92ce4f1110d799effc6e5.apk",
+      "channel": "豌豆荚",
+      "is_beta": false
+    }
+  ],
+  "537402567": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-17",
+      "source_url": "https://mobile.d.appchina.com/McDonald/e/7726812/0/0/0/1794918593217/package_16920.1794918593217",
+      "channel": "应用汇",
+      "is_beta": false
+    }
+  ],
+  "537402606": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-17",
+      "source_url": "https://mobile.d.appchina.com/McDonald/e/7726812/0/0/0/1794918593217/package_16920.1794918593217",
+      "channel": "应用汇",
+      "is_beta": false
+    }
   ]
 }
