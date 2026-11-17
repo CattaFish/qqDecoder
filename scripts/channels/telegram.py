@@ -9,10 +9,40 @@ TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 VALID_PACKAGE_EXTENSIONS = (".apk", ".exe", ".dmg", ".pkg", ".deb", ".rpm", ".appimage", ".ipa")
 VALID_PACKAGE_DOMAINS = ("qq.com", "myapp.com", "gtimg.cn")
 
+# 支持 9.3.85 / 9.3.85.43095 / 9.3.85(43095) / 9.3.85 (43095) / 3.2.25-43095 / 3.2.25_43095
+VER_TOKEN = r"([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\)|[-_][0-9]{4,6})?)"
+
+
 def clean_version_str(v_str: str) -> str:
     if not v_str:
         return ""
-    return re.sub(r"\s*\(\d+\)", "", str(v_str)).strip()
+    s = str(v_str).strip()
+    # 将 "9.3.85 (43095)" / "9.3.85(43095)" / "9.3.85-43095" / "9.3.85_43095" 统一归一化为 "9.3.85.43095"
+    m4 = re.match(r"^(\d+\.\d+\.\d+)\s*[-._(]\s*(\d{4,6})\)?$", s)
+    if m4:
+        return f"{m4.group(1)}.{m4.group(2)}"
+    # 去掉其余非构建号括号注释
+    s = re.sub(r"\s*\([^)]*\)", "", s).strip()
+    return s
+
+
+def extract_4part_ver_from_url(url: str, base_ver: str) -> str:
+    """当正文只有 3 段版本号时，尝试从直链文件名中补全点号或短横线连接的 4~6 位构建号"""
+    if not url or not base_ver:
+        return base_ver
+    base_parts = re.findall(r"\d+", base_ver)
+    if len(base_parts) != 3:
+        return base_ver
+
+    fname = url.split("?")[0].split("/")[-1]
+    # 仅匹配 "." 或 "-" 连接的构建号，避免误把官网文件名里的 _260401_ 日期当成构建号
+    m4 = re.search(r"(\d+\.\d+\.\d+)[.-](\d{4,6})", fname)
+    if m4:
+        u_parts = m4.group(1).split(".")
+        if u_parts == base_parts:
+            return f"{m4.group(1)}.{m4.group(2)}"
+    return base_ver
+
 
 def normalize_arch_from_link(a_txt: str, href: str, platform: str = "") -> str:
     t_low = a_txt.lower()
@@ -34,6 +64,7 @@ def normalize_arch_from_link(a_txt: str, href: str, platform: str = "") -> str:
         return "X64"
 
     return "Package"
+
 
 def get_recent_messages(limit: int = 5):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
@@ -72,6 +103,7 @@ def get_recent_messages(limit: int = 5):
         print(f"[TG 监控] 抓取频道消息异常: {e}")
         return []
 
+
 def is_telegram_beta_message(text: str, html: str) -> bool:
     t_clean = text.strip()
     h_low = html.lower()
@@ -95,6 +127,7 @@ def is_telegram_beta_message(text: str, html: str) -> bool:
 
     return False
 
+
 def parse_single_message_tasks(msg: dict):
     text = msg["text"]
     html = msg["html"]
@@ -104,32 +137,48 @@ def parse_single_message_tasks(msg: dict):
     is_beta = is_telegram_beta_message(text, html)
 
     win_ver, mac_ver, linux_ver, android_ver = "", "", "", ""
-    m_win = re.search(r"Windows(?:\s+QQ(?:_NT)?)?\s+([0-9]+(?:\.[0-9]+)+)", text, re.IGNORECASE)
-    if m_win: win_ver = m_win.group(1)
+    m_win = re.search(rf"Windows(?:\s+QQ(?:_NT)?)?\s*[:：]?\s*{VER_TOKEN}", text, re.IGNORECASE)
+    if m_win:
+        win_ver = m_win.group(1)
 
-    m_mac = re.search(r"Mac(?:OS)?(?:\s+QQ(?:_NT)?)?\s+([0-9]+(?:\.[0-9]+)+)", text, re.IGNORECASE)
-    if m_mac: mac_ver = m_mac.group(1)
+    m_mac = re.search(rf"Mac(?:OS)?(?:\s+QQ(?:_NT)?)?\s*[:：]?\s*{VER_TOKEN}", text, re.IGNORECASE)
+    if m_mac:
+        mac_ver = m_mac.group(1)
 
-    m_linux = re.search(r"Linux(?:\s+QQ(?:_NT)?)?\s+([0-9]+(?:\.[0-9]+)+)", text, re.IGNORECASE)
-    if m_linux: linux_ver = m_linux.group(1)
+    m_linux = re.search(rf"Linux(?:\s+QQ(?:_NT)?)?\s*[:：]?\s*{VER_TOKEN}", text, re.IGNORECASE)
+    if m_linux:
+        linux_ver = m_linux.group(1)
 
-    m_android = re.search(r"QQ(?:_NT)?\s*[:：]?\s*([0-9]+(?:\.[0-9]+)+(?:\([0-9]+\))?)", text, re.IGNORECASE)
-    if m_android:
-        matched_str = m_android.group(0)
-        pos = text.find(matched_str)
-        prefix = text[max(0, pos - 15):pos].lower()
+    # 使用 finditer 避免多平台混排消息在第一处桌面端处提前终止匹配
+    for m_a in re.finditer(
+        rf"QQ(?:_NT)?(?:\s*(?:Android|Phone|Mobile|安卓|手机版?))?\s*[:：]?\s*{VER_TOKEN}",
+        text,
+        re.IGNORECASE,
+    ):
+        pos = m_a.start()
+        prefix = text[max(0, pos - 20):pos].lower()
         if not any(k in prefix for k in ["windows", "mac", "linux"]):
-            android_ver = m_android.group(1)
+            android_ver = m_a.group(1)
+            break
+
+    if not android_ver:
+        m_andr_only = re.search(rf"(?:Android|安卓)\s*[:：]?\s*{VER_TOKEN}", text, re.IGNORECASE)
+        if m_andr_only:
+            android_ver = m_andr_only.group(1)
 
     lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
     if lines:
-        m_top = re.search(r"^([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\))?)", lines[0])
+        m_top = re.search(rf"^{VER_TOKEN}", lines[0])
         if m_top:
-            extracted_v = m_top.group(1).replace(" ", "")
-            if any(k in text for k in ["Windows QQ_NT", "Windows"]) and not win_ver: win_ver = extracted_v
-            elif any(k in text for k in ["Mac QQ_NT", "MacOS", "Mac"]) and not mac_ver: mac_ver = extracted_v
-            elif any(k in text for k in ["Linux QQ_NT", "Linux"]) and not linux_ver: linux_ver = extracted_v
-            elif not android_ver: android_ver = extracted_v
+            extracted_v = m_top.group(1)
+            if re.search(r"(?<![a-zA-Z])Windows(?![a-zA-Z])", text, re.IGNORECASE) and not win_ver:
+                win_ver = extracted_v
+            elif re.search(r"(?<![a-zA-Z])(?:MacOS|Mac)(?![a-zA-Z])", text, re.IGNORECASE) and not mac_ver:
+                mac_ver = extracted_v
+            elif re.search(r"(?<![a-zA-Z])Linux(?![a-zA-Z])", text, re.IGNORECASE) and not linux_ver:
+                linux_ver = extracted_v
+            elif not android_ver:
+                android_ver = extracted_v
 
     win_ver = clean_version_str(win_ver)
     mac_ver = clean_version_str(mac_ver)
@@ -159,10 +208,14 @@ def parse_single_message_tasks(msg: dict):
         elif "下载" in line_text or "官网" in line_text:
             in_backup_section = False
 
-        if any(k in line_text for k in ["Windows", "- Windows"]): current_platform = "Windows"
-        elif any(k in line_text for k in ["MacOS", "Mac", "- MacOS", "- Mac"]): current_platform = "macOS"
-        elif any(k in line_text for k in ["Linux", "- Linux"]): current_platform = "Linux"
-        elif any(k in line_text for k in ["Android", "Phone", "- Android"]): current_platform = "Android"
+        if re.search(r"(?<![a-zA-Z])Windows(?![a-zA-Z])", line_text, re.IGNORECASE):
+            current_platform = "Windows"
+        elif re.search(r"(?<![a-zA-Z])(?:MacOS|Mac)(?![a-zA-Z])", line_text, re.IGNORECASE):
+            current_platform = "macOS"
+        elif re.search(r"(?<![a-zA-Z])Linux(?![a-zA-Z])", line_text, re.IGNORECASE):
+            current_platform = "Linux"
+        elif re.search(r"(?<![a-zA-Z])(?:Android|Phone)(?![a-zA-Z])", line_text, re.IGNORECASE):
+            current_platform = "Android"
 
         line_a_tags = line_soup.find_all("a", href=True)
         if not line_a_tags:
@@ -203,6 +256,7 @@ def parse_single_message_tasks(msg: dict):
             if not ver or ver == "Unknown":
                 continue
 
+            ver = extract_4part_ver_from_url(href, ver)
             target_arch = normalize_arch_from_link(a_txt, href, target_plat)
 
             arch_key = (target_plat, target_arch)
@@ -229,10 +283,11 @@ def parse_single_message_tasks(msg: dict):
         naked_urls = re.findall(r'https?://[a-zA-Z0-9_.-]*(?:qq\.com|myapp\.com)[^"\';\s<>]+\.apk[^"\';\s<>]*', text)
         for nu in naked_urls:
             nu_clean = nu.strip()
+            ver_final = extract_4part_ver_from_url(nu_clean, android_ver)
             tasks_by_arch[("Android", "Package")] = {
                 "platform": "Android",
                 "arch": "Package",
-                "version": android_ver,
+                "version": ver_final,
                 "date": date,
                 "url": nu_clean,
                 "official_url": nu_clean,
@@ -243,6 +298,7 @@ def parse_single_message_tasks(msg: dict):
             break
 
     return list(tasks_by_arch.values())
+
 
 def get_telegram_tasks(*args, **kwargs):
     limit = kwargs.get("limit", 5)
