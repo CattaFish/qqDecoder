@@ -7064,5 +7064,93 @@
       "channel": "官方",
       "is_beta": false
     }
+  ],
+  "537402554": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-11",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/fb/fbc77d4adb9e47378694184e8e9f6a02/com.tencent.mobileqq.2611110923.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为",
+      "is_beta": false
+    }
+  ],
+  "537402593": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-11",
+      "source_url": "https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/fb/fbc77d4adb9e47378694184e8e9f6a02/com.tencent.mobileqq.2611110923.apk?maple=0&trackId=0&distOpEntity=HWSW",
+      "channel": "华为",
+      "is_beta": false
+    }
+  ],
+  "537402557": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-17",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202611/11/1db15aaf7b138087cd7acc3cecdf86a1.apk?sign=7f78a0b324e1cb25291dabc0d851d2c3&t=6AFBEEE0&m=b66f4de88498f71c0d49ff3af2360ca0&hm=a6ad49331812553b0aa0207edd639278",
+      "channel": "OPPO",
+      "is_beta": false
+    }
+  ],
+  "537402596": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-17",
+      "source_url": "https://storedl3.heytapdownload.com/apk/202611/11/1db15aaf7b138087cd7acc3cecdf86a1.apk?sign=7f78a0b324e1cb25291dabc0d851d2c3&t=6AFBEEE0&m=b66f4de88498f71c0d49ff3af2360ca0&hm=a6ad49331812553b0aa0207edd639278",
+      "channel": "OPPO",
+      "is_beta": false
+    }
+  ],
+  "537402556": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-16",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/0cc7f8d7fbe4c4361b0f6ee17875c49de38b4a27f",
+      "channel": "小米",
+      "is_beta": false
+    }
+  ],
+  "537402595": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-16",
+      "source_url": "https://pfga0.market.xiaomi.com/download/AppStore/0cc7f8d7fbe4c4361b0f6ee17875c49de38b4a27f",
+      "channel": "小米",
+      "is_beta": false
+    }
+  ],
+  "537402555": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-16",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5ec39ca0851e4d3bac10dfa65274eee3.apk",
+      "channel": "荣耀",
+      "is_beta": false
+    }
+  ],
+  "537402594": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-16",
+      "source_url": "https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5ec39ca0851e4d3bac10dfa65274eee3.apk",
+      "channel": "荣耀",
+      "is_beta": false
+    }
   ]
 }

@@ -1,2 +1,2 @@
-9.3.80.42775
-https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5e0e6b2a2c3b4be295a3d467bbc62338.apk
+9.3.85.43200
+https://apppkg-default-drcn.hihonorcdn.com/apk/upload_5ec39ca0851e4d3bac10dfa65274eee3.apk

@@ -1,2 +1,2 @@
-9.3.80.42775
-https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/7c/7cad7627dee5449d957f0ab86cc2c035/com.tencent.mobileqq.2610300956.apk?maple=0&trackId=0&distOpEntity=HWSW
+9.3.85.43200
+https://store-drcn.hispace.dbankcloud.com/dl/appdl/application/apk/fb/fbc77d4adb9e47378694184e8e9f6a02/com.tencent.mobileqq.2611110923.apk?maple=0&trackId=0&distOpEntity=HWSW
