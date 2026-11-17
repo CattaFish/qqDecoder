@@ -96,6 +96,43 @@ def get_url_fingerprint(url: str, channel: str = "") -> str:
     return clean.split("?")[0]
 
 
+def is_url_processed_for_version(
+    fp: str,
+    cur_ver: str,
+    is_cur_beta: bool,
+    processed_fp_versions: dict,
+    processed_url_fps: set,
+) -> bool:
+    """仅当库中该链接已记录过 >= 当前版本的实体时才视为已入库；防止 vivo 等固定跳转链接把新版本直接跳过"""
+    if fp not in processed_url_fps:
+        return False
+    rec_entries = processed_fp_versions.get(fp)
+    if not rec_entries:
+        return True
+
+    p_cur = [int(x) for x in re.findall(r"\d+", strip_beta_tag(cur_ver))]
+    if not p_cur:
+        return True
+
+    for rv, rv_is_beta in rec_entries:
+        p_rv = [int(x) for x in re.findall(r"\d+", rv)]
+        if not p_rv:
+            continue
+        if len(p_cur) >= 4:
+            if len(p_rv) >= 4:
+                if p_rv > p_cur or (p_rv == p_cur and (not rv_is_beta or is_cur_beta)):
+                    return True
+            elif p_rv[:3] > p_cur[:3]:
+                return True
+        else:
+            k = min(len(p_cur), 3)
+            if p_rv[:k] > p_cur[:k]:
+                return True
+            if p_rv[:k] == p_cur[:k] and (not rv_is_beta or is_cur_beta):
+                return True
+    return False
+
+
 def is_newer_version(new_ver: str, old_ver: str, is_new_beta: bool = False, is_old_beta: bool = None) -> bool:
     if not old_ver:
         return True
@@ -245,15 +282,22 @@ def main():
             subid_map = {}
 
     processed_url_fps = set()
+    processed_fp_versions = {}
     official_version_arches = {}
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
             u = item.get("source_url")
             p = item.get("platform")
-            v = strip_beta_tag(item.get("version", ""))
+            raw_v = str(item.get("version", "")).strip()
+            v = strip_beta_tag(raw_v)
+            is_b = bool(item.get("is_beta") or re.search(r"beta", raw_v, re.IGNORECASE))
             a = item.get("arch")
+            ch = item.get("channel", "")
             if u:
-                processed_url_fps.add(get_url_fingerprint(u, item.get("channel", "")))
+                fp_u = get_url_fingerprint(u, ch)
+                processed_url_fps.add(fp_u)
+                if v:
+                    processed_fp_versions.setdefault(fp_u, set()).add((v, is_b))
             if p and v and a and is_official_tg_item(item):
                 official_version_arches.setdefault((p, v), set()).add(a)
 
@@ -269,7 +313,10 @@ def main():
         is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
-        if fp_cur in processed_url_fps or cur_url in seen_urls:
+        if (
+            is_url_processed_for_version(fp_cur, cur_ver, is_beta, processed_fp_versions, processed_url_fps)
+            or cur_url in seen_urls
+        ):
             print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
             continue
 
@@ -345,8 +392,14 @@ def main():
 
         print(f"[{name}监控] 线上版本: {cur_ver} | 本地记录版本: {recorded_ver or '无'} | Beta: {is_market_beta}")
 
-        if fp_cur in processed_url_fps:
-            print(f"[{name}监控] 安装包链接已在库中，无需下载。")
+        if is_url_processed_for_version(fp_cur, cur_ver, is_market_beta, processed_fp_versions, processed_url_fps):
+            if not recorded_ver or is_newer_version(cur_ver, recorded_ver, is_new_beta=is_market_beta):
+                ver_file.parent.mkdir(parents=True, exist_ok=True)
+                ver_file.write_text(f"{cur_ver.strip()}\n{cur_url.strip()}\n", encoding="utf-8")
+                has_synced_watermark = True
+                print(f"[{name}监控] 安装包链接已在库中，已同步更新本地记录: {recorded_ver or '无'} -> {cur_ver}")
+            else:
+                print(f"[{name}监控] 安装包链接已在库中，无需下载。")
             continue
 
         should_update = False
@@ -399,11 +452,15 @@ def main():
     tasks_to_run = []
     queued_fps = set()
     for t in pending_tasks:
-        fp_t = get_url_fingerprint(t["url"], t.get("channel"))
-        if fp_t not in processed_url_fps and fp_t not in queued_fps:
+        fp_t = get_url_fingerprint(t["url"], t.get("channel", ""))
+        is_t_beta = bool(t.get("is_beta", False))
+        already_processed = is_url_processed_for_version(
+            fp_t, t["version"], is_t_beta, processed_fp_versions, processed_url_fps
+        )
+        if not already_processed and fp_t not in queued_fps:
             tasks_to_run.append(t)
             queued_fps.add(fp_t)
-        elif fp_t in processed_url_fps:
+        elif already_processed:
             if t.get("ver_file_path") and t.get("mark_channel_name"):
                 v_file = t["ver_file_path"]
                 c_name = t["mark_channel_name"]
