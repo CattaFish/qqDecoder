@@ -57,12 +57,14 @@ jobs:
           python scripts/daily_monitor.py
 
       # ==========================================
-      # 智能提交：完整收录数据与 .bak 容灾备份，纯净化推送
+      # 智能提交：冲突时基于最新 origin/main 重跑增量合入，彻底杜绝 JSON 破坏与分支分歧报错
       # ==========================================
       - name: 提交更新后的数据字典与水位线到仓库
         if: steps.monitor_step.outputs.has_new_version == 'true' || steps.monitor_step.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          ARMCONVERTER_SESSION: ${{ secrets.ARMCONVERTER_SESSION }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
@@ -72,39 +74,67 @@ jobs:
 
           if git diff --staged --quiet; then
             echo "[状态] 没有新数据生成，跳过提交。"
-          else
-            git commit -m "Auto-database: update QQ SubID mapping and watermarks [skip ci]"
+            exit 0
+          fi
 
-            # 2. ★ 核心保障：清理工作区除 data/ 外的一切未跟踪杂质，确保工作区绝对纯净，杜绝 rebase 误判
-            git checkout -- . 2>/dev/null || true
-            find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-            git clean -fd
+          git commit -m "Auto-database: update QQ SubID mapping and watermarks [skip ci]"
 
-            # 3. 稳健推送重试（最多重试 5 次）
-            for i in {1..5}; do
-              echo "[同步] 尝试推送到远程仓库 ($i/5)..."
+          # 2. 清理工作区除已提交数据外的所有临时杂质，确保工作区绝对纯净
+          git checkout -- . 2>/dev/null || true
+          rm -rf temp_dl temp_extracted 2>/dev/null || true
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          git clean -fd
+
+          # 3. 稳健推送重试（最多重试 5 次）
+          PUSHED="false"
+          for i in {1..5}; do
+            echo "[同步] 尝试推送到远程仓库 ($i/5)..."
+            if git push origin main; then
+              echo "[成功] 数据与 .bak 容灾备份已顺利推送到远程仓库！"
+              PUSHED="true"
+              break
+            fi
+
+            echo "[重试] 推送遇阻（远程有新提交），拉取最新分支进行变基..."
+            git fetch origin main
+            if git rebase origin/main; then
               if git push origin main; then
-                echo "[成功] 数据与 .bak 容灾备份已顺利推送到远程仓库！"
+                echo "[成功] 变基后数据已顺利推送到远程仓库！"
+                PUSHED="true"
+                break
+              fi
+            else
+              echo "[冲突处理] data/ 与远程存在并发冲突，切换到最新 origin/main 重新增量合入（避免破坏 JSON）..."
+              git rebase --abort 2>/dev/null || true
+              git reset --hard origin/main
+              git clean -fd
+
+              python scripts/daily_monitor.py
+              git add data/
+              if git diff --staged --quiet; then
+                echo "[状态] 远程已包含最新数据，无需重复提交。"
+                PUSHED="true"
                 break
               fi
 
-              echo "[重试] 推送遇阻（远程有新提交），拉取最新分支进行变基合并..."
-              git fetch origin main
-              if git rebase origin/main 2>/dev/null; then
-                if git push origin main; then
-                  echo "[成功] 变基后数据已顺利推送到远程仓库！"
-                  break
-                fi
-              else
-                git rebase --abort 2>/dev/null || true
-                git pull origin main --no-edit || true
-                if git push origin main; then
-                  echo "[成功] 合并后数据已顺利推送到远程仓库！"
-                  break
-                fi
+              git commit -m "Auto-database: update QQ SubID mapping and watermarks [skip ci]"
+              git checkout -- . 2>/dev/null || true
+              rm -rf temp_dl temp_extracted 2>/dev/null || true
+              find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+              git clean -fd
+
+              if git push origin main; then
+                echo "[成功] 重新基于最新分支合入后已顺利推送！"
+                PUSHED="true"
+                break
               fi
-              sleep 2
-            done
+            fi
+            sleep 2
+          done
+
+          if [ "$PUSHED" != "true" ]; then
+            echo "::error::连续 5 次推送到远程仓库均失败！"
+            exit 1
           fi
 
       # ==========================================
