@@ -7196,5 +7196,27 @@
       "channel": "应用汇",
       "is_beta": false
     }
+  ],
+  "537402553": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-16",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo",
+      "is_beta": false
+    }
+  ],
+  "537402592": [
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-16",
+      "source_url": "https://appstore.vivo.com.cn/appinfo/downloadApkFile?id=40439",
+      "channel": "vivo",
+      "is_beta": false
+    }
   ]
 }
