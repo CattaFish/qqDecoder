@@ -6977,6 +6977,15 @@
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7724881/0/0/0/1794370405356/package_16920.1794370405356",
       "channel": "应用汇",
       "is_beta": false
+    },
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-20",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/CF4A3CF181EB7246C4BA2B5ED20CD617.apk?fsname=com.tencent.mobileqq_9.3.85.apk&csr=f760",
+      "channel": "三星",
+      "is_beta": false
     }
   ],
   "537402591": [
@@ -6996,6 +7005,15 @@
       "date": "2026-11-11",
       "source_url": "https://mobile.d.appchina.com/McDonald/e/7724881/0/0/0/1794370405356/package_16920.1794370405356",
       "channel": "应用汇",
+      "is_beta": false
+    },
+    {
+      "version": "9.3.85.43200",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-20",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/CF4A3CF181EB7246C4BA2B5ED20CD617.apk?fsname=com.tencent.mobileqq_9.3.85.apk&csr=f760",
+      "channel": "三星",
       "is_beta": false
     }
   ],
