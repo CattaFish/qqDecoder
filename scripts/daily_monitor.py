@@ -219,7 +219,6 @@ def get_platform_watermarks(plat: str, subid_map: dict) -> tuple[str, str, str, 
     """
     返回 TG 官方频道双轨水位线：
     (overall_ver, overall_url, stable_ver, stable_url, v_file)
-    拆分正式版水位线与总水位线，避免高版本 #Beta（如 9.3.90）卡死低版本正式版（如 9.3.85）的收录与反编译。
     """
     v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/{plat.lower()}_latest_version.txt"))
     rec_ver, rec_url = "", ""
@@ -267,7 +266,6 @@ def get_platform_watermarks(plat: str, subid_map: dict) -> tuple[str, str, str, 
         v_file.parent.mkdir(parents=True, exist_ok=True)
         v_file.write_text(f"{rec_ver}\n{rec_url}\n", encoding="utf-8")
 
-    # 如果水位线文件是非 Beta 且比库内记录还新，兜底作为正式版基准
     if rec_ver and not re.search(r"beta", rec_ver, re.IGNORECASE):
         if is_newer_version(rec_ver, stable_ver, is_new_beta=False):
             stable_ver = rec_ver
@@ -322,7 +320,7 @@ def main():
             if p and v and a and is_tg_item:
                 official_version_arches.setdefault((p, v), set()).add(a)
 
-    # 1. 采集 Telegram 官方更新 (所有架构全量独立，每个硬件架构精准对应一个最优安装包)
+    # 1. 采集 Telegram 官方更新
     tg_tasks = get_telegram_tasks()
     seen_urls = set()
 
@@ -334,7 +332,6 @@ def main():
         is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
-        # TG 仅用 TG 官方自己处理过的链接去重，防止第三方应用市场撞链导致漏掉官方反编译触发
         if (
             is_url_processed_for_version(fp_cur, cur_ver, is_beta, official_fp_versions, official_url_fps)
             or cur_url in seen_urls
@@ -344,7 +341,6 @@ def main():
 
         overall_ver, overall_url, stable_ver, stable_url, tg_ver_file = get_platform_watermarks(plat, subid_map)
 
-        # 正式版只跟正式版基准线比；Beta 版跟全量最高水位线比
         if not is_beta:
             base_ver = stable_ver
             base_url = stable_url
@@ -375,7 +371,6 @@ def main():
 
             fp_rec = get_url_fingerprint(base_url)
 
-            # Android 在 TG 里是 Package，而库里提取后是 Phone/Pad
             is_arch_missing = (
                 arch not in known_arches
                 and not (plat == "Android" and arch == "Package" and ("Phone" in known_arches or "Pad" in known_arches))
@@ -528,7 +523,7 @@ def main():
         return
 
     print(f"\n[任务队列] 共有 {len(tasks_to_run)} 个独立安装包待全量下载提取！")
-    has_android, android_info, has_subid_extracted = False, {}, False
+    has_android, android_info, android_decompile_tasks, has_subid_extracted = False, {}, [], False
 
     # 4. 执行全量下载、格式穿透与 SubID 抽取
     for idx, t in enumerate(tasks_to_run, 1):
@@ -617,7 +612,6 @@ def main():
                         else:
                             subid_map[s_id].append(new_item)
 
-                # 保留 -Beta 后缀并防止低版本覆盖总水位线
                 if t.get("mark_channel_name"):
                     v_path = t["ver_file_path"]
                     cur_saved_ver = ""
@@ -638,11 +632,14 @@ def main():
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
                     decompile_apk_url = t.get("official_url") or t["url"]
-                    android_info = {
+                    task_meta = {
                         "url": decompile_apk_url,
                         "version": clean_ver,
                         "is_beta": "true" if is_beta_flag else "false"
                     }
+                    android_info = task_meta
+                    if not any(x["url"] == decompile_apk_url and x["version"] == clean_ver for x in android_decompile_tasks):
+                        android_decompile_tasks.append(task_meta)
         finally:
             shutil.rmtree(TEMP_DL, ignore_errors=True)
             shutil.rmtree(TEMP_EXTRACT, ignore_errors=True)
@@ -673,6 +670,7 @@ def main():
                 f.write(f"android_apk_url={android_info.get('url', '')}\n")
                 f.write(f"android_version={android_info.get('version', '')}\n")
                 f.write(f"android_is_beta={android_info.get('is_beta', 'false')}\n")
+                f.write(f"android_tasks_json={json.dumps(android_decompile_tasks, ensure_ascii=False)}\n")
             else:
                 f.write("trigger_decompile=false\n")
 
