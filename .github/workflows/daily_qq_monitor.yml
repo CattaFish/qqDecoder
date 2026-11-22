@@ -69,7 +69,6 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
 
-          # 1. 暂存 data/ 目录下所有核心成果（包含主库、运行时字典、水位线与 .bak 容灾备份）
           git add data/
 
           if git diff --staged --quiet; then
@@ -79,13 +78,11 @@ jobs:
 
           git commit -m "Auto-database: update QQ SubID mapping and watermarks [skip ci]"
 
-          # 2. 清理工作区除已提交数据外的所有临时杂质，确保工作区绝对纯净
           git checkout -- . 2>/dev/null || true
           rm -rf temp_dl temp_extracted 2>/dev/null || true
           find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
           git clean -fd
 
-          # 3. 稳健推送重试（最多重试 5 次）
           PUSHED="false"
           for i in {1..5}; do
             echo "[同步] 尝试推送到远程仓库 ($i/5)..."
@@ -138,16 +135,44 @@ jobs:
           fi
 
       # ==========================================
-      # 联动步骤：仅在检测到 Android 新版本时唤起全量反编译
+      # 联动步骤：遍历触发本轮所有新增官方 Android 版本的反编译工作流
       # ==========================================
       - name: 自动唤起 Android 反编译与 Diff 工作流
         if: steps.monitor_step.outputs.trigger_decompile == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          ANDROID_TASKS_JSON: ${{ steps.monitor_step.outputs.android_tasks_json }}
+          FALLBACK_URL: ${{ steps.monitor_step.outputs.android_apk_url }}
+          FALLBACK_VER: ${{ steps.monitor_step.outputs.android_version }}
+          FALLBACK_BETA: ${{ steps.monitor_step.outputs.android_is_beta }}
         run: |
-          echo "[联动触发] 检测到 Android 新版发布，唤醒 decompile 工作流并传递 APK 链接..."
-          gh workflow run "Auto Decompile & Twinflame DEX Diff QQ APK" \
-            -f apk_url="${{ steps.monitor_step.outputs.android_apk_url }}" \
-            -f version_short="${{ steps.monitor_step.outputs.android_version }}" \
-            -f is_beta="${{ steps.monitor_step.outputs.android_is_beta }}" \
-            -f decompile_all="true"
+          python3 - << 'EOF'
+          import json, os, subprocess, time
+
+          raw = os.environ.get("ANDROID_TASKS_JSON", "").strip()
+          tasks = []
+          if raw:
+              try:
+                  tasks = json.loads(raw)
+              except Exception:
+                  tasks = []
+
+          if not tasks and os.environ.get("FALLBACK_URL"):
+              tasks = [{
+                  "url": os.environ["FALLBACK_URL"],
+                  "version": os.environ.get("FALLBACK_VER", ""),
+                  "is_beta": os.environ.get("FALLBACK_BETA", "false"),
+              }]
+
+          for idx, item in enumerate(tasks, 1):
+              print(f"[联动触发 {idx}/{len(tasks)}] 唤醒 decompile 工作流: {item['version']} | Beta={item['is_beta']}")
+              subprocess.run([
+                  "gh", "workflow", "run", "Auto Decompile & Twinflame DEX Diff QQ APK",
+                  "-f", f"apk_url={item['url']}",
+                  "-f", f"version_short={item['version']}",
+                  "-f", f"is_beta={item['is_beta']}",
+                  "-f", "decompile_all=true",
+              ], check=True)
+              if idx < len(tasks):
+                  time.sleep(2)
+          EOF
