@@ -7,7 +7,7 @@ from extractor import validate_date_str
 TG_CHANNEL_URL = "https://t.me/s/qq_updatelog"
 
 VALID_PACKAGE_EXTENSIONS = (".apk", ".exe", ".dmg", ".pkg", ".deb", ".rpm", ".appimage", ".ipa")
-VALID_PACKAGE_DOMAINS = ("qq.com", "myapp.com", "gtimg.cn")
+VALID_PACKAGE_DOMAINS = ("qq.com", "myapp.com", "gtimg.cn", "gtimg.com")
 
 # 支持 9.3.85 / 9.3.85.43095 / 9.3.85(43095) / 9.3.85 (43095) / 3.2.25-43095 / 3.2.25_43095
 VER_TOKEN = r"([0-9]+(?:\.[0-9]+)+(?:\s*\([0-9]+\)|[-_][0-9]{4,6})?)"
@@ -21,7 +21,7 @@ def clean_version_str(v_str: str) -> str:
     m4 = re.match(r"^(\d+\.\d+\.\d+)\s*[-._(]\s*(\d{4,6})\)?$", s)
     if m4:
         return f"{m4.group(1)}.{m4.group(2)}"
-    # 去掉其余非构建号括号注释
+    # 去掉其余括注（如 9.3.85.43200 (16920) 中的 versionCode）
     s = re.sub(r"\s*\([^)]*\)", "", s).strip()
     return s
 
@@ -194,30 +194,51 @@ def parse_single_message_tasks(msg: dict):
     else:
         current_platform = "Windows"
 
+    is_single_android = bool(
+        ("#QQ_NT_Phone" in text or "#QQ_Android" in text)
+        and not (win_ver or mac_ver or linux_ver)
+    )
+
     tasks_by_arch = {}
     in_backup_section = False
 
     for line in re.split(r"<br\s*/?>|\n", html):
         line_soup = BeautifulSoup(line, "html.parser")
         line_text = line_soup.get_text().strip()
-        if not line_text and not line_soup.find("a"):
+        line_a_tags = line_soup.find_all("a", href=True)
+        if not line_text and not line_a_tags:
             continue
 
-        if "备份" in line_text:
-            in_backup_section = True
-        elif "下载" in line_text or "官网" in line_text:
+        # 关键修复：防止 "官网链接 | 频道备份" 在同一行时把官网链接也误判进备份区
+        has_non_tg_link = any(
+            a.get("href", "").startswith(("http://", "https://"))
+            and "t.me/" not in a["href"]
+            and "telegram.me/" not in a["href"]
+            and "备份" not in a.get_text()
+            for a in line_a_tags
+        )
+        if ("官网" in line_text or "下载" in line_text) and ("备份" not in line_text or has_non_tg_link):
             in_backup_section = False
+        elif "备份" in line_text and not has_non_tg_link:
+            in_backup_section = True
 
-        if re.search(r"(?<![a-zA-Z])Windows(?![a-zA-Z])", line_text, re.IGNORECASE):
-            current_platform = "Windows"
-        elif re.search(r"(?<![a-zA-Z])(?:MacOS|Mac)(?![a-zA-Z])", line_text, re.IGNORECASE):
-            current_platform = "macOS"
-        elif re.search(r"(?<![a-zA-Z])Linux(?![a-zA-Z])", line_text, re.IGNORECASE):
-            current_platform = "Linux"
-        elif re.search(r"(?<![a-zA-Z])(?:Android|Phone)(?![a-zA-Z])", line_text, re.IGNORECASE):
-            current_platform = "Android"
+        # 防止纯安卓正式版更新日志正文里提到 "Windows/Mac" 导致平台漂移
+        if not is_single_android:
+            if re.search(r"(?<![a-zA-Z])Windows(?![a-zA-Z])", line_text, re.IGNORECASE) and (
+                win_ver or "下载" in line_text or line_text.startswith(("-", "•")) or len(line_text) < 30
+            ):
+                current_platform = "Windows"
+            elif re.search(r"(?<![a-zA-Z])(?:MacOS|Mac)(?![a-zA-Z])", line_text, re.IGNORECASE) and (
+                mac_ver or "下载" in line_text or line_text.startswith(("-", "•")) or len(line_text) < 30
+            ):
+                current_platform = "macOS"
+            elif re.search(r"(?<![a-zA-Z])Linux(?![a-zA-Z])", line_text, re.IGNORECASE) and (
+                linux_ver or "下载" in line_text or line_text.startswith(("-", "•")) or len(line_text) < 30
+            ):
+                current_platform = "Linux"
+            elif re.search(r"(?<![a-zA-Z])(?:Android|Phone)(?![a-zA-Z])", line_text, re.IGNORECASE):
+                current_platform = "Android"
 
-        line_a_tags = line_soup.find_all("a", href=True)
         if not line_a_tags:
             continue
 
