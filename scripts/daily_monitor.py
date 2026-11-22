@@ -215,7 +215,12 @@ def save_database_and_runtime(subid_map: dict):
         print(f"[警告] 编译运行时字典异常: {e}")
 
 
-def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
+def get_platform_watermarks(plat: str, subid_map: dict) -> tuple[str, str, str, str, Path]:
+    """
+    返回 TG 官方频道双轨水位线：
+    (overall_ver, overall_url, stable_ver, stable_url, v_file)
+    拆分正式版水位线与总水位线，避免高版本 #Beta（如 9.3.90）卡死低版本正式版（如 9.3.85）的收录与反编译。
+    """
     v_file = TG_PLATFORM_VER_FILES.get(plat, Path(f"data/{plat.lower()}_latest_version.txt"))
     rec_ver, rec_url = "", ""
 
@@ -226,10 +231,10 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
         if len(lines) >= 2:
             rec_url = lines[1]
 
-    # 仅统计 TG 官方渠道记录，防止第三方应用市场抢跑卡死官方收录与反编译触发；并保留 -Beta 标记
     db_highest_ver = ""
+    stable_ver, stable_url = "", ""
+
     if subid_map:
-        plat_vers = []
         for val in subid_map.values():
             for item in (val if isinstance(val, list) else [val]):
                 if item.get("platform") == plat and is_official_tg_item(item) and item.get("version"):
@@ -237,11 +242,13 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
                     is_b = bool(item.get("is_beta") or re.search(r"beta", raw_v, re.IGNORECASE))
                     pure_v = strip_beta_tag(raw_v)
                     cand_v = f"{pure_v}-Beta" if (is_b and not re.search(r"beta", pure_v, re.IGNORECASE)) else pure_v
-                    plat_vers.append(cand_v)
+                    cand_url = str(item.get("source_url", "")).strip()
 
-        for pv in plat_vers:
-            if is_newer_version(pv, db_highest_ver):
-                db_highest_ver = pv
+                    if is_newer_version(cand_v, db_highest_ver):
+                        db_highest_ver = cand_v
+                    if not is_b and is_newer_version(pure_v, stable_ver, is_new_beta=False):
+                        stable_ver = pure_v
+                        stable_url = cand_url
 
     need_sync = False
     if db_highest_ver:
@@ -253,7 +260,6 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
             and re.search(r"beta", db_highest_ver, re.IGNORECASE)
             and not re.search(r"beta", rec_ver, re.IGNORECASE)
         ):
-            # 自愈历史被抹掉 -Beta 的水位线
             rec_ver = db_highest_ver
             need_sync = True
 
@@ -261,7 +267,13 @@ def get_platform_watermark(plat: str, subid_map: dict) -> tuple[str, str, Path]:
         v_file.parent.mkdir(parents=True, exist_ok=True)
         v_file.write_text(f"{rec_ver}\n{rec_url}\n", encoding="utf-8")
 
-    return rec_ver, rec_url, v_file
+    # 如果水位线文件是非 Beta 且比库内记录还新，兜底作为正式版基准
+    if rec_ver and not re.search(r"beta", rec_ver, re.IGNORECASE):
+        if is_newer_version(rec_ver, stable_ver, is_new_beta=False):
+            stable_ver = rec_ver
+            stable_url = rec_url
+
+    return rec_ver, rec_url, stable_ver, stable_url, v_file
 
 
 def main():
@@ -283,7 +295,10 @@ def main():
 
     processed_url_fps = set()
     processed_fp_versions = {}
+    official_url_fps = set()
+    official_fp_versions = {}
     official_version_arches = {}
+
     for val in subid_map.values():
         for item in (val if isinstance(val, list) else [val]):
             u = item.get("source_url")
@@ -293,12 +308,18 @@ def main():
             is_b = bool(item.get("is_beta") or re.search(r"beta", raw_v, re.IGNORECASE))
             a = item.get("arch")
             ch = item.get("channel", "")
+            is_tg_item = is_official_tg_item(item)
+
             if u:
                 fp_u = get_url_fingerprint(u, ch)
                 processed_url_fps.add(fp_u)
                 if v:
                     processed_fp_versions.setdefault(fp_u, set()).add((v, is_b))
-            if p and v and a and is_official_tg_item(item):
+                if is_tg_item:
+                    official_url_fps.add(fp_u)
+                    if v:
+                        official_fp_versions.setdefault(fp_u, set()).add((v, is_b))
+            if p and v and a and is_tg_item:
                 official_version_arches.setdefault((p, v), set()).add(a)
 
     # 1. 采集 Telegram 官方更新 (所有架构全量独立，每个硬件架构精准对应一个最优安装包)
@@ -313,28 +334,38 @@ def main():
         is_beta = t.get("is_beta", False)
         fp_cur = get_url_fingerprint(cur_url)
 
+        # TG 仅用 TG 官方自己处理过的链接去重，防止第三方应用市场撞链导致漏掉官方反编译触发
         if (
-            is_url_processed_for_version(fp_cur, cur_ver, is_beta, processed_fp_versions, processed_url_fps)
+            is_url_processed_for_version(fp_cur, cur_ver, is_beta, official_fp_versions, official_url_fps)
             or cur_url in seen_urls
         ):
-            print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在库中)，跳过。")
+            print(f"[TG 监控 - {plat}] {arch} {cur_ver} (链接已在官方库中)，跳过。")
             continue
 
-        recorded_tg_ver, recorded_tg_url, tg_ver_file = get_platform_watermark(plat, subid_map)
-        is_old_beta = bool(re.search(r"beta", recorded_tg_ver, re.IGNORECASE))
+        overall_ver, overall_url, stable_ver, stable_url, tg_ver_file = get_platform_watermarks(plat, subid_map)
+
+        # 正式版只跟正式版基准线比；Beta 版跟全量最高水位线比
+        if not is_beta:
+            base_ver = stable_ver
+            base_url = stable_url
+            is_base_beta = False
+        else:
+            base_ver = overall_ver
+            base_url = overall_url
+            is_base_beta = bool(re.search(r"beta", base_ver, re.IGNORECASE))
 
         should_update = False
         update_reason = ""
 
-        if not recorded_tg_ver:
+        if not base_ver:
             should_update = True
-            update_reason = "首次收录"
-        elif is_newer_version(cur_ver, recorded_tg_ver, is_new_beta=is_beta, is_old_beta=is_old_beta):
+            update_reason = "首次收录" if not is_beta else "首次收录 Beta"
+        elif is_newer_version(cur_ver, base_ver, is_new_beta=is_beta, is_old_beta=is_base_beta):
             should_update = True
-            update_reason = f"版本升级 ({recorded_tg_ver} -> {cur_ver})"
+            update_reason = f"版本升级 ({base_ver} -> {cur_ver})"
         else:
             clean_cur = strip_beta_tag(cur_ver)
-            clean_rec = strip_beta_tag(recorded_tg_ver)
+            clean_rec = strip_beta_tag(base_ver)
             p_cur = [int(x) for x in re.findall(r"\d+", clean_cur)]
             p_rec = [int(x) for x in re.findall(r"\d+", clean_rec)]
 
@@ -342,19 +373,25 @@ def main():
             if not known_arches and len(p_cur) == 3 and len(p_rec) >= 3 and p_cur[:3] == p_rec[:3]:
                 known_arches = official_version_arches.get((plat, clean_rec), set())
 
-            fp_rec = get_url_fingerprint(recorded_tg_url)
+            fp_rec = get_url_fingerprint(base_url)
 
-            if p_cur == p_rec and arch not in known_arches:
+            # Android 在 TG 里是 Package，而库里提取后是 Phone/Pad
+            is_arch_missing = (
+                arch not in known_arches
+                and not (plat == "Android" and arch == "Package" and ("Phone" in known_arches or "Pad" in known_arches))
+            )
+
+            if p_cur == p_rec and is_arch_missing:
                 should_update = True
                 update_reason = f"同版本新架构独立提取 ({arch})"
-            elif len(p_cur) == 3 and len(p_rec) >= 3 and p_cur[:3] == p_rec[:3] and (not recorded_tg_url or fp_cur != fp_rec):
+            elif len(p_cur) == 3 and len(p_rec) >= 3 and p_cur[:3] == p_rec[:3] and (not base_url or fp_cur != fp_rec):
                 should_update = True
-                update_reason = f"同主版本新直链构建 ({recorded_tg_ver} -> {cur_ver})"
-            elif p_cur == p_rec and recorded_tg_url and fp_cur != fp_rec:
+                update_reason = f"同主版本新直链构建 ({base_ver} -> {cur_ver})"
+            elif p_cur == p_rec and base_url and fp_cur != fp_rec:
                 should_update = True
                 update_reason = "同版本直链变动 (静默换包)"
             else:
-                print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}) <= 本地记录 ({recorded_tg_ver})，跳过。")
+                print(f"[TG 监控 - {plat}] {arch} 线上版本 ({cur_ver}, Beta={is_beta}) <= 基准记录 ({base_ver})，跳过。")
 
         if should_update:
             print(f"[TG 监控 - {plat}] ★ 触发全量独立下载: [{update_reason}] -> {cur_url}")
@@ -452,11 +489,18 @@ def main():
     tasks_to_run = []
     queued_fps = set()
     for t in pending_tasks:
-        fp_t = get_url_fingerprint(t["url"], t.get("channel", ""))
+        ch_t = t.get("channel", "")
+        fp_t = get_url_fingerprint(t["url"], ch_t)
         is_t_beta = bool(t.get("is_beta", False))
-        already_processed = is_url_processed_for_version(
-            fp_t, t["version"], is_t_beta, processed_fp_versions, processed_url_fps
-        )
+        if is_official_tg_item(t):
+            already_processed = is_url_processed_for_version(
+                fp_t, t["version"], is_t_beta, official_fp_versions, official_url_fps
+            )
+        else:
+            already_processed = is_url_processed_for_version(
+                fp_t, t["version"], is_t_beta, processed_fp_versions, processed_url_fps
+            )
+
         if not already_processed and fp_t not in queued_fps:
             tasks_to_run.append(t)
             queued_fps.add(fp_t)
@@ -506,7 +550,6 @@ def main():
 
         downloaded_file = dl_files[0]
         fname = downloaded_file.name
-        # 如果 t["version"] 已含 4 段数字，优先保留，防止官方 .exe/.apk 文件名里的 _260401_ 日期覆盖掉真正构建号
         if len(re.findall(r"\d+", strip_beta_tag(t["version"]))) >= 4:
             base_ver = t["version"]
         else:
@@ -574,7 +617,7 @@ def main():
                         else:
                             subid_map[s_id].append(new_item)
 
-                # 保留 -Beta 后缀并防止旧构建覆盖新水位线
+                # 保留 -Beta 后缀并防止低版本覆盖总水位线
                 if t.get("mark_channel_name"):
                     v_path = t["ver_file_path"]
                     cur_saved_ver = ""
@@ -595,12 +638,11 @@ def main():
                 if plat == "Android" and t.get("channel") == "官方":
                     has_android = True
                     decompile_apk_url = t.get("official_url") or t["url"]
-                    if not android_info or not is_newer_version(android_info["version"], clean_ver):
-                        android_info = {
-                            "url": decompile_apk_url,
-                            "version": clean_ver,
-                            "is_beta": "true" if is_beta_flag else "false"
-                        }
+                    android_info = {
+                        "url": decompile_apk_url,
+                        "version": clean_ver,
+                        "is_beta": "true" if is_beta_flag else "false"
+                    }
         finally:
             shutil.rmtree(TEMP_DL, ignore_errors=True)
             shutil.rmtree(TEMP_EXTRACT, ignore_errors=True)
