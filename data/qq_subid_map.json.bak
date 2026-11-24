@@ -7236,5 +7236,27 @@
       "channel": "vivo",
       "is_beta": false
     }
+  ],
+  "537406685": [
+    {
+      "version": "9.3.90.43520-Beta",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-21",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/c37a823cf1a6fc60fc92e1952ef1006c.apk",
+      "channel": "官方",
+      "is_beta": true
+    }
+  ],
+  "537406696": [
+    {
+      "version": "9.3.90.43520-Beta",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-21",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/c37a823cf1a6fc60fc92e1952ef1006c.apk",
+      "channel": "官方",
+      "is_beta": true
+    }
   ]
 }

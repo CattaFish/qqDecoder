@@ -1,2 +1,2 @@
-9.9.37.54395
-https://qqdl.gtimg.cn/qqfile/QQNT/9.9.37/beta/ae4551ce/QQ9.9.37.54395_arm64.exe
+9.9.38.54985
+https://qqdl.gtimg.cn/qqfile/QQNT/9.9.38/beta/db9d228d/QQ9.9.38.54985_arm64.exe
