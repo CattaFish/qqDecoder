@@ -1,4 +1,52 @@
 {
+  "537407187": {
+    "summary": "QQ(Pad) 9.3.90.43625",
+    "platform": "Android",
+    "version": "9.3.90.43625",
+    "arch": "Pad",
+    "date": "2026-11-25 / 2026-11-26",
+    "dates": [
+      "2026-11-25",
+      "2026-11-26"
+    ],
+    "channel": "应用宝 / 三星",
+    "channels": [
+      "应用宝",
+      "三星"
+    ]
+  },
+  "537407186": {
+    "summary": "QQ(Pad) 9.3.90.43625",
+    "platform": "Android",
+    "version": "9.3.90.43625",
+    "arch": "Pad",
+    "date": "2026-11-25",
+    "channel": "官方"
+  },
+  "537407148": {
+    "summary": "QQ 9.3.90.43625",
+    "platform": "Android",
+    "version": "9.3.90.43625",
+    "arch": "Phone",
+    "date": "2026-11-25 / 2026-11-26",
+    "dates": [
+      "2026-11-25",
+      "2026-11-26"
+    ],
+    "channel": "应用宝 / 三星",
+    "channels": [
+      "应用宝",
+      "三星"
+    ]
+  },
+  "537407147": {
+    "summary": "QQ 9.3.90.43625",
+    "platform": "Android",
+    "version": "9.3.90.43625",
+    "arch": "Phone",
+    "date": "2026-11-25",
+    "channel": "官方"
+  },
   "537406696": {
     "summary": "QQ(Pad) 9.3.90.43520-Beta",
     "platform": "Android",

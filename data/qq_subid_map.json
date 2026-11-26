@@ -7302,5 +7302,67 @@
       "channel": "官方",
       "is_beta": false
     }
+  ],
+  "537407147": [
+    {
+      "version": "9.3.90.43625",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-25",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.90.43625_59f33114091efd70.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537407186": [
+    {
+      "version": "9.3.90.43625",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-25",
+      "source_url": "https://downv6.qq.com/qqweb/QQ_1/android_apk/9.3.90.43625_59f33114091efd70.apk",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537407148": [
+    {
+      "version": "9.3.90.43625",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-25",
+      "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/B6CCEAA156D743257D97F3743D98C02B.apk?fsname=com.tencent.mobileqq_9.3.90.apk",
+      "channel": "应用宝",
+      "is_beta": false
+    },
+    {
+      "version": "9.3.90.43625",
+      "platform": "Android",
+      "arch": "Phone",
+      "date": "2026-11-26",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/B6CCEAA156D743257D97F3743D98C02B.apk?fsname=com.tencent.mobileqq_9.3.90.apk&csr=f760",
+      "channel": "三星",
+      "is_beta": false
+    }
+  ],
+  "537407187": [
+    {
+      "version": "9.3.90.43625",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-25",
+      "source_url": "http://imtt.dd.qq.com/sjy.00022/sjy.00004/16891/apk/B6CCEAA156D743257D97F3743D98C02B.apk?fsname=com.tencent.mobileqq_9.3.90.apk",
+      "channel": "应用宝",
+      "is_beta": false
+    },
+    {
+      "version": "9.3.90.43625",
+      "platform": "Android",
+      "arch": "Pad",
+      "date": "2026-11-26",
+      "source_url": "https://imtt.dd.qq.com/sjy.20011/sjy.00004/70F9FEB84B66FE6D/16891/apk/B6CCEAA156D743257D97F3743D98C02B.apk?fsname=com.tencent.mobileqq_9.3.90.apk&csr=f760",
+      "channel": "三星",
+      "is_beta": false
+    }
   ]
 }

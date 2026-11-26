@@ -7258,5 +7258,49 @@
       "channel": "官方",
       "is_beta": true
     }
+  ],
+  "537404051": [
+    {
+      "version": "9.9.38.54985",
+      "platform": "Windows",
+      "arch": "X86",
+      "date": "2026-11-23",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.38/beta/c2c6fcad/QQ9.9.38.54985_x86.exe",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537404052": [
+    {
+      "version": "9.9.38.54985",
+      "platform": "Windows",
+      "arch": "X64",
+      "date": "2026-11-23",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.38/beta/c2c6fcad/QQ9.9.38.54985_x64.exe",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537404064": [
+    {
+      "version": "9.9.38.54985",
+      "platform": "Windows",
+      "arch": "Arm",
+      "date": "2026-11-23",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.38/beta/db9d228d/QQ9.9.38.54985_arm64.exe",
+      "channel": "官方",
+      "is_beta": false
+    }
+  ],
+  "537404076": [
+    {
+      "version": "7.0.4.54985",
+      "platform": "macOS",
+      "arch": "Universal",
+      "date": "2026-11-23",
+      "source_url": "https://qqdl.gtimg.cn/qqfile/QQNT/9.9.38/beta/bc68822b/QQ_v7.0.4.54985.dmg",
+      "channel": "官方",
+      "is_beta": false
+    }
   ]
 }
